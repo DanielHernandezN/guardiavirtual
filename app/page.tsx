@@ -1,3 +1,5 @@
+import LoginForm from "./components/LoginForm";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#f8f7f5] flex items-center justify-center px-6 py-10">
@@ -12,7 +14,7 @@ export default function Home() {
             <span className="text-4xl">◉</span>
           </div>
 
-          <h1 className="text-4xl font-bold tracking-tight text-[#1d3557]">
+          <h1 className="text-5xl font-bold tracking-tight text-[#0e2442]">
             Cabo Virtual
           </h1>
 
@@ -28,51 +30,9 @@ export default function Home() {
             Iniciar sesión
           </h2>
 
-          <form className="space-y-5">
-            
-            {/* ID */}
-            <div>
-              <label
-                htmlFor="id"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                ID
-              </label>
+          <LoginForm />
 
-              <input
-                id="id"
-                type="text"
-                placeholder="Ingrese su ID"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#c9654b] focus:ring-2 focus:ring-[#c9654b]/20"
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                PASS
-              </label>
-
-              <input
-                id="password"
-                type="password"
-                placeholder="Ingrese su contraseña"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none transition focus:border-[#c9654b] focus:ring-2 focus:ring-[#c9654b]/20"
-              />
-            </div>
-
-            {/* Botón */}
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-[#c9654b] px-4 py-3 font-semibold text-white transition hover:bg-[#b95740]"
-            >
-              INGRESAR
-            </button>
-
-          </form>
+          
         </div>
 
         {/* Pie */}
