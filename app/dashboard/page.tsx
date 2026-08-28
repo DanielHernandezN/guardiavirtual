@@ -1,3 +1,5 @@
+import Chat from "../components/chat";
+
 
 export default function Dashboard() {
 
@@ -15,7 +17,7 @@ export default function Dashboard() {
       flex-col
       p-6
       gap-8
-      bg-[#444a9e3d]
+      bg-[#d2d2df]
       ">
         <div className="
         flex
@@ -38,15 +40,11 @@ export default function Dashboard() {
                 <p>Agente 3</p> 
         </div>
       </section>
-
-
-      <section className="
-      w-[80%]
-      bg-green-900
-      ">
-        <h2>Chat IA</h2>
-      </section>
+      
+      <Chat />
 
     </main>
   );
 }
+
+

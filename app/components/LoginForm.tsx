@@ -78,9 +78,9 @@ export default function LoginForm() {
             <button
               type="submit"
               className="w-full rounded-xl 
-              bg-[#c9654b] px-4 py-3 font-semibold
+              bg-[#2b47a3] px-4 py-3 font-semibold
               text-white transition
-              hover:bg-[#b95740]"
+              hover:bg-[#721212]"
             >
               INGRESAR
             </button>

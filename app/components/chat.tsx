@@ -1,0 +1,157 @@
+"use client"
+
+import React from "react";
+import { useState, useEffect, useRef } from "react";
+
+export default function Chat() {
+
+    type Mensaje = {        
+        contenido: string,
+        autor: string,
+    }
+
+    const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+    const [antecedentes, setAntecedentes] = useState("");
+    const finalMensajes = useRef<HTMLDivElement>(null);
+        useEffect(() => {
+            finalMensajes.current?.scrollIntoView({
+                behavior: "smooth"
+            });
+        }, [mensajes]);
+
+    const responderCabo = (texto: string) => {
+            setMensajes((mensajesActuales) => [
+        ...mensajesActuales,
+        {
+            contenido: "Entendido. Analizaré los antecedentes.",
+            autor: "cabo"
+        }
+    ]);
+
+    console.log(texto);
+}
+
+
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+
+        if(!antecedentes.trim()){
+            return;
+        }
+
+        setMensajes([
+    ...mensajes,
+    {
+        contenido: antecedentes,
+        autor: "funcionario"
+    },
+  
+]);
+
+        responderCabo(antecedentes);
+
+        console.log(antecedentes)
+
+        setAntecedentes("");
+
+    }
+
+  return (
+    
+    <section className="
+          flex
+          flex-col
+          w-[80%]
+          h-screen
+          bg-[#e7dfddad]
+          ">
+            <div className="
+            flex
+            flex-row
+            p-6
+            justify-between
+            border-b
+            ">
+              <div>
+                <h2>CABO VIRTUAL</h2>
+                <p>Asistente de apoyo documental</p>
+              </div>
+                <div className="flex flex-row gap-2">
+                  <p>●</p>
+                  <p>En línea</p>
+                </div>
+            </div>
+
+
+
+            <div className="
+            flex-1 
+            p-6
+            overflow-y-auto
+            ">
+                {mensajes.map((mensaje, index) => (
+                <div key={index}
+                    className={
+                        mensaje.autor === "funcionario"
+                        ? "flex justify-end"
+                        : "flex justify-start"
+                }  
+                >
+                    <div className="
+                    flex
+                    flex-col
+                    gap-1
+                    p-4
+                    rounded-xl
+                    bg-[#2b47a3]
+                    text-white
+                    ">
+                    <p>{mensaje.autor}</p>
+                    <p>{mensaje.contenido}</p>
+                    </div>
+                </div>
+                ))}
+
+                <div ref={finalMensajes}></div>
+
+            </div>
+            
+
+            <div>
+              <form onSubmit={handleSubmit} className="
+              flex
+              flex-row
+              p-6
+              gap-3
+              "
+        
+              >
+                <input className="
+                flex-1
+                px-6
+                py-3
+                rounded-xl
+                border
+                bg-[#d6d8ffad]
+                "
+                placeholder="Escriba los antecedentes"
+                value={antecedentes}
+                onChange={(e) => setAntecedentes(e.target.value)}
+                
+                />
+                  <button type="submit"
+                  className="
+                  px-6
+                  py-3
+                  bg-[#2b47a3]
+                  text-white
+                  rounded-xl
+                  hover:bg-[#721212]
+                  "
+                  >ENVIAR</button>
+              </form>
+            </div>
+          </section>
+  );
+}
