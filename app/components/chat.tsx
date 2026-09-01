@@ -20,10 +20,33 @@ export default function Chat() {
         }, [mensajes]);
 
     const responderCabo = (texto: string) => {
+            let respuesta = "";
+            let tipoProcedimiento = "";
+                if (texto.toLowerCase().includes("hurto")){
+                    tipoProcedimiento = "hurto";
+                    
+                } else if (texto.toLowerCase().includes("robo")){
+                    tipoProcedimiento = "robo";
+  
+                } else {
+                    tipoProcedimiento = "otro";
+                                    }
+
+                    if (tipoProcedimiento === "hurto") {
+                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por hurto.";
+                    } else if (tipoProcedimiento === "robo") {
+                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por robo.";
+                    } else {
+                        respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+                    }
+
+
+                console.log(tipoProcedimiento);
+            
             setMensajes((mensajesActuales) => [
         ...mensajesActuales,
         {
-            contenido: "Entendido. Analizaré los antecedentes.",
+            contenido: respuesta,
             autor: "cabo"
         }
     ]);
