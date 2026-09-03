@@ -64,18 +64,24 @@ export default function Chat() {
 ;
 
 
-                if (tipoProcedimiento === "hurto") {
-                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por hurto.";
-                } else if (tipoProcedimiento === "robo") {
-                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por robo.";
+                if (datos.tipoProcedimiento === "hurto") {
+                    respuesta = `He identificado un procedimiento por hurto relacionado con una ${datos.especie}.`;
+                } else if (datos.tipoProcedimiento === "robo") {
+                    respuesta = `He identificado un procedimiento por robo relacionado con una ${datos.especie}.`;
                 } else {
-                        respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+                    respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+                }
+
+                if (!datos.lugar) {
+                    respuesta += " Falta informar el lugar de ocurrencia. Con los antecedentes disponibles aún no es posible confeccionar el borrador.";
+                } else {
+                    respuesta += ` El hecho habría ocurrido en un ${datos.lugar}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
                 }
 
 
-                console.log(tipoProcedimiento);
-                console.log(especie);
-                console.log(lugar);
+                console.log(datos.tipoProcedimiento);
+                console.log("LUGAR:", datos.lugar);
+                console.log("¿FALTA LUGAR?:", !datos.lugar);
             
             setMensajes((mensajesActuales) => [
         ...mensajesActuales,
