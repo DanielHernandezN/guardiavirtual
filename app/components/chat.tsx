@@ -10,6 +10,13 @@ export default function Chat() {
         autor: string,
     }
 
+    type Antecedentes = {
+        tipoProcedimiento: string,
+        especie: string,
+        lugar: string,
+    }
+    
+
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
     const finalMensajes = useRef<HTMLDivElement>(null);
@@ -22,26 +29,50 @@ export default function Chat() {
     const responderCabo = (texto: string) => {
             let respuesta = "";
             let tipoProcedimiento = "";
-                if (texto.toLowerCase().includes("hurto")){
+            let especie = "";
+    
+
+            const datos: Antecedentes = {
+                tipoProcedimiento: "hurto",
+                especie: "bicicleta",
+                lugar:"supermercado",
+    }
+
+                
+                console.log(datos.tipoProcedimiento);
+                console.log(datos.especie);
+                console.log(datos.lugar);
+
+
+                if (
+                    texto.toLowerCase().includes("hurt")||
+                    texto.toLowerCase().includes("sustracción")
+                ){
                     tipoProcedimiento = "hurto";
                     
                 } else if (texto.toLowerCase().includes("robo")){
                     tipoProcedimiento = "robo";
   
-                } else {
+                }                 
+                else {
                     tipoProcedimiento = "otro";
-                                    }
-
-                    if (tipoProcedimiento === "hurto") {
-                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por hurto.";
-                    } else if (tipoProcedimiento === "robo") {
-                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por robo.";
-                    } else {
-                        respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+                } 
+                if (
+                    texto.toLowerCase().includes("bicicleta")){
+                    especie = "bicicleta";
                     }
+
+                if (tipoProcedimiento === "hurto") {
+                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por hurto.";
+                } else if (tipoProcedimiento === "robo") {
+                        respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por robo.";
+                } else {
+                        respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+                }
 
 
                 console.log(tipoProcedimiento);
+                console.log(especie);
             
             setMensajes((mensajesActuales) => [
         ...mensajesActuales,
