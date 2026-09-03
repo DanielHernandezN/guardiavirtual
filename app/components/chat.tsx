@@ -30,19 +30,8 @@ export default function Chat() {
             let respuesta = "";
             let tipoProcedimiento = "";
             let especie = "";
+            let lugar ="";
     
-
-            const datos: Antecedentes = {
-                tipoProcedimiento: "hurto",
-                especie: "bicicleta",
-                lugar:"supermercado",
-    }
-
-                
-                console.log(datos.tipoProcedimiento);
-                console.log(datos.especie);
-                console.log(datos.lugar);
-
 
                 if (
                     texto.toLowerCase().includes("hurt")||
@@ -50,7 +39,7 @@ export default function Chat() {
                 ){
                     tipoProcedimiento = "hurto";
                     
-                } else if (texto.toLowerCase().includes("robo")){
+                } else if (texto.toLowerCase().includes("rob")){
                     tipoProcedimiento = "robo";
   
                 }                 
@@ -61,6 +50,19 @@ export default function Chat() {
                     texto.toLowerCase().includes("bicicleta")){
                     especie = "bicicleta";
                     }
+                if (texto.toLowerCase().includes("supermercado")) {
+                    lugar = "supermercado";
+}
+            const datos: Antecedentes = {
+                tipoProcedimiento: tipoProcedimiento,
+                especie: especie,
+                lugar: lugar,
+    }
+
+                
+                console.log(datos);
+;
+
 
                 if (tipoProcedimiento === "hurto") {
                         respuesta = "He identificado que los antecedentes hacen referencia a un procedimiento por hurto.";
@@ -73,6 +75,7 @@ export default function Chat() {
 
                 console.log(tipoProcedimiento);
                 console.log(especie);
+                console.log(lugar);
             
             setMensajes((mensajesActuales) => [
         ...mensajesActuales,
