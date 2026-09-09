@@ -14,11 +14,21 @@ export default function Chat() {
         tipoProcedimiento: string,
         especie: string,
         lugar: string,
+        puedeConfeccionarBorrador: boolean,
+        faltantes: string[],
     }
-    
+
 
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
+    const [datosAntecedentes, setDatosAntecedentes] = useState<Antecedentes>({
+        tipoProcedimiento: "",
+        especie: "",
+        lugar: "",
+        puedeConfeccionarBorrador: false,
+        faltantes: []
+    });
+
     const finalMensajes = useRef<HTMLDivElement>(null);
         useEffect(() => {
             finalMensajes.current?.scrollIntoView({
@@ -27,99 +37,91 @@ export default function Chat() {
         }, [mensajes]);
 
     const responderCabo = (texto: string) => {
-            let respuesta = "";
-            let tipoProcedimiento = "";
-            let especie = "";
-            let lugar ="";
-    
+        const textoLower = texto.toLowerCase();
+        const tipoProcedimiento =
+            textoLower.includes("hurt") || textoLower.includes("sustracción")
+                ? "hurto"
+                : textoLower.includes("rob")
+                    ? "robo"
+                    : datosAntecedentes.tipoProcedimiento;
 
-                if (
-                    texto.toLowerCase().includes("hurt")||
-                    texto.toLowerCase().includes("sustracción")
-                ){
-                    tipoProcedimiento = "hurto";
-                    
-                } else if (texto.toLowerCase().includes("rob")){
-                    tipoProcedimiento = "robo";
-  
-                }                 
-                else {
-                    tipoProcedimiento = "otro";
-                } 
-                if (
-                    texto.toLowerCase().includes("bicicleta")){
-                    especie = "bicicleta";
-                    }
-                if (texto.toLowerCase().includes("supermercado")) {
-                    lugar = "supermercado";
-}
-            const datos: Antecedentes = {
-                tipoProcedimiento: tipoProcedimiento,
-                especie: especie,
-                lugar: lugar,
-    }
+        const especie = textoLower.includes("bicicleta")
+            ? "bicicleta"
+            : datosAntecedentes.especie;
 
-                
-                console.log(datos);
-;
+        const lugar = textoLower.includes("supermercado")
+            ? "supermercado"
+            : datosAntecedentes.lugar;
 
+        const faltantes: string[] = [];
 
-                if (datos.tipoProcedimiento === "hurto") {
-                    respuesta = `He identificado un procedimiento por hurto relacionado con una ${datos.especie}.`;
-                } else if (datos.tipoProcedimiento === "robo") {
-                    respuesta = `He identificado un procedimiento por robo relacionado con una ${datos.especie}.`;
-                } else {
-                    respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
-                }
-
-                if (!datos.lugar) {
-                    respuesta += " Falta informar el lugar de ocurrencia. Con los antecedentes disponibles aún no es posible confeccionar el borrador.";
-                } else {
-                    respuesta += ` El hecho habría ocurrido en un ${datos.lugar}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
-                }
-
-
-                console.log(datos.tipoProcedimiento);
-                console.log("LUGAR:", datos.lugar);
-                console.log("¿FALTA LUGAR?:", !datos.lugar);
-            
-            setMensajes((mensajesActuales) => [
-        ...mensajesActuales,
-        {
-            contenido: respuesta,
-            autor: "cabo"
+        if (!tipoProcedimiento) {
+            faltantes.push("tipo de procedimiento");
         }
-    ]);
 
-    console.log(texto);
-}
+        if (!especie) {
+            faltantes.push("especie");
+        }
 
+        if (!lugar) {
+            faltantes.push("lugar de ocurrencia");
+        }
 
+        const datosActualizados: Antecedentes = {
+            tipoProcedimiento: tipoProcedimiento || "",
+            especie: especie || "",
+            lugar: lugar || "",
+            puedeConfeccionarBorrador: Boolean(tipoProcedimiento && especie && lugar),
+            faltantes,
+        };
+
+        setDatosAntecedentes(datosActualizados);
+
+        let respuesta = "";
+
+        if (datosActualizados.tipoProcedimiento === "hurto") {
+            respuesta = `He identificado un procedimiento por hurto relacionado con una ${datosActualizados.especie}.`;
+        } else if (datosActualizados.tipoProcedimiento === "robo") {
+            respuesta = `He identificado un procedimiento por robo relacionado con una ${datosActualizados.especie}.`;
+        } else {
+            respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
+        }
+
+        if (!datosActualizados.puedeConfeccionarBorrador) {
+            respuesta += ` Aún falta informar: ${datosActualizados.faltantes.join(", ")}. Con los antecedentes disponibles no es posible confeccionar el borrador.`;
+        } else {
+            respuesta += ` El hecho habría ocurrido en un ${datosActualizados.lugar}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
+        }
+
+        setMensajes((mensajesActuales) => [
+            ...mensajesActuales,
+            {
+                contenido: respuesta,
+                autor: "cabo"
+            }
+        ]);
+    };
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if(!antecedentes.trim()){
+        const textoIngresado = antecedentes.trim();
+
+        if (!textoIngresado) {
             return;
         }
 
-        setMensajes([
-    ...mensajes,
-    {
-        contenido: antecedentes,
-        autor: "funcionario"
-    },
-  
-]);
+        setMensajes((mensajesActuales) => [
+            ...mensajesActuales,
+            {
+                contenido: textoIngresado,
+                autor: "funcionario"
+            }
+        ]);
 
-        responderCabo(antecedentes);
-
-        console.log(antecedentes)
-
+        responderCabo(textoIngresado);
         setAntecedentes("");
-
-    }
-
+    };
   return (
     
     <section className="
