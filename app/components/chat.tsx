@@ -14,6 +14,8 @@ export default function Chat() {
         tipoProcedimiento: string,
         especie: string,
         lugar: string,
+        fecha: string,
+        descripcionHechos: string,
         puedeConfeccionarBorrador: boolean,
         faltantes: string[],
     }
@@ -25,6 +27,8 @@ export default function Chat() {
         tipoProcedimiento: "",
         especie: "",
         lugar: "",
+        fecha: "",
+        descripcionHechos: "",
         puedeConfeccionarBorrador: false,
         faltantes: []
     });
@@ -53,6 +57,16 @@ export default function Chat() {
             ? "supermercado"
             : datosAntecedentes.lugar;
 
+            const fechaEncontrada = textoLower.match(/\d{2}\/\d{2}\/\d{4}/);
+
+            const fecha = fechaEncontrada
+                ? fechaEncontrada[0]
+                : datosAntecedentes.fecha;
+
+            const descripcionHechos = datosAntecedentes.descripcionHechos
+                ? `${datosAntecedentes.descripcionHechos}. ${texto}`
+                : texto;
+
         const faltantes: string[] = [];
 
         if (!tipoProcedimiento) {
@@ -66,12 +80,18 @@ export default function Chat() {
         if (!lugar) {
             faltantes.push("lugar de ocurrencia");
         }
+        if (!fecha) {
+            faltantes.push("fecha del procedimiento");
+        }
+        
 
         const datosActualizados: Antecedentes = {
             tipoProcedimiento: tipoProcedimiento || "",
             especie: especie || "",
             lugar: lugar || "",
-            puedeConfeccionarBorrador: Boolean(tipoProcedimiento && especie && lugar),
+            fecha: fecha || "",
+            descripcionHechos: descripcionHechos || "",
+            puedeConfeccionarBorrador: Boolean(tipoProcedimiento && especie && lugar && fecha),
             faltantes,
         };
 
@@ -89,8 +109,8 @@ export default function Chat() {
 
         if (!datosActualizados.puedeConfeccionarBorrador) {
             respuesta += ` Aún falta informar: ${datosActualizados.faltantes.join(", ")}. Con los antecedentes disponibles no es posible confeccionar el borrador.`;
-        } else {
-            respuesta += ` El hecho habría ocurrido en un ${datosActualizados.lugar}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
+         } else {
+            respuesta += ` El hecho habría ocurrido en un ${datosActualizados.lugar}, con fecha ${datosActualizados.fecha}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
         }
 
         setMensajes((mensajesActuales) => [
@@ -122,7 +142,8 @@ export default function Chat() {
         responderCabo(textoIngresado);
         setAntecedentes("");
     };
-  return (
+  
+    return (
     
     <section className="
           flex
