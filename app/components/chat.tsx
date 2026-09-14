@@ -18,11 +18,25 @@ export default function Chat() {
         descripcionHechos: string,
         puedeConfeccionarBorrador: boolean,
         faltantes: string[],
+        contradicciones: string[],
     }
 
+    type RespuestaIA = {
+        respuesta?: string,
+        tipoProcedimiento?: string,
+        especie?: string,
+        lugar?: string,
+        fecha?: string,
+        descripcionHechos?: string,
+        puedeConfeccionarBorrador?: boolean,
+        faltantes?: string[],
+        contradicciones?: string[],
+        error?: string,
+    }
 
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     const [datosAntecedentes, setDatosAntecedentes] = useState<Antecedentes>({
         tipoProcedimiento: "",
         especie: "",
@@ -30,15 +44,16 @@ export default function Chat() {
         fecha: "",
         descripcionHechos: "",
         puedeConfeccionarBorrador: false,
-        faltantes: []
+        faltantes: [],
+        contradicciones: []
     });
 
     const finalMensajes = useRef<HTMLDivElement>(null);
-        useEffect(() => {
-            finalMensajes.current?.scrollIntoView({
-                behavior: "smooth"
-            });
-        }, [mensajes]);
+    useEffect(() => {
+        finalMensajes.current?.scrollIntoView({
+            behavior: "smooth"
+        });
+    }, [mensajes, isLoading]);
 
     const responderCabo = (texto: string) => {
         const textoLower = texto.toLowerCase();
@@ -57,15 +72,15 @@ export default function Chat() {
             ? "supermercado"
             : datosAntecedentes.lugar;
 
-            const fechaEncontrada = textoLower.match(/\d{2}\/\d{2}\/\d{4}/);
+        const fechaEncontrada = textoLower.match(/\d{2}\/\d{2}\/\d{4}/);
 
-            const fecha = fechaEncontrada
-                ? fechaEncontrada[0]
-                : datosAntecedentes.fecha;
+        const fecha = fechaEncontrada
+            ? fechaEncontrada[0]
+            : datosAntecedentes.fecha;
 
-            const descripcionHechos = datosAntecedentes.descripcionHechos
-                ? `${datosAntecedentes.descripcionHechos}. ${texto}`
-                : texto;
+        const descripcionHechos = datosAntecedentes.descripcionHechos
+            ? `${datosAntecedentes.descripcionHechos}. ${texto}`
+            : texto;
 
         const faltantes: string[] = [];
 
@@ -80,10 +95,10 @@ export default function Chat() {
         if (!lugar) {
             faltantes.push("lugar de ocurrencia");
         }
+
         if (!fecha) {
             faltantes.push("fecha del procedimiento");
         }
-        
 
         const datosActualizados: Antecedentes = {
             tipoProcedimiento: tipoProcedimiento || "",
@@ -93,6 +108,7 @@ export default function Chat() {
             descripcionHechos: descripcionHechos || "",
             puedeConfeccionarBorrador: Boolean(tipoProcedimiento && especie && lugar && fecha),
             faltantes,
+            contradicciones: [],
         };
 
         setDatosAntecedentes(datosActualizados);
@@ -109,20 +125,14 @@ export default function Chat() {
 
         if (!datosActualizados.puedeConfeccionarBorrador) {
             respuesta += ` Aún falta informar: ${datosActualizados.faltantes.join(", ")}. Con los antecedentes disponibles no es posible confeccionar el borrador.`;
-         } else {
+        } else {
             respuesta += ` El hecho habría ocurrido en un ${datosActualizados.lugar}, con fecha ${datosActualizados.fecha}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
         }
 
-        setMensajes((mensajesActuales) => [
-            ...mensajesActuales,
-            {
-                contenido: respuesta,
-                autor: "cabo"
-            }
-        ]);
+        return respuesta;
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         const textoIngresado = antecedentes.trim();
@@ -131,16 +141,70 @@ export default function Chat() {
             return;
         }
 
+        const mensajeUsuario: Mensaje = {
+            contenido: textoIngresado,
+            autor: "funcionario"
+        };
+
         setMensajes((mensajesActuales) => [
             ...mensajesActuales,
-            {
-                contenido: textoIngresado,
-                autor: "funcionario"
-            }
+            mensajeUsuario,
         ]);
-
-        responderCabo(textoIngresado);
         setAntecedentes("");
+        setIsLoading(true);
+
+        try {
+            const payload = {
+                mensaje: textoIngresado,
+                antecedentes: datosAntecedentes,
+            };
+
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data: RespuestaIA = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error ?? "Error al procesar el caso.");
+            }
+
+            const resultado = data.respuesta ?? responderCabo(textoIngresado);
+
+            setDatosAntecedentes((prev) => ({
+                ...prev,
+                tipoProcedimiento: data.tipoProcedimiento ?? prev.tipoProcedimiento,
+                especie: data.especie ?? prev.especie,
+                lugar: data.lugar ?? prev.lugar,
+                fecha: data.fecha ?? prev.fecha,
+                descripcionHechos: data.descripcionHechos ?? prev.descripcionHechos,
+                puedeConfeccionarBorrador: data.puedeConfeccionarBorrador ?? prev.puedeConfeccionarBorrador,
+                faltantes: data.faltantes ?? prev.faltantes,
+                contradicciones: data.contradicciones ?? prev.contradicciones,
+            }));
+
+            setMensajes((mensajesActuales) => [
+                ...mensajesActuales,
+                {
+                    contenido: resultado,
+                    autor: "cabo"
+                }
+            ]);
+        } catch (error) {
+            setMensajes((mensajesActuales) => [
+                ...mensajesActuales,
+                {
+                    contenido: error instanceof Error ? error.message : "No pude procesar la solicitud.",
+                    autor: "cabo"
+                }
+            ]);
+        } finally {
+            setIsLoading(false);
+        }
     };
   
     return (
@@ -168,8 +232,6 @@ export default function Chat() {
                   <p>En línea</p>
                 </div>
             </div>
-
-
 
             <div className="
             flex-1 
@@ -199,6 +261,15 @@ export default function Chat() {
                 </div>
                 ))}
 
+                {isLoading && (
+                    <div className="flex justify-start">
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-[#2b47a3] text-white">
+                            <p>cabo</p>
+                            <p>Analizando antecedentes...</p>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={finalMensajes}></div>
 
             </div>
@@ -224,7 +295,7 @@ export default function Chat() {
                 placeholder="Escriba los antecedentes"
                 value={antecedentes}
                 onChange={(e) => setAntecedentes(e.target.value)}
-                
+                disabled={isLoading}
                 />
                   <button type="submit"
                   className="
@@ -234,8 +305,10 @@ export default function Chat() {
                   text-white
                   rounded-xl
                   hover:bg-[#721212]
+                  disabled:opacity-60
                   "
-                  >ENVIAR</button>
+                  disabled={isLoading}
+                  >{isLoading ? "PROCESANDO..." : "ENVIAR"}</button>
               </form>
             </div>
           </section>
