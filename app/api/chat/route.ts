@@ -29,17 +29,17 @@ export async function POST(request: Request) {
             );
         }
 
-        const apiKey = process.env.OPENAI_API_KEY;
+        const apiKey = process.env.OPENROUTER_API_KEY ?? process.env.OPENAI_API_KEY;
         if (!apiKey) {
             return Response.json(
                 {
-                    error: "Falta OPENAI_API_KEY en las variables de entorno.",
+                    error: "Falta OPENROUTER_API_KEY o OPENAI_API_KEY en las variables de entorno.",
                 },
                 { status: 500 }
             );
         }
 
-        const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+        const model = process.env.OPENROUTER_MODEL ?? process.env.OPENAI_MODEL ?? "openai/gpt-4o-mini";
 
         const systemPrompt = `Eres un funcionario virtual de apoyo documental para la confección de partes policiales.
 
@@ -53,11 +53,13 @@ Reglas:
 - Si no hay información suficiente, usa "pendiente" o [] en el valor correspondiente.
 - Responde únicamente con JSON válido en español.`;
 
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${apiKey}`,
+                "HTTP-Referer": "http://localhost:3000",
+                "X-Title": "Guardiavirtual",
             },
             body: JSON.stringify({
                 model,
