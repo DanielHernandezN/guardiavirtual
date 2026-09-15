@@ -55,83 +55,6 @@ export default function Chat() {
         });
     }, [mensajes, isLoading]);
 
-    const responderCabo = (texto: string) => {
-        const textoLower = texto.toLowerCase();
-        const tipoProcedimiento =
-            textoLower.includes("hurt") || textoLower.includes("sustracción")
-                ? "hurto"
-                : textoLower.includes("rob")
-                    ? "robo"
-                    : datosAntecedentes.tipoProcedimiento;
-
-        const especie = textoLower.includes("bicicleta")
-            ? "bicicleta"
-            : datosAntecedentes.especie;
-
-        const lugar = textoLower.includes("supermercado")
-            ? "supermercado"
-            : datosAntecedentes.lugar;
-
-        const fechaEncontrada = textoLower.match(/\d{2}\/\d{2}\/\d{4}/);
-
-        const fecha = fechaEncontrada
-            ? fechaEncontrada[0]
-            : datosAntecedentes.fecha;
-
-        const descripcionHechos = datosAntecedentes.descripcionHechos
-            ? `${datosAntecedentes.descripcionHechos}. ${texto}`
-            : texto;
-
-        const faltantes: string[] = [];
-
-        if (!tipoProcedimiento) {
-            faltantes.push("tipo de procedimiento");
-        }
-
-        if (!especie) {
-            faltantes.push("especie");
-        }
-
-        if (!lugar) {
-            faltantes.push("lugar de ocurrencia");
-        }
-
-        if (!fecha) {
-            faltantes.push("fecha del procedimiento");
-        }
-
-        const datosActualizados: Antecedentes = {
-            tipoProcedimiento: tipoProcedimiento || "",
-            especie: especie || "",
-            lugar: lugar || "",
-            fecha: fecha || "",
-            descripcionHechos: descripcionHechos || "",
-            puedeConfeccionarBorrador: Boolean(tipoProcedimiento && especie && lugar && fecha),
-            faltantes,
-            contradicciones: [],
-        };
-
-        setDatosAntecedentes(datosActualizados);
-
-        let respuesta = "";
-
-        if (datosActualizados.tipoProcedimiento === "hurto") {
-            respuesta = `He identificado un procedimiento por hurto relacionado con una ${datosActualizados.especie}.`;
-        } else if (datosActualizados.tipoProcedimiento === "robo") {
-            respuesta = `He identificado un procedimiento por robo relacionado con una ${datosActualizados.especie}.`;
-        } else {
-            respuesta = "He recibido los antecedentes y estoy listo para analizarlos.";
-        }
-
-        if (!datosActualizados.puedeConfeccionarBorrador) {
-            respuesta += ` Aún falta informar: ${datosActualizados.faltantes.join(", ")}. Con los antecedentes disponibles no es posible confeccionar el borrador.`;
-        } else {
-            respuesta += ` El hecho habría ocurrido en un ${datosActualizados.lugar}, con fecha ${datosActualizados.fecha}. Con los antecedentes disponibles puedo continuar con la confección del borrador.`;
-        }
-
-        return respuesta;
-    };
-
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -173,7 +96,11 @@ export default function Chat() {
                 throw new Error(data.error ?? "Error al procesar el caso.");
             }
 
-            const resultado = data.respuesta ?? responderCabo(textoIngresado);
+            if (!data.respuesta) {
+                throw new Error("La API no devolvió una respuesta conversacional.");
+            }
+
+            const resultado = data.respuesta;
 
             setDatosAntecedentes((prev) => ({
                 ...prev,
