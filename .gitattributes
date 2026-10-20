@@ -2,11 +2,10 @@
 # .gitattributes — normalización de archivos para todo el equipo
 # ─────────────────────────────────────────────────────────────
 
-# Normaliza los finales de línea a LF dentro del repositorio.
-# En la carpeta de trabajo cada sistema usa su formato nativo
-# (CRLF en Windows, LF en macOS/Linux). Esto evita diffs ruidosos
-# y los warnings "LF will be replaced by CRLF".
-* text=auto
+# Normaliza los finales de línea a LF, tanto en el repositorio como en la
+# carpeta de trabajo (uniforme en Windows, macOS y Linux). Evita diffs
+# ruidosos y los warnings "LF/CRLF will be replaced by ...".
+* text=auto eol=lf
 
 # Scripts de Windows: deben conservar CRLF.
 *.bat text eol=crlf
