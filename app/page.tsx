@@ -1,6 +1,15 @@
+import { obtenerSesion } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import LoginForm from "./components/LoginForm";
 
-export default function Home() {
+export default async function Home() {
+  const sesion = await obtenerSesion();
+
+  // Si ya hay sesión abierta, se salta el login.
+  if (sesion) {
+    redirect("/dashboard");
+  }
+
   return (
     <main className="min-h-screen bg-surface flex items-center justify-center px-6 py-10">
       

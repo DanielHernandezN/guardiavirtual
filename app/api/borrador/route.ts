@@ -1,4 +1,5 @@
 import { camposFaltantes } from "@/lib/antecedentes";
+import { obtenerSesion } from "@/lib/auth-server";
 import { parseModelContent } from "@/lib/parse";
 import {
   PROMPT_REDAR_PARTE,
@@ -22,6 +23,11 @@ const construirTextoCompleto = (
 
 export async function POST(request: Request) {
   try {
+    const sesion = await obtenerSesion();
+    if (!sesion) {
+      return Response.json({ ok: false, error: "No autenticado." }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const antecedentesEntrada =
       body?.antecedentes &&

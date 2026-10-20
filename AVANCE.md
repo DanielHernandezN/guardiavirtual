@@ -179,11 +179,18 @@ guardiavirtual/
 
 **Verificación:** `next typegen` ✅, `eslint` ✅ 0 errores, `next build` ✅ (ruta `/api/borrador` registrada). Esquema Zod del borrador validado. Endpoint probado: 400 si faltan campos, error controlado si falta clave.
 
-### Fase 4 — Autenticación y sesiones
-- [ ] Autenticación real (credenciales institucionales o identidad del funcionario).
-- [ ] Middleware/layout de protección: `/dashboard` requiere sesión.
-- [ ] Redirección login → dashboard.
-- [ ] Cierre de sesión.
+### Fase 4 — Autenticación y sesiones — ✅ COMPLETADA
+- [x] Autenticación real: login contra `lib/usuarios.ts` con contraseñas hasheadas (`scrypt`) y comparación a prueba de timing. Token de sesión firmado con HMAC-SHA256, en cookie `HttpOnly` + `SameSite=Lax`, con expiración de 8 h.
+- [x] Protección de rutas: `proxy.ts` (convención Next 16, antes `middleware`) bloquea `/dashboard` y `/api/*` sin sesión; `app/dashboard/layout.tsx` revalida en el servidor; cada endpoint de IA (`/api/chat`, `/api/borrador`) también valida la sesión (401).
+- [x] Redirección login → dashboard: `app/page.tsx` redirige al dashboard si ya hay sesión; el dashboard redirige al login si no la hay.
+- [x] Cierre de sesión: `POST /api/auth/logout` caduca la cookie + botón "CERRAR SESIÓN" en el panel lateral.
+
+**Archivos nuevos:** `lib/sesion.ts` (criptografía pura), `lib/usuarios.ts`, `lib/auth-server.ts` (wrapper de `next/headers`), `proxy.ts`, `app/api/auth/login/route.ts`, `app/api/auth/logout/route.ts`, `app/dashboard/layout.tsx`, `app/components/LogoutButton.tsx`.
+**Archivos modificados:** `app/page.tsx`, `app/dashboard/page.tsx`, `app/components/LoginForm.tsx`, `app/api/chat/route.ts`, `app/api/borrador/route.ts`, `.env.example`.
+
+**Variables de entorno nuevas:** `SESSION_SECRET` (firma de la sesión) y `USUARIOS_JSON` (lista de funcionarios). Si no se define `USUARIOS_JSON`, funciona el usuario de demostración: ID `daniel.hernandez` / PASS `Guardia2026` — **cambiar antes de producción**.
+
+**Nota de seguridad:** la verificación se hace en el proxy **y** en cada endpoint/layout. La guía de Next 16 recomienda no depender únicamente del proxy.
 
 ### Fase 5 — Persistencia y gestión de casos
 - [ ] Elegir base de datos (Supabase/Postgres + Prisma recomendado; SQLite como MVP local).

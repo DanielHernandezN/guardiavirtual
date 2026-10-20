@@ -1,8 +1,16 @@
+import { obtenerSesion } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import Chat from "../components/chat";
+import LogoutButton from "../components/LogoutButton";
 
+export default async function Dashboard() {
+  const sesion = await obtenerSesion();
 
-export default function Dashboard() {
-
+  // El layout ya redirige, pero se mantiene la comprobación como red de
+  // seguridad en caso de que se renderice la página sin el layout.
+  if (!sesion) {
+    redirect("/");
+  }
 
   return (
     <main className="
@@ -26,7 +34,9 @@ export default function Dashboard() {
         ">
             <h2>CABO VIRTUAL</h2>
             <h3>FUNCIONARIO</h3>
-            <p>Daniel Hernández Norambuena</p>
+            <p className="font-semibold text-ink">{sesion.nombre}</p>
+            <p className="text-sm text-slate-600">{sesion.id}</p>
+            <LogoutButton />
         </div>
 
         <div className="
@@ -46,5 +56,3 @@ export default function Dashboard() {
     </main>
   );
 }
-
-
