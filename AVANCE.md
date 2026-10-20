@@ -141,11 +141,21 @@ guardiavirtual/
 - `9e8f61a` — Agrega `.gitattributes`.
 - `98d062a` — Fija `eol=lf` y normaliza finales de línea.
 
-### Fase 1 — Unificar el "cerebro" (prompts)
-- [ ] Elegir **una sola fuente** para los prompts (`lib/prompts.ts` recomendado).
-- [ ] Unificar formato de salida: `null` vs `"pendiente"` (alinear `prompt.md`).
-- [ ] Definir y documentar la estructura de datos del parte (tipos, especies, lugares, campos obligatorios).
-- [ ] (Opcional) Validar la salida del modelo con un esquema (Zod).
+### Fase 1 — Unificar el "cerebro" (prompts) — ✅ COMPLETADA
+- [x] Elegir **una sola fuente** para los prompts: `lib/prompts.ts` (`PROMPT_EXTRAER_ANTECEDENTES` + `construirMensajeUsuario`). El prompt inline de `route.ts` fue eliminado.
+- [x] Unificar formato de salida: el modelo devuelve `null` (nunca `"pendiente"`); el servidor normaliza con Zod y calcula `faltantes`/`puedeConfeccionarBorrador`. `prompt.md` se convirtió en documentación que referencia `lib/prompts.ts`.
+- [x] Definir y documentar la estructura de datos: `lib/types.ts` (`Antecedentes`, `CAMPOS_OBLIGATORIOS`, `ResultadoAnalisis`).
+- [x] Validar la salida del modelo con esquema Zod: `lib/schemas.ts` (`esquemaAntecedentes`) normaliza y valida.
+
+**Archivos nuevos en esta fase:**
+- `lib/types.ts` — contrato de datos del dominio.
+- `lib/schemas.ts` — validación/normalización con Zod.
+- `lib/prompts.ts` — única fuente de prompts.
+- `lib/antecedentes.ts` — helpers de dominio (`camposFaltantes`, `formatoLista`, `crearRespuestaConversacional`).
+
+**Archivos modificados:** `app/api/chat/route.ts` (usa las librerías), `app/components/chat.tsx` (tipos compartidos, acepta `null`), `prompt.md` (documentación).
+
+**Verificación:** `next typegen` ✅, `eslint` ✅ 0 errores, `next build` ✅. Prueba unitaria del esquema Zod: ausencias/`"pendiente"`/`"sin información"` → `null`, números → texto, listas limpias.
 
 ### Fase 2 — Extracción de antecedentes (ya iniciada)
 - [x] Endpoint `/api/chat` con IA.

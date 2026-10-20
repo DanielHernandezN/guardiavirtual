@@ -2,50 +2,25 @@
 
 import React from "react";
 import { useState, useEffect, useRef } from "react";
+import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
 
 export default function Chat() {
 
-    type Mensaje = {        
-        contenido: string,
-        autor: string,
-    }
-
-    type Antecedentes = {
-        tipoProcedimiento: string,
-        especie: string,
-        lugar: string,
-        fecha: string,
-        descripcionHechos: string,
-        puedeConfeccionarBorrador: boolean,
-        faltantes: string[],
-        contradicciones: string[],
-    }
-
-    type RespuestaIA = {
-        respuesta?: string,
-        tipoProcedimiento?: string,
-        especie?: string,
-        lugar?: string,
-        fecha?: string,
-        descripcionHechos?: string,
-        puedeConfeccionarBorrador?: boolean,
-        faltantes?: string[],
-        contradicciones?: string[],
-        error?: string,
-    }
+    type Mensaje = {
+        contenido: string;
+        autor: string;
+    };
 
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [datosAntecedentes, setDatosAntecedentes] = useState<Antecedentes>({
-        tipoProcedimiento: "",
-        especie: "",
-        lugar: "",
-        fecha: "",
-        descripcionHechos: "",
-        puedeConfeccionarBorrador: false,
-        faltantes: [],
-        contradicciones: []
+        tipoProcedimiento: null,
+        especie: null,
+        lugar: null,
+        fecha: null,
+        descripcionHechos: null,
+        contradicciones: [],
     });
 
     const finalMensajes = useRef<HTMLDivElement>(null);
@@ -90,7 +65,7 @@ export default function Chat() {
                 body: JSON.stringify(payload),
             });
 
-            const data: RespuestaIA = await response.json();
+            const data: ResultadoAnalisis & { error?: string } = await response.json();
 
             if (!response.ok) {
                 throw new Error(data.error ?? "Error al procesar el caso.");
@@ -102,17 +77,16 @@ export default function Chat() {
 
             const resultado = data.respuesta;
 
-            setDatosAntecedentes((prev) => ({
-                ...prev,
-                tipoProcedimiento: data.tipoProcedimiento ?? prev.tipoProcedimiento,
-                especie: data.especie ?? prev.especie,
-                lugar: data.lugar ?? prev.lugar,
-                fecha: data.fecha ?? prev.fecha,
-                descripcionHechos: data.descripcionHechos ?? prev.descripcionHechos,
-                puedeConfeccionarBorrador: data.puedeConfeccionarBorrador ?? prev.puedeConfeccionarBorrador,
-                faltantes: data.faltantes ?? prev.faltantes,
-                contradicciones: data.contradicciones ?? prev.contradicciones,
-            }));
+            // El servidor devuelve el estado acumulado completo:
+            // se reemplaza directamente, sin fusionar campo por campo.
+            setDatosAntecedentes({
+                tipoProcedimiento: data.tipoProcedimiento,
+                especie: data.especie,
+                lugar: data.lugar,
+                fecha: data.fecha,
+                descripcionHechos: data.descripcionHechos,
+                contradicciones: data.contradicciones,
+            });
 
             setMensajes((mensajesActuales) => [
                 ...mensajesActuales,
