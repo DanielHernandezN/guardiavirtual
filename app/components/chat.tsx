@@ -179,7 +179,7 @@ export default function Chat() {
                     gap-1
                     p-4
                     rounded-xl
-                    bg-[#2b47a3]
+                    bg-brand
                     text-white
                     ">
                     <p>{mensaje.autor}</p>
@@ -190,7 +190,7 @@ export default function Chat() {
 
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-[#2b47a3] text-white">
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-brand text-white">
                             <p>cabo</p>
                             <p>Analizando antecedentes...</p>
                         </div>
@@ -228,10 +228,10 @@ export default function Chat() {
                   className="
                   px-6
                   py-3
-                  bg-[#2b47a3]
+                  bg-brand
                   text-white
                   rounded-xl
-                  hover:bg-[#721212]
+                  hover:bg-brand-dark
                   disabled:opacity-60
                   "
                   disabled={isLoading}

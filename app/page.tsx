@@ -2,7 +2,7 @@ import LoginForm from "./components/LoginForm";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#f8f7f5] flex items-center justify-center px-6 py-10">
+    <main className="min-h-screen bg-surface flex items-center justify-center px-6 py-10">
       
       <section className="w-full max-w-md">
         
@@ -10,11 +10,11 @@ export default function Home() {
         <div className="text-center mb-8">
           
           {/* Logo IA */}
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#c9654b]/10">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
             <span className="text-4xl">◉</span>
           </div>
 
-          <h1 className="text-5xl font-bold tracking-tight text-[#0e2442]">
+          <h1 className="text-5xl font-bold tracking-tight text-ink">
             Cabo Virtual
           </h1>
 
@@ -26,7 +26,7 @@ export default function Home() {
         {/* Tarjeta Login */}
         <div className="rounded-2xl bg-white p-8 shadow-xl shadow-slate-200/50">
           
-          <h2 className="mb-6 text-center text-2xl font-semibold text-[#1d3557]">
+          <h2 className="mb-6 text-center text-2xl font-semibold text-ink-soft">
             Iniciar sesión
           </h2>
 

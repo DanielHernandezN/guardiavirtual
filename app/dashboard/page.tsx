@@ -17,7 +17,7 @@ export default function Dashboard() {
       flex-col
       p-6
       gap-8
-      bg-[#d2d2df]
+      bg-surface-alt
       ">
         <div className="
         flex

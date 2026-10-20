@@ -45,8 +45,8 @@ export default function LoginForm() {
                 className="w-full rounded-xl border border-slate-500 px-4 py-3
                 text-slate-900
                 placeholder:text-slate-500 outline-none transition
-                focus:border-[#c9654b] focus:ring-2 
-                focus:ring-[#c9654b]/20"
+                focus:border-accent focus:ring-2
+                focus:ring-accent/20"
               />
 
             </div>
@@ -70,7 +70,7 @@ export default function LoginForm() {
                 text-slate-900
                 placeholder:text-slate-500 outline-none transition 
                 focus:border-[#c9654b] focus:ring-2
-                focus:ring-[#c9654b]/20"
+                focus:ring-accent/20"
               />
             </div>
 
@@ -78,9 +78,9 @@ export default function LoginForm() {
             <button
               type="submit"
               className="w-full rounded-xl 
-              bg-[#2b47a3] px-4 py-3 font-semibold
+              bg-brand px-4 py-3 font-semibold
               text-white transition
-              hover:bg-[#721212]"
+              hover:bg-brand-dark"
             >
               INGRESAR
             </button>

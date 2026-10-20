@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+/*
+ * Paleta de marca — Guardia Virtual / Cabo Virtual
+ * Definida como tokens de Tailwind v4 (@theme) para usar como
+ * clases utilitarias: bg-brand, bg-brand-dark, text-accent, etc.
+ *
+ *   brand       #2b47a3  Azul institucional (botones, encabezados)
+ *   brand-dark  #1e3680  Azul oscuro (estado hover)
+ *   accent      #c9654b  Terracota (acentos, foco, logo)
+ *   ink         #0e2442  Texto principal
+ *   ink-soft    #1d3557  Títulos
+ *   surface     #f8f7f5  Fondo de página
+ *   surface-alt #d2d2df  Panel lateral
+ */
+@theme {
+  --color-brand: #2b47a3;
+  --color-brand-dark: #1e3680;
+  --color-accent: #c9654b;
+  --color-ink: #0e2442;
+  --color-ink-soft: #1d3557;
+  --color-surface: #f8f7f5;
+  --color-surface-alt: #d2d2df;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
