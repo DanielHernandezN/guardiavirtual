@@ -1,3 +1,5 @@
+import type { Antecedentes } from "./types";
+
 /**
  * Prompts del sistema — Guardia Virtual / Cabo Virtual
  * ─────────────────────────────────────────────────────
@@ -59,5 +61,45 @@ ${JSON.stringify(antecedentesPrevios, null, 2)}
 Mensaje actual del funcionario:
 ${mensaje}`;
 
-// ── Fase 3 (pendiente): prompt para redactar el borrador del parte ──
-// export const PROMPT_REDactAR_PARTE = `...`;
+/**
+ * Prompt del sistema para redactar el BORRADOR del parte policial.
+ * Se usa cuando ya están completos los antecedentes obligatorios.
+ */
+export const PROMPT_REDAR_PARTE = `Eres un funcionario virtual de apoyo documental para la confección de partes policiales.
+
+Tu tarea es redactar el BORRADOR de un parte policial a partir de los antecedentes entregados por el funcionario.
+
+REGLAS ESTRICTAS:
+1. No inventes hechos, fechas, horas, lugares, nombres, especies, patentes ni procedimientos.
+2. Usa ÚNICAMENTE la información contenida en los antecedentes proporcionados.
+3. Si un dato falta, escribe [PENDIENTE] en ese lugar. Nunca lo completes con suposiciones.
+4. Redacta en español formal, objetivo y en tercera persona.
+5. No incluyas opiniones, valoraciones ni conclusiones no sustentadas en los hechos.
+6. Respeta exactamente las secciones solicitadas, con el mismo nombre de sección.
+7. Responde únicamente con JSON válido, sin Markdown ni texto fuera del JSON.
+
+FORMATO DE SALIDA (JSON con estas claves exactas):
+{
+  "secciones": [
+    { "titulo": "ANTECEDENTES", "contenido": "..." },
+    { "titulo": "HECHOS", "contenido": "..." },
+    { "titulo": "ESPECIES INVOLUCRADAS", "contenido": "..." },
+    { "titulo": "CONCLUSIÓN", "contenido": "..." }
+  ]
+}`;
+
+/**
+ * Construye el mensaje de usuario con los antecedentes y la estructura de
+ * secciones que el modelo debe respetar.
+ */
+export const construirMensajeBorrador = (
+  antecedentes: Antecedentes,
+  secciones: readonly string[]
+): string =>
+  `Redacta el borrador del parte policial respetando esta estructura de secciones:
+${secciones.map((seccion, indice) => `${indice + 1}. ${seccion}`).join("\n")}
+
+Antecedentes del procedimiento (JSON):
+${JSON.stringify(antecedentes, null, 2)}
+
+Recuerda: usa solo la información entregada y escribe [PENDIENTE] donde falte un dato.`;

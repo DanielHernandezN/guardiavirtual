@@ -2,7 +2,9 @@
 
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
+import { camposFaltantes } from "@/lib/antecedentes";
+import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
+import BorradorPanel from "./BorradorPanel";
 
 export default function Chat() {
 
@@ -22,6 +24,12 @@ export default function Chat() {
         descripcionHechos: null,
         contradicciones: [],
     });
+    const [borrador, setBorrador] = useState<BorradorParte | null>(null);
+    const [borradorCargando, setBorradorCargando] = useState(false);
+    const [mostrarBorrador, setMostrarBorrador] = useState(false);
+
+    // El borrador solo está disponible cuando no falta ningún campo obligatorio.
+    const puedeConfeccionar = camposFaltantes(datosAntecedentes).length === 0;
 
     const finalMensajes = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -107,7 +115,39 @@ export default function Chat() {
             setIsLoading(false);
         }
     };
-  
+
+    const handleGenerarBorrador = async () => {
+        setBorradorCargando(true);
+        try {
+            const response = await fetch("/api/borrador", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ antecedentes: datosAntecedentes }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.ok) {
+                throw new Error(data.error ?? "No se pudo generar el borrador.");
+            }
+
+            setBorrador(data.borrador);
+            setMostrarBorrador(true);
+        } catch (error) {
+            setMensajes((mensajesActuales) => [
+                ...mensajesActuales,
+                {
+                    contenido: error instanceof Error ? error.message : "No pude generar el borrador.",
+                    autor: "cabo",
+                },
+            ]);
+        } finally {
+            setBorradorCargando(false);
+        }
+    };
+
     return (
     
     <section className="
@@ -128,9 +168,32 @@ export default function Chat() {
                 <h2>CABO VIRTUAL</h2>
                 <p>Asistente de apoyo documental</p>
               </div>
-                <div className="flex flex-row gap-2">
-                  <p>●</p>
-                  <p>En línea</p>
+                <div className="flex flex-row items-center gap-4">
+                  {puedeConfeccionar && (
+                    <button
+                      type="button"
+                      onClick={handleGenerarBorrador}
+                      disabled={borradorCargando}
+                      className="
+                      rounded-xl
+                      bg-brand
+                      px-4
+                      py-2
+                      text-sm
+                      font-semibold
+                      text-white
+                      transition
+                      hover:bg-brand-dark
+                      disabled:opacity-60
+                      "
+                    >
+                      {borradorCargando ? "GENERANDO..." : "GENERAR BORRADOR"}
+                    </button>
+                  )}
+                  <div className="flex flex-row gap-2">
+                    <p>●</p>
+                    <p>En línea</p>
+                  </div>
                 </div>
             </div>
 
@@ -212,6 +275,12 @@ export default function Chat() {
                   >{isLoading ? "PROCESANDO..." : "ENVIAR"}</button>
               </form>
             </div>
+            {mostrarBorrador && borrador && (
+                <BorradorPanel
+                    borrador={borrador}
+                    onCerrar={() => setMostrarBorrador(false)}
+                />
+            )}
           </section>
   );
 }

@@ -1,24 +1,8 @@
 import { camposFaltantes, crearRespuestaConversacional } from "@/lib/antecedentes";
+import { parseModelContent } from "@/lib/parse";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
 import { esquemaAntecedentes } from "@/lib/schemas";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
-
-/**
- * Parsea el contenido textual del modelo y devuelve un valor.
- * Soporta JSON puro o JSON envuelto en texto/Markdown.
- */
-const parseModelContent = (content: string): unknown => {
-  try {
-    return JSON.parse(content);
-  } catch {
-    const match = content.match(/\{[\s\S]*\}/);
-    if (!match) {
-      throw new Error("No se pudo parsear la respuesta JSON del modelo.");
-    }
-
-    return JSON.parse(match[0]);
-  }
-};
 
 export async function POST(request: Request) {
   try {

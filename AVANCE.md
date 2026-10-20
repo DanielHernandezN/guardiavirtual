@@ -164,13 +164,18 @@ guardiavirtual/
 - [ ] Mejorar manejo de `contradicciones` y presentarlas en la UI.
 - [ ] Corregir tipos en `chat.tsx` (aceptar `null`) y limpiar payload.
 
-### Fase 3 — Núcleo: generación del borrador del parte policial
-- [ ] Nuevo endpoint `/api/borrador` (solo cuando `puedeConfeccionarBorrador === true`).
-- [ ] Prompt de redacción con estructura formal del parte (encabezado, antecedentes, hechos, especies, conclusiones).
-- [ ] Plantilla según `tipoProcedimiento` (hurto, robo, accidente, etc.).
-- [ ] Regla estricta: **no rellenar datos faltantes con invención**; dejar `[PENDIENTE]` o vacío.
-- [ ] UI para ver el borrador, editar y confirmar.
-- [ ] Revisión humana obligatoria antes de dar por finalizado.
+### Fase 3 — Núcleo: generación del borrador del parte policial — ✅ COMPLETADA
+- [x] Nuevo endpoint `POST /api/borrador` (rechaza con 400 si falta algún campo obligatorio).
+- [x] Prompt de redacción (`PROMPT_REDAR_PARTE`) con estructura formal: ANTECEDENTES, HECHOS, ESPECIES INVOLUCRADAS, CONCLUSIÓN.
+- [x] Plantilla según `tipoProcedimiento` (`lib/plantillas.ts`: `tituloPorTipo` + `SECCIONES_PARTE`).
+- [x] Regla estricta de no invención: el prompt exige usar solo los antecedentes y escribir `[PENDIENTE]` donde falte un dato.
+- [x] UI `app/components/BorradorPanel.tsx`: ver, editar (título + secciones), copiar, descargar `.txt` e imprimir.
+- [x] Revisión humana obligatoria: checkbox "He revisado y valido…" que habilita "Confirmar borrador".
+
+**Archivos nuevos en esta fase:** `lib/plantillas.ts`, `lib/parse.ts`, `app/api/borrador/route.ts`, `app/components/BorradorPanel.tsx`.
+**Archivos modificados:** `lib/prompts.ts`, `lib/schemas.ts`, `lib/types.ts`, `app/api/chat/route.ts`, `app/components/chat.tsx`.
+
+**Verificación:** `next typegen` ✅, `eslint` ✅ 0 errores, `next build` ✅ (ruta `/api/borrador` registrada). Esquema Zod del borrador validado. Endpoint probado: 400 si faltan campos, error controlado si falta clave.
 
 ### Fase 4 — Autenticación y sesiones
 - [ ] Autenticación real (credenciales institucionales o identidad del funcionario).

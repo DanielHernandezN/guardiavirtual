@@ -66,3 +66,18 @@ export const esquemaAntecedentes = z.object({
 });
 
 export type AntecedentesValidados = z.infer<typeof esquemaAntecedentes>;
+
+/**
+ * Esquema del borrador del parte policial devuelto por el modelo.
+ * Coincide con la estructura de `SeccionBorrador` en `lib/types.ts`.
+ */
+export const esquemaBorrador = z.object({
+  secciones: z.array(
+    z.object({
+      titulo: z.string(),
+      contenido: z.string(),
+    })
+  ),
+});
+
+export type BorradorValidado = z.infer<typeof esquemaBorrador>;

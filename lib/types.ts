@@ -56,3 +56,29 @@ export type ResultadoAnalisis = Antecedentes & {
   /** Etiquetas de los campos obligatorios que faltan. */
   faltantes: string[];
 };
+
+/** Sección del borrador del parte (encabezado + contenido). */
+export type SeccionBorrador = {
+  titulo: string;
+  contenido: string;
+};
+
+/**
+ * Borrador del parte policial generado por la IA.
+ * Es un borrador editable: el funcionario debe revisarlo antes de usarlo.
+ */
+export type BorradorParte = {
+  /** Título formal del parte (resuelto por la plantilla). */
+  titulo: string;
+  /** Secciones del documento, en orden. */
+  secciones: SeccionBorrador[];
+  /** Texto completo concatenado (título + secciones). */
+  textoCompleto: string;
+  /** Fecha de generación en formato ISO. */
+  generadoEn: string;
+};
+
+/** Respuesta de la API de generación del borrador. */
+export type ResultadoBorrador =
+  | { ok: true; borrador: BorradorParte }
+  | { ok: false; error: string; faltantes?: string[] };
