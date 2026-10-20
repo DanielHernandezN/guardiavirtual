@@ -134,6 +134,12 @@ guardiavirtual/
 - `npm run build` → ✅ Compila (Turbopack), TypeScript OK, rutas `/`, `/_not-found`, `/api/chat`, `/dashboard`.
 - Servidor dev: `/` 200, `/dashboard` 200, `POST /api/chat` 500 controlado ("Falta OPENROUTER_API_KEY...").
 - Nota: `node_modules` no venía instalado; se instaló en esta sesión.
+- `.gitattributes` (nuevo): `* text=auto eol=lf` + reglas para binarios, `*.bat/*.cmd` (CRLF) y diffs. Normaliza finales de línea y elimina los warnings "LF/CRLF will be replaced by ...". Los archivos de texto rastreados se convirtieron a LF.
+
+**Commits de la Fase 0 (rama `main`):**
+- `221d3be` — Fase 0: entorno, metadata y tokens de marca.
+- `9e8f61a` — Agrega `.gitattributes`.
+- `98d062a` — Fija `eol=lf` y normaliza finales de línea.
 
 ### Fase 1 — Unificar el "cerebro" (prompts)
 - [ ] Elegir **una sola fuente** para los prompts (`lib/prompts.ts` recomendado).
