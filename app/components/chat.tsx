@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { camposFaltantes } from "@/lib/antecedentes";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import BorradorPanel from "./BorradorPanel";
+import EstadoCaso from "./EstadoCaso";
 
 export default function Chat() {
 
@@ -237,7 +238,11 @@ export default function Chat() {
                 <div ref={finalMensajes}></div>
 
             </div>
-            
+
+            <EstadoCaso
+                faltantes={camposFaltantes(datosAntecedentes)}
+                contradicciones={datosAntecedentes.contradicciones}
+            />
 
             <div>
               <form onSubmit={handleSubmit} className="

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizarFecha } from "./fecha";
 
 /**
  * Esquemas de validación — Guardia Virtual
@@ -40,6 +41,26 @@ const textoNullable = z.preprocess((valor) => {
   return null;
 }, z.string().nullable());
 
+/**
+ * Campo de fecha: normaliza a `dd/mm/yyyy`.
+ * Si el formato no es reconocible, devuelve `null` (no se inventa la fecha).
+ */
+const textoFecha = z.preprocess((valor) => {
+  if (typeof valor === "string") {
+    const texto = valor.trim();
+    if (!texto || VALORES_VACIOS.has(texto.toLowerCase())) {
+      return null;
+    }
+    return normalizarFecha(texto);
+  }
+
+  if (typeof valor === "number") {
+    return normalizarFecha(String(valor));
+  }
+
+  return null;
+}, z.string().nullable());
+
 /** Lista de textos: acepta cualquier entrada y devuelve `string[]` limpio. */
 const listaDeTextos = z.preprocess((valor) => {
   if (!Array.isArray(valor)) {
@@ -60,7 +81,7 @@ export const esquemaAntecedentes = z.object({
   tipoProcedimiento: textoNullable,
   especie: textoNullable,
   lugar: textoNullable,
-  fecha: textoNullable,
+  fecha: textoFecha,
   descripcionHechos: textoNullable,
   contradicciones: listaDeTextos,
 });

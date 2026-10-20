@@ -157,12 +157,14 @@ guardiavirtual/
 
 **Verificación:** `next typegen` ✅, `eslint` ✅ 0 errores, `next build` ✅. Prueba unitaria del esquema Zod: ausencias/`"pendiente"`/`"sin información"` → `null`, números → texto, listas limpias.
 
-### Fase 2 — Extracción de antecedentes (ya iniciada)
+### Fase 2 — Extracción de antecedentes — ✅ COMPLETADA
 - [x] Endpoint `/api/chat` con IA.
 - [x] UI de chat con acumulación.
-- [ ] Validar `fecha` en formato `dd/mm/yyyy`.
-- [ ] Mejorar manejo de `contradicciones` y presentarlas en la UI.
-- [ ] Corregir tipos en `chat.tsx` (aceptar `null`) y limpiar payload.
+- [x] Validar `fecha` en formato `dd/mm/yyyy`: `lib/fecha.ts` (`normalizarFecha`) acepta `dd/mm/yyyy`, ISO, `dd-mm-yyyy`, `dd.mm.yyyy` y texto ("12 de junio de 2026"); si es inválida → `null` (no se inventa). Aplicado en el esquema (`textoFecha`).
+- [x] Mejorar manejo de `contradicciones` y presentarlas en la UI: componente `app/components/EstadoCaso.tsx` muestra faltantes y contradicciones (con aviso ámbar) y el estado "listo para generar el borrador".
+- [x] Corregir tipos en `chat.tsx` (aceptar `null`) y limpiar payload (hecho en Fase 1).
+
+**Verificación:** `normalizarFecha` probado (varios formatos → `dd/mm/yyyy`; fechas inválidas y años bisiestos correctamente). `next typegen` ✅, `eslint` ✅, `next build` ✅.
 
 ### Fase 3 — Núcleo: generación del borrador del parte policial — ✅ COMPLETADA
 - [x] Nuevo endpoint `POST /api/borrador` (rechaza con 400 si falta algún campo obligatorio).
