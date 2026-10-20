@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────
+# .gitattributes — normalización de archivos para todo el equipo
+# ─────────────────────────────────────────────────────────────
+
+# Normaliza los finales de línea a LF dentro del repositorio.
+# En la carpeta de trabajo cada sistema usa su formato nativo
+# (CRLF en Windows, LF en macOS/Linux). Esto evita diffs ruidosos
+# y los warnings "LF will be replaced by CRLF".
+* text=auto
+
+# Scripts de Windows: deben conservar CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Archivos binarios: Git no debe intentar convertir ni hacer diff.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+
+# Diffs más legibles para Markdown.
+*.md diff=markdown
+
+# Reduce el ruido en diffs grandes de dependencias.
+package-lock.json -diff
