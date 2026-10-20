@@ -188,9 +188,12 @@ guardiavirtual/
 **Archivos nuevos:** `lib/sesion.ts` (criptografía pura), `lib/usuarios.ts`, `lib/auth-server.ts` (wrapper de `next/headers`), `proxy.ts`, `app/api/auth/login/route.ts`, `app/api/auth/logout/route.ts`, `app/dashboard/layout.tsx`, `app/components/LogoutButton.tsx`.
 **Archivos modificados:** `app/page.tsx`, `app/dashboard/page.tsx`, `app/components/LoginForm.tsx`, `app/api/chat/route.ts`, `app/api/borrador/route.ts`, `.env.example`.
 
-**Variables de entorno nuevas:** `SESSION_SECRET` (firma de la sesión) y `USUARIOS_JSON` (lista de funcionarios). Si no se define `USUARIOS_JSON`, funciona el usuario de demostración: ID `daniel.hernandez` / PASS `Guardia2026` — **cambiar antes de producción**.
+**Variables de entorno obligatorias:** `SESSION_SECRET` (firma de la sesión) y `USUARIOS_JSON` (lista de funcionarios).
 
-**Nota de seguridad:** la verificación se hace en el proxy **y** en cada endpoint/layout. La guía de Next 16 recomienda no depender únicamente del proxy.
+**Endurecimiento de seguridad aplicado:**
+- `SESSION_SECRET` es **obligatorio en producción**: si falta, el sistema queda inaccesible (fallo cerrado) en vez de usar un secreto por defecto que permitiría falsificar cookies.
+- **No hay credenciales en el repositorio**: `USUARIOS_JSON` es obligatoria. Si falta o es inválida, nadie puede autenticarse y el login responde `503`.
+- La verificación se hace en el proxy **y** en cada endpoint/layout. La guía de Next 16 recomienda no depender únicamente del proxy.
 
 ### Fase 5 — Persistencia y gestión de casos
 - [ ] Elegir base de datos (Supabase/Postgres + Prisma recomendado; SQLite como MVP local).
@@ -222,10 +225,10 @@ guardiavirtual/
 - **Lo más importante pendiente:** generar el **borrador del parte policial** (Fase 3). Es el corazón del proyecto.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. Configurar `OPENROUTER_API_KEY` en `.env.local` (a partir del nuevo `.env.example`) y probar el chat de extremo a extremo.
-2. **Fase 1:** unificar los prompts en `lib/prompts.ts` (hoy `prompt.md` y `route.ts` se contradicen con `null` vs `"pendiente"`).
-3. Corregir deudas rápidas pendientes: tipos en `chat.tsx` (`string` vs `null`) y diferenciar visualmente los mensajes por autor.
-4. Empezar la **Fase 3** (endpoint + UI del borrador), que es el objetivo central.
+1. Configurar `.env.local` (copiar de `.env.example`): `OPENROUTER_API_KEY`, `SESSION_SECRET` y `USUARIOS_JSON`. **Las dos últimas son obligatorias**: sin `USUARIOS_JSON` el login responde `503` y sin `SESSION_SECRET` nadie puede autenticarse.
+2. Probar el flujo completo con clave real: login → chat → borrador → confirmar.
+3. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
+4. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
 
 ---
 

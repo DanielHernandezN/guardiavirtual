@@ -4,7 +4,7 @@ import {
   SESION_TTL_MS,
   verificarPassword,
 } from "@/lib/sesion";
-import { buscarUsuario } from "@/lib/usuarios";
+import { buscarUsuario, hayUsuariosConfigurados } from "@/lib/usuarios";
 
 /**
  * Inicio de sesión.
@@ -19,6 +19,17 @@ export async function POST(request: Request) {
     return Response.json(
       { error: "Debe ingresar ID y contraseña." },
       { status: 400 }
+    );
+  }
+
+  // Sin funcionarios configurados el sistema no admite accesos.
+  if (!hayUsuariosConfigurados()) {
+    return Response.json(
+      {
+        error:
+          "No hay funcionarios configurados en el sistema (revisa USUARIOS_JSON).",
+      },
+      { status: 503 }
     );
   }
 

@@ -5,9 +5,14 @@ import { hashPassword } from "./sesion";
  * ──────────────────────────
  * Fuente de usuarios provisional (hasta la Fase 5, con base de datos).
  *
- * - Por defecto hay un único funcionario de demostración.
- * - Se pueden definir usuarios por entorno con `USUARIOS_JSON`, p. ej.:
+ * Los funcionarios se configuran **únicamente** por la variable de entorno
+ * `USUARIOS_JSON`:
+ *
  *   [{"id":"daniel.hernandez","nombre":"Daniel Hernández","password":"..."}]
+ *
+ * No hay credenciales por defecto en el código: si `USUARIOS_JSON` no está
+ * definida o es inválida, **nadie puede autenticarse**. Esto evita que el
+ * repositorio contenga contraseñas de prueba utilizables.
  *
  * Las contraseñas se hashean con `scrypt` al iniciar.
  */
@@ -24,39 +29,46 @@ type UsuarioConfig = {
   password: string;
 };
 
-/** Usuario de demostración (cambiar en producción). */
-const USUARIOS_DEMO: UsuarioConfig[] = [
-  {
-    id: "daniel.hernandez",
-    nombre: "Daniel Hernández Norambuena",
-    password: "Guardia2026",
-  },
-];
-
 const aUsuario = ({ id, nombre, password }: UsuarioConfig): Usuario => ({
   id,
   nombre,
   passwordHash: hashPassword(password),
 });
 
-const leerUsuarios = (): Usuario[] => {
+/** Lista de funcionarios configurados en el entorno. */
+export const listarUsuarios = (): Usuario[] => {
   const crudo = process.env.USUARIOS_JSON;
 
   if (!crudo) {
-    return USUARIOS_DEMO.map(aUsuario);
+    console.error(
+      "[auth] USUARIOS_JSON no está definida: no hay funcionarios con acceso."
+    );
+    return [];
   }
 
   try {
     const lista = JSON.parse(crudo) as UsuarioConfig[];
+
+    if (!Array.isArray(lista) || lista.length === 0) {
+      console.error(
+        "[auth] USUARIOS_JSON está vacía o no es una lista: no hay funcionarios con acceso."
+      );
+      return [];
+    }
+
     return lista.map(aUsuario);
   } catch {
-    console.warn(
-      "[auth] USUARIOS_JSON inválido: usando el usuario de demostración."
+    console.error(
+      "[auth] USUARIOS_JSON no es un JSON válido: no hay funcionarios con acceso."
     );
-    return USUARIOS_DEMO.map(aUsuario);
+    return [];
   }
 };
 
+/** Indica si hay al menos un funcionario configurado. */
+export const hayUsuariosConfigurados = (): boolean =>
+  listarUsuarios().length > 0;
+
 /** Busca un usuario por su ID. */
 export const buscarUsuario = (id: string): Usuario | null =>
-  leerUsuarios().find((usuario) => usuario.id === id) ?? null;
+  listarUsuarios().find((usuario) => usuario.id === id) ?? null;

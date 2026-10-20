@@ -26,23 +26,47 @@ export type SesionPayload = {
   exp: number;
 };
 
-const obtenerSecreto = (): string => {
-  const secreto = process.env.SESSION_SECRET;
-  if (!secreto) {
+const ES_PRODUCCION = process.env.NODE_ENV === "production";
+let advertenciaEmitida = false;
+
+/**
+ * Devuelve el secreto de firma, o `null` si no está configurado.
+ *
+ * En **producción**, la ausencia de `SESSION_SECRET` deja el sistema
+ * inaccesible (fallo cerrado): nadie puede autenticarse y nadie puede
+ * falsificar una cookie de sesión, porque no hay forma de firmarla.
+ */
+const obtenerSecreto = (): string | null => {
+  const secreto = process.env.SESSION_SECRET?.trim();
+
+  if (secreto) return secreto;
+
+  if (ES_PRODUCCION) {
+    return null;
+  }
+
+  if (!advertenciaEmitida) {
+    advertenciaEmitida = true;
     console.warn(
       "[auth] SESSION_SECRET no está definido: usando un secreto de desarrollo inseguro. Definilo en .env.local."
     );
-    return "dev-secret-cambiar-en-produccion";
   }
-  return secreto;
+
+  return "dev-secret-cambiar-en-produccion";
 };
 
 /** Crea un token de sesión firmado con HMAC. */
 export const crearTokenSesion = (payload: SesionPayload): string => {
+  const secreto = obtenerSecreto();
+
+  if (!secreto) {
+    throw new Error(
+      "SESSION_SECRET no está configurado: no se pueden emitir sesiones."
+    );
+  }
+
   const cuerpo = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const firma = createHmac("sha256", obtenerSecreto())
-    .update(cuerpo)
-    .digest("base64url");
+  const firma = createHmac("sha256", secreto).update(cuerpo).digest("base64url");
   return `${cuerpo}.${firma}`;
 };
 
@@ -52,10 +76,13 @@ export const verificarTokenSesion = (
 ): SesionPayload | null => {
   if (!token) return null;
 
+  const secreto = obtenerSecreto();
+  if (!secreto) return null;
+
   const [cuerpo, firma] = token.split(".");
   if (!cuerpo || !firma) return null;
 
-  const esperada = createHmac("sha256", obtenerSecreto())
+  const esperada = createHmac("sha256", secreto)
     .update(cuerpo)
     .digest("base64url");
 
