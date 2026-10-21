@@ -210,6 +210,7 @@ guardiavirtual/
 - [x] Validar `fecha` en formato `dd/mm/yyyy`: `lib/fecha.ts` (`normalizarFecha`) acepta `dd/mm/yyyy`, ISO, `dd-mm-yyyy`, `dd.mm.yyyy` y texto ("12 de junio de 2026"); si es inválida → `null` (no se inventa). Aplicado en el esquema (`textoFecha`).
 - [x] Mejorar manejo de `contradicciones` y presentarlas en la UI: componente `app/components/EstadoCaso.tsx` muestra faltantes y contradicciones (con aviso ámbar) y el estado "listo para generar el borrador".
 - [x] **Las contradicciones bloquean el borrador** (`puedeRedactarBorrador` en `lib/antecedentes.ts`): no se puede redactar un parte que mezcle dos procedimientos distintos. Se aplica en la UI (oculta "GENERAR BORRADOR") **y en el servidor** (`POST /api/borrador` → `409`). El prompt se reforzó para que el modelo lo detecte explícitamente.
+- [x] **Cambio de procedimiento sin callejón sin salida**: el modelo devuelve `cambioDeProcedimiento` y, cuando es `true`, el servidor **reemplaza** el estado acumulado en vez de mezclarlo (el caso nuevo no hereda datos del anterior). La UI ofrece "Continuar con este caso" para descartar la contradicción y seguir adelante. Antes el modelo conservaba los antecedentes anteriores y el funcionario quedaba en un bucle de mensajes repetidos.
 - [x] Corregir tipos en `chat.tsx` (aceptar `null`) y limpiar payload (hecho en Fase 1).
 
 **Verificación:** `normalizarFecha` probado (varios formatos → `dd/mm/yyyy`; fechas inválidas y años bisiestos correctamente). `next typegen` ✅, `eslint` ✅, `next build` ✅.
@@ -297,8 +298,10 @@ guardiavirtual/
   borradores en base de datos** (SQLite + Prisma), con historial en el panel
   lateral.
 - **Detecta procedimientos mezclados**: si el funcionario narra un caso
-  distinto al ya conversado, la IA lo señala como contradicción y **el
-  borrador queda bloqueado** (no se redacta un parte con dos procedimientos).
+  distinto al ya conversado, la IA lo señala como contradicción, **el borrador
+  queda bloqueado** y el funcionario puede resolverlo con un clic ("Continuar
+  con este caso") o abrir un caso nuevo. El caso nuevo **no hereda** datos del
+  anterior.
 - **Autenticación real** con sesión firmada, `proxy.ts` + validación por
   endpoint, y credenciales solo en `.env.local`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /

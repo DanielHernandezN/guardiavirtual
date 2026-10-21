@@ -55,6 +55,12 @@ export type ResultadoAnalisis = Antecedentes & {
   puedeConfeccionarBorrador: boolean;
   /** Etiquetas de los campos obligatorios que faltan. */
   faltantes: string[];
+  /**
+   * `true` cuando el mensaje actual describía un procedimiento DISTINTO
+   * al de los antecedentes acumulados. En ese caso el estado acumulado se
+   * reemplazó en lugar de mezclarse.
+   */
+  cambioDeProcedimiento: boolean;
 };
 
 /** Sección del borrador del parte (encabezado + contenido). */

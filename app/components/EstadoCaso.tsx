@@ -5,6 +5,8 @@ type Props = {
   faltantes: string[];
   /** Inconsistencias o datos en conflicto detectados. */
   contradicciones: string[];
+  /** Permite descartar la contradicción y seguir con el caso en curso. */
+  onResolver?: () => void;
 };
 
 /**
@@ -12,7 +14,11 @@ type Props = {
  * contradicciones detectadas, para que el funcionario complete o revise
  * la información antes de generar el borrador.
  */
-export default function EstadoCaso({ faltantes, contradicciones }: Props) {
+export default function EstadoCaso({
+  faltantes,
+  contradicciones,
+  onResolver,
+}: Props) {
   const completo = faltantes.length === 0;
   const bloqueado = contradicciones.length > 0;
 
@@ -27,10 +33,18 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
             ))}
           </ul>
           <p className="mt-2 text-xs text-amber-800">
-            Revisá estos puntos con el funcionario. Si se trata de otro
-            procedimiento, abrí un caso nuevo con «+ Nuevo»: no se puede
-            redactar un parte que mezcle dos procedimientos distintos.
+            No se puede redactar un parte que mezcle dos procedimientos
+            distintos. Revisá estos puntos con el funcionario.
           </p>
+          {onResolver && (
+            <button
+              type="button"
+              onClick={onResolver}
+              className="mt-3 rounded-lg border border-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-500 hover:text-white"
+            >
+              Continuar con este caso
+            </button>
+          )}
         </div>
       )}
 

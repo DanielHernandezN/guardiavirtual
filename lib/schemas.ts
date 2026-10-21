@@ -89,6 +89,21 @@ export const esquemaAntecedentes = z.object({
 export type AntecedentesValidados = z.infer<typeof esquemaAntecedentes>;
 
 /**
+ * Esquema de la respuesta del modelo.
+ *
+ * Además de los antecedentes, el modelo indica si el mensaje actual
+ * describe un procedimiento DISTINTO al de los antecedentes acumulados
+ * (`cambioDeProcedimiento`). Cuando es `true` el servidor reemplaza el
+ * estado acumulado en vez de mezclarlo, para que el caso nuevo no herede
+ * datos del anterior.
+ */
+export const esquemaRespuestaModelo = esquemaAntecedentes.extend({
+  cambioDeProcedimiento: z.boolean().default(false),
+});
+
+export type RespuestaModelo = z.infer<typeof esquemaRespuestaModelo>;
+
+/**
  * Esquema del borrador del parte policial devuelto por el modelo.
  * Coincide con la estructura de `SeccionBorrador` en `lib/types.ts`.
  */

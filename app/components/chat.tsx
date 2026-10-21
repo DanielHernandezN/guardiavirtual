@@ -38,6 +38,11 @@ export default function Chat({ onBorradorGenerado }: Props) {
     // contradicciones entre procedimientos.
     const puedeConfeccionar = puedeRedactarBorrador(datosAntecedentes);
 
+    /** Descarta la contradicción detectada y sigue con el caso en curso. */
+    const resolverContradicciones = () => {
+        setDatosAntecedentes((prev) => ({ ...prev, contradicciones: [] }));
+    };
+
     const finalMensajes = useRef<HTMLDivElement>(null);
     useEffect(() => {
         finalMensajes.current?.scrollIntoView({
@@ -250,6 +255,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 <EstadoCaso
                     faltantes={camposFaltantes(datosAntecedentes)}
                     contradicciones={datosAntecedentes.contradicciones}
+                    onResolver={resolverContradicciones}
                 />
             </div>
 

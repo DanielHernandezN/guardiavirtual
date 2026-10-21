@@ -17,6 +17,8 @@ import type { Antecedentes } from "./types";
  * - lugar: texto o null
  * - fecha: texto en formato dd/mm/yyyy o null
  * - descripcionHechos: texto o null
+ * - cambioDeProcedimiento: booleano (indica que el mensaje actual describe
+ *   otro procedimiento; en ese caso el estado se reemplaza, no se mezcla)
  * - contradicciones: arreglo de textos
  */
 export const PROMPT_EXTRAER_ANTECEDENTES = `Eres un asistente de extracción de antecedentes para una aplicación de apoyo documental policial.
@@ -30,11 +32,16 @@ REGLAS:
 4. Conserva los antecedentes previos cuando el mensaje actual no los modifique.
 5. Si el mensaje actual completa o corrige un dato, actualiza el valor.
 6. Si un dato no está informado, usa null. Nunca uses "pendiente" ni cadenas vacías.
-7. No mezcles procedimientos distintos.
-8. Si el mensaje actual describe un procedimiento DISTINTO al de los antecedentes acumulados (por ejemplo, una denuncia de violencia intrafamiliar y luego un robo), NO los mezcles: conserva los antecedentes previos tal cual y registra la contradicción en "contradicciones" explicando qué Procedimientos se contradicen.
-9. Corrige errores de redacción y ortografía sin alterar los hechos.
-10. Si detectas inconsistencias, listalas en "contradicciones" sin asumir cuál es correcta.
-11. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
+7. No mezcles procedimientos distintos: un solo caso a la vez.
+8. Si el mensaje actual describe un procedimiento DISTINTO al de los antecedentes acumulados (por ejemplo, primero una denuncia de violencia intrafamiliar y después un robo), entonces:
+   - Extrae los datos del procedimiento NUEVO (el del mensaje actual), no los del anterior.
+   - Pon "cambioDeProcedimiento": true.
+   - Registra en "contradicciones" una frase que aclare qué procedimiento se estaba tratando y cuál se está tratando ahora.
+9. Si el mensaje actual sigue hablando del MISMO procedimiento, pon "cambioDeProcedimiento": false.
+10. Corrige errores de redacción y ortografía sin alterar los hechos.
+11. Si detectas inconsistencias que no son cambio de procedimiento, listalas en "contradicciones" sin asumir cuál es correcta.
+12. No repitas en "contradicciones" un cambio de procedimiento que ya esté registrado en los antecedentes previos: sigue trabajando el caso actual.
+13. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
 
 FORMATO DE SALIDA (JSON con estas claves exactas):
 {
@@ -43,6 +50,7 @@ FORMATO DE SALIDA (JSON con estas claves exactas):
   "lugar": "texto | null",
   "fecha": "dd/mm/yyyy | null",
   "descripcionHechos": "resumen objetivo | null",
+  "cambioDeProcedimiento": true | false,
   "contradicciones": ["texto", ...]
 }`;
 

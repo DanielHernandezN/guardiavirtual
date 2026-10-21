@@ -2,7 +2,7 @@ import { camposFaltantes, crearRespuestaConversacional } from "@/lib/antecedente
 import { obtenerSesion } from "@/lib/auth-server";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
-import { esquemaAntecedentes } from "@/lib/schemas";
+import { esquemaAntecedentes, esquemaRespuestaModelo } from "@/lib/schemas";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // Normaliza y valida los antecedentes acumulados que envía el cliente.
     const antecedentesPrevios = esquemaAntecedentes.parse(antecedentesEntrada);
 
-    const validados = esquemaAntecedentes.parse(
+    const validados = esquemaRespuestaModelo.parse(
       await llamarModeloJson([
         { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
         {
@@ -45,20 +45,31 @@ export async function POST(request: Request) {
       ])
     );
 
-    // Combina el resultado del modelo con los antecedentes previos,
-    // conservando los datos ya conocidos cuando el modelo devuelve null.
-    const antecedentes: Antecedentes = {
-      tipoProcedimiento:
-        validados.tipoProcedimiento ?? antecedentesPrevios.tipoProcedimiento,
-      especie: validados.especie ?? antecedentesPrevios.especie,
-      lugar: validados.lugar ?? antecedentesPrevios.lugar,
-      fecha: validados.fecha ?? antecedentesPrevios.fecha,
-      descripcionHechos:
-        validados.descripcionHechos ??
-        antecedentesPrevios.descripcionHechos ??
-        mensaje,
-      contradicciones: validados.contradicciones,
-    };
+    const antecedentes: Antecedentes = validados.cambioDeProcedimiento
+      ? // El mensaje describe otro procedimiento: se reemplaza el estado
+        // acumulado, para que el caso nuevo no herede datos del anterior.
+        {
+          tipoProcedimiento: validados.tipoProcedimiento,
+          especie: validados.especie,
+          lugar: validados.lugar,
+          fecha: validados.fecha,
+          descripcionHechos: validados.descripcionHechos ?? mensaje,
+          contradicciones: validados.contradicciones,
+        }
+      : // Mismo procedimiento: se conserva lo ya conocido cuando el modelo
+        // devuelve null.
+        {
+          tipoProcedimiento:
+            validados.tipoProcedimiento ?? antecedentesPrevios.tipoProcedimiento,
+          especie: validados.especie ?? antecedentesPrevios.especie,
+          lugar: validados.lugar ?? antecedentesPrevios.lugar,
+          fecha: validados.fecha ?? antecedentesPrevios.fecha,
+          descripcionHechos:
+            validados.descripcionHechos ??
+            antecedentesPrevios.descripcionHechos ??
+            mensaje,
+          contradicciones: validados.contradicciones,
+        };
 
     const faltantes = camposFaltantes(antecedentes);
 
@@ -67,6 +78,7 @@ export async function POST(request: Request) {
       ...antecedentes,
       puedeConfeccionarBorrador: faltantes.length === 0,
       faltantes,
+      cambioDeProcedimiento: validados.cambioDeProcedimiento,
     };
 
     return Response.json(resultado);
