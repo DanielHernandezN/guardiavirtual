@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import LogoutButton from "./LogoutButton";
 import type { CasoResumen } from "@/lib/casos";
 
@@ -11,7 +12,16 @@ type Props = {
   mensajeEstado: string;
   onAbrirCaso: (caso: CasoResumen) => void;
   onNuevoCaso: () => void;
+  onEliminarCaso: (caso: CasoResumen) => void;
 };
+
+type Filtro = "TODOS" | "BORRADOR" | "CONFIRMADO";
+
+const FILTROS: Array<{ id: Filtro; etiqueta: string }> = [
+  { id: "TODOS", etiqueta: "Todos" },
+  { id: "BORRADOR", etiqueta: "En borrador" },
+  { id: "CONFIRMADO", etiqueta: "Confirmados" },
+];
 
 /**
  * Panel lateral del dashboard: datos del funcionario en sesión, botón de
@@ -25,18 +35,42 @@ export default function PanelLateral({
   mensajeEstado,
   onAbrirCaso,
   onNuevoCaso,
+  onEliminarCaso,
 }: Props) {
+  const [filtro, setFiltro] = useState<Filtro>("TODOS");
+  const [busqueda, setBusqueda] = useState("");
+
+  const filtrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+
+    return casos.filter((caso) => {
+      const coincideEstado =
+        filtro === "TODOS" || caso.estado === filtro;
+
+      const coincideTexto =
+        !texto ||
+        caso.titulo.toLowerCase().includes(texto) ||
+        (caso.lugar?.toLowerCase().includes(texto) ?? false) ||
+        (caso.especie?.toLowerCase().includes(texto) ?? false) ||
+        (caso.tipoProcedimiento?.toLowerCase().includes(texto) ?? false);
+
+      return coincideEstado && coincideTexto;
+    });
+  }, [casos, filtro, busqueda]);
+
+  const confirmados = casos.filter((caso) => caso.estado === "CONFIRMADO").length;
+
   return (
     <section className="
       w-[20%]
       flex
       flex-col
       p-6
-      gap-8
+      gap-6
       bg-oliva-900
       text-oliva-100
       ">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <h2 className="text-oliva-50">CABO VIRTUAL</h2>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
           Funcionario
@@ -50,6 +84,9 @@ export default function PanelLateral({
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
             Casos
+            <span className="ml-2 font-normal normal-case text-oliva-500">
+              {casos.length} total · {confirmados} confirmados
+            </span>
           </h3>
           <button
             type="button"
@@ -60,40 +97,81 @@ export default function PanelLateral({
           </button>
         </div>
 
-        {casos.length === 0 ? (
+        {/* Filtros por estado */}
+        <div className="flex flex-wrap gap-1.5">
+          {FILTROS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setFiltro(item.id)}
+              className={
+                filtro === item.id
+                  ? "rounded-lg bg-oliva-500 px-2.5 py-1 text-xs font-semibold text-oliva-950"
+                  : "rounded-lg border border-oliva-700 px-2.5 py-1 text-xs text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100"
+              }
+            >
+              {item.etiqueta}
+            </button>
+          ))}
+        </div>
+
+        {/* Búsqueda */}
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por título, lugar o especie"
+          className="w-full rounded-lg border border-oliva-700 bg-oliva-950/50 px-3 py-1.5 text-xs text-oliva-100 placeholder:text-oliva-500 outline-none transition focus:border-oliva-400"
+        />
+
+        {filtrados.length === 0 ? (
           <p className="text-sm text-oliva-300">
-            Todavía no hay casos guardados. Confirma un borrador para crear el
-            primero.
+            {casos.length === 0
+              ? "Todavía no hay casos guardados. Confirmá un borrador para crear el primero."
+              : "Ningún caso coincide con el filtro."}
           </p>
         ) : (
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
-            {casos.map((caso) => {
+            {filtrados.map((caso) => {
               const activo = caso.id === casoActivoId;
 
               return (
                 <li key={caso.id}>
-                  <button
-                    type="button"
-                    onClick={() => onAbrirCaso(caso)}
+                  <div
                     className={
                       activo
-                        ? "w-full rounded-xl border border-oliva-400 bg-oliva-800 px-3 py-2 text-left transition"
-                        : "w-full rounded-xl border border-oliva-700 bg-oliva-950/40 px-3 py-2 text-left transition hover:border-oliva-400 hover:bg-oliva-800"
+                        ? "rounded-xl border border-oliva-400 bg-oliva-800 px-3 py-2"
+                        : "rounded-xl border border-oliva-700 bg-oliva-950/40 px-3 py-2 transition hover:border-oliva-400 hover:bg-oliva-800"
                     }
                   >
-                    <p className="text-sm font-semibold text-oliva-50">
-                      {caso.titulo}
-                    </p>
-                    <p className="mt-0.5 text-xs text-oliva-300">
-                      {caso.fecha ?? "sin fecha"} ·{" "}
-                      {caso.estado === "CONFIRMADO"
-                        ? "Confirmado"
-                        : "En borrador"}
-                      {caso.borradores.length > 0
-                        ? ` · ${caso.borradores.length} borrador${caso.borradores.length > 1 ? "es" : ""}`
-                        : ""}
-                    </p>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onAbrirCaso(caso)}
+                      className="w-full text-left"
+                    >
+                      <p className="text-sm font-semibold text-oliva-50">
+                        {caso.titulo}
+                      </p>
+                      <p className="mt-0.5 text-xs text-oliva-300">
+                        {caso.fecha ?? "sin fecha"} ·{" "}
+                        {caso.estado === "CONFIRMADO"
+                          ? "Confirmado"
+                          : "En borrador"}
+                        {caso.borradores.length > 0
+                          ? ` · ${caso.borradores.length} borrador${caso.borradores.length > 1 ? "es" : ""}`
+                          : ""}
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onEliminarCaso(caso)}
+                      title="Eliminar caso"
+                      className="mt-1 text-xs text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                 </li>
               );
             })}

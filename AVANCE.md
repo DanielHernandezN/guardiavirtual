@@ -260,10 +260,12 @@ guardiavirtual/
 
 **Scripts útiles:** `npm run db:migrate` (aplica migraciones), `npm run db:studio` (explorador de datos), `npm run db:generate`.
 
-### Fase 6 — UI/UX del dashboard
-- [ ] Panel lateral con datos reales del funcionario.
-- [ ] Sección de casos (activos / históricos).
-- [ ] Vista de borrador con indicadores de completitud.
+### Fase 6 — UI/UX del dashboard — ✅ COMPLETADA
+- [x] Panel lateral con los datos reales del funcionario en sesión (nombre e ID) y botón de cierre de sesión.
+- [x] Historial de casos con **filtros por estado** (Todos / En borrador / Confirmados), **búsqueda** por título, lugar o especie, y contador de casos.
+- [x] **Eliminar caso** desde la lista (con confirmación), ya que el endpoint existía pero no tenía interfaz.
+- [x] Vista de borrador con **indicadores de completitud**: resumen de antecedentes (procedimiento, especie, lugar, fecha) y listado de los datos que quedaron como `[PENDIENTE]`, con el nombre de cada campo.
+- [x] Estado vacío del chat con instrucciones de qué datos se necesitan.
 - [x] Diferenciar visualmente mensajes funcionario vs. asistente.
 - [x] Paleta de UI en tonos de verde olivo (escala de 11 tokens, de oscuro a claro). Ver "Paleta de UI".
 
@@ -292,11 +294,11 @@ guardiavirtual/
 
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0, 1, 2, 3, 4 y 5 completadas.** El sistema, con IA real
+- **Fases 0, 1, 2, 3, 4, 5 y 6 completadas.** El sistema, con IA real
   (OpenRouter, modelo gratuito), extrae antecedentes, redacta el borrador del
-  parte con secciones editables, exige revisión humana y **guarda los casos y
-  borradores en base de datos** (SQLite + Prisma), con historial en el panel
-  lateral.
+  parte con secciones editables, exige revisión humana, **guarda los casos y
+  borradores en base de datos** (SQLite + Prisma) y ofrece historial con
+  filtros, búsqueda y borrado.
 - **Detecta procedimientos mezclados**: si el funcionario narra un caso
   distinto al ya conversado, la IA lo señala como contradicción, **el borrador
   queda bloqueado** y el funcionario puede resolverlo con un clic ("Continuar
@@ -310,10 +312,9 @@ guardiavirtual/
   Carabineros para que la IA la rellene.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. Verificar en el navegador el flujo completo: login → chat → borrador → **Guardar/Confirmar** → abrir el caso desde el historial.
-2. **Fase 6:** pulir el dashboard (estado vacío, filtros, datos reales del funcionario).
-3. **Fase 7:** calidad, seguridad y despliegue (migrar SQLite → Postgres para Vercel).
-4. **Fase 8 (cuando el usuario entregue la plantilla):** partes con el formato oficial de la unidad.
+1. **Fase 7:** calidad, seguridad y despliegue (migrar SQLite → Postgres para Vercel, rate limiting, tests).
+2. **Fase 8 (cuando el usuario entregue la plantilla real de los partes):** la IA rellenará ese formato, incluida la sección "Declaración de hechos".
+3. Probar más escenarios adversarios en el chat (correcciones, contradicciones, cambio de procedimiento).
 
 ### Configuración local (qué se debe completar en `.env.local`)
 

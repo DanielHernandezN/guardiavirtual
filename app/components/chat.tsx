@@ -215,6 +215,25 @@ export default function Chat({ onBorradorGenerado }: Props) {
             p-6
             overflow-y-auto
             ">
+                {mensajes.length === 0 && (
+                    <div className="mx-auto max-w-md rounded-2xl border border-oliva-200 bg-oliva-50 p-6 text-center">
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-500">
+                            Nuevo parte
+                        </h3>
+                        <p className="mt-2 text-sm text-oliva-900">
+                            Contame los hechos del caso y yo voy completando los
+                            antecedentes.
+                        </p>
+                        <p className="mt-3 text-xs leading-relaxed text-oliva-600">
+                            Necesito el <strong>tipo de procedimiento</strong>, la{" "}
+                            <strong>especie</strong> involucrada, el{" "}
+                            <strong>lugar</strong> y la <strong>fecha</strong>.
+                            Cuando estén los cuatro, genero el borrador del
+                            parte.
+                        </p>
+                    </div>
+                )}
+
                 {mensajes.map((mensaje, index) => (
                 <div key={index}
                     className={

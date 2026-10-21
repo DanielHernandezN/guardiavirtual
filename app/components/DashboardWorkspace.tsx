@@ -120,6 +120,36 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
     setMensajeEstado("");
   };
 
+  /** Elimina un caso del historial (con sus borradores). */
+  const eliminarCaso = async (caso: CasoResumen) => {
+    const aceptado = window.confirm(
+      `¿Eliminar el caso "${caso.titulo}"? Esta acción no se puede deshacer.`
+    );
+
+    if (!aceptado) return;
+
+    try {
+      const response = await fetch(`/api/casos/${caso.id}`, { method: "DELETE" });
+
+      if (!response.ok) {
+        throw new Error("No se pudo eliminar el caso.");
+      }
+
+      if (caso.id === casoId) {
+        setCasoId(null);
+        setBorradorVisible(null);
+        setAntecedentesVisibles(null);
+      }
+
+      setCasos(await cargarCasos());
+      setMensajeEstado(`Caso "${caso.titulo}" eliminado.`);
+    } catch (error) {
+      setMensajeEstado(
+        error instanceof Error ? error.message : "No se pudo eliminar el caso."
+      );
+    }
+  };
+
   return (
     <>
       <PanelLateral
@@ -129,6 +159,7 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
         casoActivoId={casoId}
         mensajeEstado={mensajeEstado}
         onAbrirCaso={abrirCaso}
+        onEliminarCaso={eliminarCaso}
         onNuevoCaso={() => {
           setCasoId(null);
           setBorradorVisible(null);
@@ -149,6 +180,7 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
       {borradorVisible && (
         <BorradorPanel
           borrador={borradorVisible}
+          antecedentes={antecedentesVisibles}
           onCerrar={() => setBorradorVisible(null)}
           onGuardar={guardarBorrador}
         />

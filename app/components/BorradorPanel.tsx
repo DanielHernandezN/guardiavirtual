@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { BorradorParte, SeccionBorrador } from "@/lib/types";
+import { extraerPendientes } from "@/lib/casos";
+import type { Antecedentes, BorradorParte, SeccionBorrador } from "@/lib/types";
 
 type Props = {
   borrador: BorradorParte;
+  /** Antecedentes del caso, para el resumen de cabecera. */
+  antecedentes?: Antecedentes | null;
   onCerrar: () => void;
   /** Guarda el borrador (con los cambios del funcionario) en la base de datos. */
   onGuardar?: (
@@ -20,7 +23,12 @@ const escaparHtml = (texto: string): string =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) {
+export default function BorradorPanel({
+  borrador,
+  antecedentes,
+  onCerrar,
+  onGuardar,
+}: Props) {
   const [titulo, setTitulo] = useState(borrador.titulo);
   const [secciones, setSecciones] = useState<SeccionBorrador[]>(
     borrador.secciones
@@ -41,6 +49,12 @@ export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) 
     secciones,
     textoCompleto,
   };
+
+  const pendientes = extraerPendientes(secciones);
+  const totalPendientes = pendientes.reduce(
+    (total, seccion) => total + seccion.pendientes.length,
+    0
+  );
 
   const guardar = async (confirmar: boolean) => {
     if (!onGuardar) return;
@@ -104,8 +118,8 @@ export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) 
     <title>${escaparHtml(titulo)}</title>
     <style>
       body { font-family: Georgia, serif; margin: 48px; line-height: 1.6; color: #111; }
-      h1 { border-bottom: 2px solid #2b47a3; padding-bottom: 8px; font-size: 20px; }
-      h2 { margin-top: 28px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #1d3557; }
+      h1 { border-bottom: 2px solid #4e5839; padding-bottom: 8px; font-size: 20px; }
+      h2 { margin-top: 28px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #3a412c; }
       p { margin: 6px 0; }
     </style>
   </head>
@@ -118,6 +132,13 @@ export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) 
     ventana.focus();
     ventana.print();
   };
+
+  const resumen = [
+    { etiqueta: "Procedimiento", valor: antecedentes?.tipoProcedimiento },
+    { etiqueta: "Especie", valor: antecedentes?.especie },
+    { etiqueta: "Lugar", valor: antecedentes?.lugar },
+    { etiqueta: "Fecha", valor: antecedentes?.fecha },
+  ].filter((item) => item.valor);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-oliva-950/70 p-4">
@@ -143,6 +164,23 @@ export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) 
           </button>
         </div>
 
+        {/* Resumen de antecedentes */}
+        {resumen.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-b border-oliva-200 bg-oliva-50 px-6 py-3">
+            {resumen.map((item) => (
+              <span
+                key={item.etiqueta}
+                className="rounded-lg border border-oliva-200 bg-white px-2.5 py-1 text-xs text-oliva-800"
+              >
+                <span className="font-semibold uppercase tracking-wide text-oliva-500">
+                  {item.etiqueta}:{" "}
+                </span>
+                {item.valor}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Cuerpo editable */}
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <div>
@@ -155,6 +193,32 @@ export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) 
               className="w-full rounded-xl border border-oliva-300 bg-white px-4 py-2 text-sm font-semibold text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
             />
           </div>
+
+          {/* Indicador de completitud */}
+          {totalPendientes > 0 ? (
+            <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-semibold">
+                Faltan {totalPendientes} dato
+                {totalPendientes > 1 ? "s" : ""} por completar
+              </p>
+              <ul className="mt-1.5 space-y-1 pl-4">
+                {pendientes.map((seccion) => (
+                  <li key={seccion.titulo}>
+                    <span className="font-semibold">{seccion.titulo}:</span>{" "}
+                    {seccion.pendientes.join("; ")}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-amber-800">
+                Podés completarlos en el chat y volver a generar el borrador, o
+                dejarlos así si no corresponden a este parte.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-oliva-500 bg-oliva-100 px-4 py-3 text-sm text-oliva-800">
+              ✓ Todos los datos del parte están completos.
+            </div>
+          )}
 
           {secciones.map((seccion, indice) => (
             <div key={seccion.titulo}>

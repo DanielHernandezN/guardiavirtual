@@ -58,6 +58,52 @@ export const parseAntecedentes = (valor: string): Record<string, unknown> => {
   }
 };
 
+/** Sección del borrador con los datos que quedaron pendientes. */
+export type SeccionConPendientes = {
+  titulo: string;
+  /** Descripción de cada dato pendiente (vacío si no es legible). */
+  pendientes: string[];
+};
+
+/**
+ * Extrae los datos que el modelo dejó como `[PENDIENTE]` en cada sección.
+ * Sirve para mostrarle al funcionario qué falta completar antes de
+ * confirmar el parte.
+ *
+ * El modelo escribe el dato pendiente como "campo: [PENDIENTE]", así que
+ * el nombre del campo se toma del texto anterior al marcador.
+ */
+export const extraerPendientes = (
+  secciones: SeccionBorrador[]
+): SeccionConPendientes[] =>
+  secciones
+    .map((seccion) => {
+      const marcadores = seccion.contenido.match(/\[PENDIENTE\]/gi);
+
+      if (!marcadores) {
+        return { titulo: seccion.titulo, pendientes: [] as string[] };
+      }
+
+      // Al separar por el marcador, cada trozo va DESPUÉS de un [PENDIENTE].
+      // El nombre del campo está al final del trozo anterior.
+      const partes = seccion.contenido.split(/\[PENDIENTE\]/gi);
+
+      const pendientes = partes.slice(1).map((_, indice) => {
+        const previo = partes[indice];
+        const campo =
+          previo
+            .split(/[.;\n]/)
+            .pop()
+            ?.replace(/[:\s]+$/, "")
+            .trim() ?? "";
+
+        return campo.slice(0, 70) || "dato sin especificar";
+      });
+
+      return { titulo: seccion.titulo, pendientes };
+    })
+    .filter((seccion) => seccion.pendientes.length > 0);
+
 /** Construye el título de un caso a partir de sus antecedentes. */
 export const tituloDeCaso = (datos: {
   tipoProcedimiento?: string | null;
