@@ -85,7 +85,7 @@ export const llamarModelo = async (
       model: obtenerModelo(),
       temperature: temperatura,
       response_format: { type: "json_object" },
-      mensajes,
+      messages: mensajes,
     }),
   });
 

@@ -252,17 +252,16 @@ guardiavirtual/
 - **Lo más importante pendiente:** generar el **borrador del parte policial** (Fase 3). Es el corazón del proyecto.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Configurar la clave de IA** (ver "Configuración local" más abajo).
-2. Probar el flujo completo con el modelo gratuito: login → chat → borrador → confirmar.
-3. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
-4. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
+1. **Probar el flujo completo en el navegador** (login → chat → borrador → confirmar). La IA ya responde con el modelo gratuito.
+2. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
+3. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
 
 ### Configuración local (qué se debe completar en `.env.local`)
 
 | Variable | Estado | Notas |
 |----------|--------|-------|
 | `AI_BASE_URL` | ✅ definido | OpenRouter |
-| `AI_API_KEY` | ⚠️ **pendiente** | Clave de OpenRouter: `sk-or-v1-27f...7ff` (huella; la clave completa vive solo en `.env.local`) |
+| `AI_API_KEY` | ✅ definido | Clave de OpenRouter: `sk-or-v1-20...b7753` (huella; la clave completa vive solo en `.env.local`) |
 | `AI_MODEL` | ✅ definido | `minimax/minimax-m3.1-flash:free` |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
 | `USUARIOS_JSON` | ✅ definido | ID `daniel` |
