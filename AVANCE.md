@@ -4,7 +4,7 @@
 
 - **Última actualización:** 21/10/2026
 - **Estado general:** 🟢 Funcional — Fases 0 a 7 completadas. El sistema extrae antecedentes, redacta el borrador del parte, exige revisión humana, guarda los casos con historial y papelera, y cuenta con tests, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel (Fase 7, último paso) y formato oficial de los partes (Fase 8).
-- **Último commit analizado:** `64a09d5` — "AVANCE: cierre de sesion y pendientes menores anotados"
+- **Último commit analizado:** `872ef81` — "Fase 7: calidad, seguridad, pruebas y despliegue"
 
 ---
 
@@ -25,7 +25,8 @@ seguridad y despliegue), además de los pendientes menores anotados:
 | Despliegue | `DEPLOY.md`, `vercel.json`, `scripts/proveedor-db.mjs` (SQLite ↔ PostgreSQL), `postinstall: prisma generate`. |
 | Formato | El modelo ya no escribe *"a las [PENDIENTE]"*: usa *"a una hora no informada"*. |
 
-**Commits de esta sesión:** se resumirán al cerrar la sesión.
+**Commits de esta sesión:**
+- `872ef81` — Fase 7: calidad, seguridad, pruebas y despliegue.
 
 ---
 
