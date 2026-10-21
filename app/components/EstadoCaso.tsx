@@ -16,9 +16,9 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
   const completo = faltantes.length === 0;
 
   return (
-    <div className="space-y-2 px-6 pb-4">
+    <div className="space-y-2 px-6 py-3">
       {contradicciones.length > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">⚠ Contradicciones detectadas</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
             {contradicciones.map((contradiccion, indice) => (
@@ -32,7 +32,7 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
       )}
 
       {!completo && (
-        <div className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-ink">
+        <div className="rounded-xl border border-oliva-300 bg-oliva-100 px-4 py-3 text-sm text-oliva-900">
           <p className="font-semibold">Faltantes para el borrador</p>
           <p className="mt-1">
             Necesito {formatoLista(faltantes)} para poder confeccionar el parte.
@@ -41,7 +41,7 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
       )}
 
       {completo && (
-        <div className="rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <div className="rounded-xl border border-oliva-600 bg-oliva-600 px-4 py-3 text-sm font-medium text-oliva-50">
           ✓ Antecedentes completos. Ya podés generar el borrador del parte.
         </div>
       )}

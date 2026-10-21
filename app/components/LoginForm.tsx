@@ -52,7 +52,7 @@ export default function LoginForm() {
         <div>
           <label
             htmlFor="id"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-sm font-medium text-oliva-800"
           >
             ID
           </label>
@@ -64,11 +64,11 @@ export default function LoginForm() {
             placeholder="Ingrese su ID"
             value={id}
             onChange={(e) => setId(e.target.value)}
-            className="w-full rounded-xl border border-slate-500 px-4 py-3
-            text-slate-900
-            placeholder:text-slate-500 outline-none transition
-            focus:border-accent focus:ring-2 
-            focus:ring-accent/20"
+            className="w-full rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3
+            text-oliva-900
+            placeholder:text-oliva-500 outline-none transition
+            focus:border-oliva-500 focus:ring-2 
+            focus:ring-oliva-500/25"
           />
 
         </div>
@@ -77,7 +77,7 @@ export default function LoginForm() {
         <div>
           <label
             htmlFor="password"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-sm font-medium text-oliva-800"
           >
             PASS
           </label>
@@ -89,11 +89,11 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Ingrese su contraseña"
-            className="w-full rounded-xl border border-slate-500 px-4 py-3 
-            text-slate-900
-            placeholder:text-slate-500 outline-none transition 
-            focus:border-accent focus:ring-2
-            focus:ring-accent/20"
+            className="w-full rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3 
+            text-oliva-900
+            placeholder:text-oliva-500 outline-none transition 
+            focus:border-oliva-500 focus:ring-2
+            focus:ring-oliva-500/25"
           />
         </div>
 
@@ -102,9 +102,9 @@ export default function LoginForm() {
           type="submit"
           disabled={cargando}
           className="w-full rounded-xl 
-          bg-brand px-4 py-3 font-semibold
-          text-white transition
-          hover:bg-brand-dark
+          bg-oliva-600 px-4 py-3 font-semibold
+          text-oliva-50 transition
+          hover:bg-oliva-700
           disabled:opacity-60"
         >
           {cargando ? "VERIFICANDO..." : "INGRESAR"}
@@ -113,7 +113,7 @@ export default function LoginForm() {
       </form>
 
       {mensaje && (
-    <p className="mt-4 text-center text-sm text-slate-600">
+    <p className="mt-4 text-center text-sm text-oliva-700">
         {mensaje}
     </p>
 )}

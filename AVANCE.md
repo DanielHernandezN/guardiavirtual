@@ -34,6 +34,26 @@ Construir una **IA que ayude a confeccionar partes policiales** (partes, actuaci
 
 > ⚠️ `node_modules` **no está instalado** en el workspace actual. Antes de compilar: `npm install`.
 
+### Paleta de UI (escala de oliva)
+
+Definida como tokens de Tailwind v4 en `app/globals.css`, de **oscuro a claro**:
+
+| Token | Hex | Uso |
+|-------|-----|-----|
+| `oliva-950` | `#14170f` | Fondo más oscuro (velo de modales) |
+| `oliva-900` | `#1e2218` | Panel lateral del dashboard |
+| `oliva-800` | `#2a2f21` | Burbuja del asistente (cabo) |
+| `oliva-700` | `#3a412c` | Bordes oscuros |
+| `oliva-600` | `#4e5839` | Botones primarios / texto secundario |
+| `oliva-500` | `#6b7a45` | Color de marca (acento) |
+| `oliva-400` | `#8a9a5b` | Acentos sobre fondo oscuro |
+| `oliva-300` | `#aebb85` | Acentos, bordes claros |
+| `oliva-200` | `#cfd8b0` | Burbuja del funcionario, bordes |
+| `oliva-100` | `#e4e9d4` | Superficies claras (chat, banner) |
+| `oliva-50` | `#f2f5e8` | Fondo de página |
+
+Los alias semánticos (`brand`, `ink`, `surface`…) se mantienen apuntando a la escala de oliva.
+
 ### Proveedor de IA (configurable)
 
 Todo el acceso al modelo pasa por **`lib/ia.ts`**, así que cambiar de proveedor
@@ -233,7 +253,8 @@ guardiavirtual/
 - [ ] Panel lateral con datos reales del funcionario.
 - [ ] Sección de casos (activos / históricos).
 - [ ] Vista de borrador con indicadores de completitud.
-- [ ] Diferenciar visualmente mensajes funcionario vs. asistente.
+- [x] Diferenciar visualmente mensajes funcionario vs. asistente.
+- [x] Paleta de UI en tonos de verde olivo (escala de 11 tokens, de oscuro a claro). Ver "Paleta de UI".
 
 ### Fase 7 — Calidad, seguridad y despliegue
 - [ ] Manejo de errores y estados de carga en toda la UI.

@@ -156,7 +156,7 @@ export default function Chat() {
           flex-col
           w-[80%]
           h-screen
-          bg-[#e7dfddad]
+          bg-oliva-100
           ">
             <div className="
             flex
@@ -164,10 +164,12 @@ export default function Chat() {
             p-6
             justify-between
             border-b
+            border-oliva-200
+            bg-oliva-50
             ">
               <div>
-                <h2>CABO VIRTUAL</h2>
-                <p>Asistente de apoyo documental</p>
+                <h2 className="text-oliva-900">CABO VIRTUAL</h2>
+                <p className="text-sm text-oliva-600">Asistente de apoyo documental</p>
               </div>
                 <div className="flex flex-row items-center gap-4">
                   {puedeConfeccionar && (
@@ -177,22 +179,22 @@ export default function Chat() {
                       disabled={borradorCargando}
                       className="
                       rounded-xl
-                      bg-brand
+                      bg-oliva-600
                       px-4
                       py-2
                       text-sm
                       font-semibold
-                      text-white
+                      text-oliva-50
                       transition
-                      hover:bg-brand-dark
+                      hover:bg-oliva-700
                       disabled:opacity-60
                       "
                     >
                       {borradorCargando ? "GENERANDO..." : "GENERAR BORRADOR"}
                     </button>
                   )}
-                  <div className="flex flex-row gap-2">
-                    <p>●</p>
+                  <div className="flex flex-row items-center gap-2 text-sm text-oliva-600">
+                    <p className="text-oliva-500">●</p>
                     <p>En línea</p>
                   </div>
                 </div>
@@ -211,16 +213,14 @@ export default function Chat() {
                         : "flex justify-start"
                 }  
                 >
-                    <div className="
-                    flex
-                    flex-col
-                    gap-1
-                    p-4
-                    rounded-xl
-                    bg-brand
-                    text-white
-                    ">
-                    <p>{mensaje.autor}</p>
+                    <div className={
+                        mensaje.autor === "funcionario"
+                        ? "flex flex-col gap-1 p-4 rounded-xl bg-oliva-200 text-oliva-900 border border-oliva-300"
+                        : "flex flex-col gap-1 p-4 rounded-xl bg-oliva-800 text-oliva-50 border border-oliva-700"
+                    }>
+                    <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                        {mensaje.autor}
+                    </p>
                     <p>{mensaje.contenido}</p>
                     </div>
                 </div>
@@ -228,8 +228,10 @@ export default function Chat() {
 
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-brand text-white">
-                            <p>cabo</p>
+                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-oliva-800 text-oliva-50 border border-oliva-700">
+                            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                                cabo
+                            </p>
                             <p>Analizando antecedentes...</p>
                         </div>
                     </div>
@@ -239,12 +241,14 @@ export default function Chat() {
 
             </div>
 
-            <EstadoCaso
-                faltantes={camposFaltantes(datosAntecedentes)}
-                contradicciones={datosAntecedentes.contradicciones}
-            />
+            <div className="border-t border-oliva-200 bg-oliva-50">
+                <EstadoCaso
+                    faltantes={camposFaltantes(datosAntecedentes)}
+                    contradicciones={datosAntecedentes.contradicciones}
+                />
+            </div>
 
-            <div>
+            <div className="border-t border-oliva-200 bg-oliva-100">
               <form onSubmit={handleSubmit} className="
               flex
               flex-row
@@ -259,7 +263,14 @@ export default function Chat() {
                 py-3
                 rounded-xl
                 border
-                bg-[#d6d8ffad]
+                border-oliva-300
+                bg-oliva-50
+                text-oliva-900
+                placeholder:text-oliva-600
+                outline-none
+                focus:border-oliva-500
+                focus:ring-2
+                focus:ring-oliva-500/25
                 "
                 placeholder="Escriba los antecedentes"
                 value={antecedentes}
@@ -270,10 +281,10 @@ export default function Chat() {
                   className="
                   px-6
                   py-3
-                  bg-brand
-                  text-white
+                  bg-oliva-600
+                  text-oliva-50
                   rounded-xl
-                  hover:bg-brand-dark
+                  hover:bg-oliva-700
                   disabled:opacity-60
                   "
                   disabled={isLoading}

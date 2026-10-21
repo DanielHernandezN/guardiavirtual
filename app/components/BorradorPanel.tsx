@@ -94,15 +94,15 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-oliva-950/70 p-4">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-oliva-200 bg-oliva-50 shadow-2xl">
         {/* Encabezado */}
-        <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-oliva-200 bg-oliva-100 px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-ink">
+            <h2 className="text-lg font-semibold text-oliva-900">
               Borrador del parte policial
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-oliva-600">
               Generado el{" "}
               {new Date(borrador.generadoEn).toLocaleString("es-CL")} ·
               Es un borrador: revísalo y ajústalo antes de usarlo.
@@ -111,7 +111,7 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
           <button
             type="button"
             onClick={onCerrar}
-            className="rounded-lg px-3 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-ink"
+            className="rounded-lg px-3 py-1.5 text-sm text-oliva-600 transition hover:bg-oliva-200 hover:text-oliva-900"
           >
             Cerrar
           </button>
@@ -120,34 +120,34 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
         {/* Cuerpo editable */}
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
               Título
             </label>
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+              className="w-full rounded-xl border border-oliva-300 bg-white px-4 py-2 text-sm font-semibold text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
             />
           </div>
 
           {secciones.map((seccion, indice) => (
             <div key={seccion.titulo}>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink-soft">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
                 {seccion.titulo}
               </label>
               <textarea
                 value={seccion.contenido}
                 onChange={(e) => actualizarContenido(indice, e.target.value)}
                 rows={Math.max(3, seccion.contenido.split("\n").length + 1)}
-                className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-sm leading-relaxed text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+                className="w-full resize-y rounded-xl border border-oliva-300 bg-white px-4 py-3 text-sm leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
               />
             </div>
           ))}
         </div>
 
         {/* Pie: revisión y acciones */}
-        <div className="border-t bg-slate-50 px-6 py-4">
-          <label className="flex cursor-pointer items-start gap-2 text-sm text-ink">
+        <div className="border-t border-oliva-200 bg-oliva-100 px-6 py-4">
+          <label className="flex cursor-pointer items-start gap-2 text-sm text-oliva-900">
             <input
               type="checkbox"
               checked={revisado}
@@ -161,7 +161,7 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
           </label>
 
           {confirmado && (
-            <p className="mt-3 rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
+            <p className="mt-3 rounded-lg border border-oliva-500 bg-oliva-50 px-3 py-2 text-sm text-oliva-800">
               Borrador revisado y confirmado. Ya puedes copiarlo, descargarlo o
               imprimirlo.
             </p>
@@ -171,21 +171,21 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
             <button
               type="button"
               onClick={copiar}
-              className="rounded-xl border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
+              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
             >
               {copiado ? "¡Copiado!" : "Copiar"}
             </button>
             <button
               type="button"
               onClick={descargar}
-              className="rounded-xl border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
+              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
             >
               Descargar .txt
             </button>
             <button
               type="button"
               onClick={imprimir}
-              className="rounded-xl border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
+              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
             >
               Imprimir
             </button>
@@ -193,7 +193,7 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
               type="button"
               onClick={() => setConfirmado(true)}
               disabled={!revisado}
-              className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-50 transition hover:bg-oliva-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Confirmar borrador
             </button>
