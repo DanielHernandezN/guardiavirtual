@@ -34,7 +34,7 @@ export default function EstadoCaso({
           </ul>
           <p className="mt-2 text-xs text-amber-800">
             No se puede redactar un parte que mezcle dos procedimientos
-            distintos. Revisá estos puntos con el funcionario.
+            distintos. Revisa estos puntos con el funcionario.
           </p>
           {onResolver && (
             <button
@@ -59,7 +59,7 @@ export default function EstadoCaso({
 
       {completo && !bloqueado && (
         <div className="rounded-xl border border-oliva-600 bg-oliva-600 px-4 py-3 text-sm font-medium text-oliva-50">
-          ✓ Antecedentes completos. Ya podés generar el borrador del parte.
+          ✓ Antecedentes completos. Ya puedes generar el borrador del parte.
         </div>
       )}
     </div>

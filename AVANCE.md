@@ -355,6 +355,10 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 ## 9. Convenciones de trabajo
 
 - Documentar en **español**.
+- **Usar español neutro** en toda la interfaz, la documentación y los prompts:
+  sin voseo (vos, podés, contame, revisá) ni modismos regionales (aquí, che,
+  laburo). El texto puede terminar en un documento oficial. Esta regla también
+  se le indica al modelo de IA en `lib/prompts.ts`.
 - Actualizar este `AVANCE.md` al final de cada sesión (marcar casillas y anotar bloqueos).
 - Mantener la regla de `AGENTS.md`: leer las docs de Next en `node_modules/next/dist/docs/` antes de escribir código nuevo.
 - No inventar datos en los partes: es requisito del dominio policial.

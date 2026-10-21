@@ -210,7 +210,7 @@ export default function BorradorPanel({
                 ))}
               </ul>
               <p className="mt-2 text-xs text-amber-800">
-                Podés completarlos en el chat y volver a generar el borrador, o
+                Puedes completarlos en el chat y volver a generar el borrador, o
                 dejarlos así si no corresponden a este parte.
               </p>
             </div>

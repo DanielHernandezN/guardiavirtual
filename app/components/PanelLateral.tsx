@@ -127,7 +127,7 @@ export default function PanelLateral({
         {filtrados.length === 0 ? (
           <p className="text-sm text-oliva-300">
             {casos.length === 0
-              ? "Todavía no hay casos guardados. Confirmá un borrador para crear el primero."
+              ? "Todavía no hay casos guardados. Confirma un borrador para crear el primero."
               : "Ningún caso coincide con el filtro."}
           </p>
         ) : (

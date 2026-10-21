@@ -221,7 +221,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                             Nuevo parte
                         </h3>
                         <p className="mt-2 text-sm text-oliva-900">
-                            Contame los hechos del caso y yo voy completando los
+                            Cuéntame los hechos del caso y yo voy completando los
                             antecedentes.
                         </p>
                         <p className="mt-3 text-xs leading-relaxed text-oliva-600">

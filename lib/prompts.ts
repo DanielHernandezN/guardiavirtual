@@ -39,9 +39,10 @@ REGLAS:
    - Registra en "contradicciones" una frase que aclare qué procedimiento se estaba tratando y cuál se está tratando ahora.
 9. Si el mensaje actual sigue hablando del MISMO procedimiento, pon "cambioDeProcedimiento": false.
 10. Corrige errores de redacción y ortografía sin alterar los hechos.
-11. Si detectas inconsistencias que no son cambio de procedimiento, listalas en "contradicciones" sin asumir cuál es correcta.
-12. No repitas en "contradicciones" un cambio de procedimiento que ya esté registrado en los antecedentes previos: sigue trabajando el caso actual.
-13. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
+11. Redacta la "descripcionHechos" en español NEUTRO, sin voseo ni modismos regionales.
+12. Si detectas inconsistencias que no son cambio de procedimiento, listalas en "contradicciones" sin asumir cuál es correcta.
+13. No repitas en "contradicciones" un cambio de procedimiento que ya esté registrado en los antecedentes previos: sigue trabajando el caso actual.
+14. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
 
 FORMATO DE SALIDA (JSON con estas claves exactas):
 {
@@ -83,9 +84,10 @@ REGLAS ESTRICTAS:
 2. Usa ÚNICAMENTE la información contenida en los antecedentes proporcionados.
 3. Si un dato falta, escribe [PENDIENTE] en ese lugar. Nunca lo completes con suposiciones.
 4. Redacta en español formal, objetivo y en tercera persona.
-5. No incluyas opiniones, valoraciones ni conclusiones no sustentadas en los hechos.
-6. Respeta exactamente las secciones solicitadas, con el mismo nombre de sección.
-7. Responde únicamente con JSON válido, sin Markdown ni texto fuera del JSON.
+5. Usa español NEUTRO: no uses voseo (vos, podés, contame, revisá) ni modismos o regionalismos (acá, che, laburo). Es un documento oficial: emplea "usted" o la forma impersonal.
+6. No incluyas opiniones, valoraciones ni conclusiones no sustentadas en los hechos.
+7. Respeta exactamente las secciones solicitadas, con el mismo nombre de sección.
+8. Responde únicamente con JSON válido, sin Markdown ni texto fuera del JSON.
 
 FORMATO DE SALIDA (JSON con estas claves exactas):
 {
