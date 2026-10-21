@@ -13,6 +13,17 @@ export const camposFaltantes = (antecedentes: Antecedentes): string[] =>
     ({ label }) => label
   );
 
+/**
+ * Indica si se puede redactar el borrador del parte.
+ *
+ * Hace falta que estén todos los campos obligatorios **y** que no haya
+ * contradicciones: mezclar dos procedimientos distintos (por ejemplo, una
+ * denuncia de violencia intrafamiliar y un robo) invalidaría el parte.
+ */
+export const puedeRedactarBorrador = (antecedentes: Antecedentes): boolean =>
+  camposFaltantes(antecedentes).length === 0 &&
+  antecedentes.contradicciones.length === 0;
+
 /** Formatea una lista en español: "a", "a y b", "a, b y c". */
 export const formatoLista = (items: string[]): string => {
   if (items.length === 0) return "";

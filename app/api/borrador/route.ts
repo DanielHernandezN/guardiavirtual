@@ -52,6 +52,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Las contradicciones bloquean el borrador: no se puede redactar un
+    // parte que mezcle dos procedimientos distintos.
+    if (antecedentes.contradicciones.length > 0) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Hay contradicciones en los antecedentes: no se puede confeccionar un parte con dos procedimientos distintos.",
+          contradicciones: antecedentes.contradicciones,
+        },
+        { status: 409 }
+      );
+    }
+
     if (!hayClaveDeIA()) {
       return Response.json(
         { ok: false, error: ERROR_SIN_CLAVE },

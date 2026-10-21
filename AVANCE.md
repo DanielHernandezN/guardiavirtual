@@ -209,6 +209,7 @@ guardiavirtual/
 - [x] UI de chat con acumulación.
 - [x] Validar `fecha` en formato `dd/mm/yyyy`: `lib/fecha.ts` (`normalizarFecha`) acepta `dd/mm/yyyy`, ISO, `dd-mm-yyyy`, `dd.mm.yyyy` y texto ("12 de junio de 2026"); si es inválida → `null` (no se inventa). Aplicado en el esquema (`textoFecha`).
 - [x] Mejorar manejo de `contradicciones` y presentarlas en la UI: componente `app/components/EstadoCaso.tsx` muestra faltantes y contradicciones (con aviso ámbar) y el estado "listo para generar el borrador".
+- [x] **Las contradicciones bloquean el borrador** (`puedeRedactarBorrador` en `lib/antecedentes.ts`): no se puede redactar un parte que mezcle dos procedimientos distintos. Se aplica en la UI (oculta "GENERAR BORRADOR") **y en el servidor** (`POST /api/borrador` → `409`). El prompt se reforzó para que el modelo lo detecte explícitamente.
 - [x] Corregir tipos en `chat.tsx` (aceptar `null`) y limpiar payload (hecho en Fase 1).
 
 **Verificación:** `normalizarFecha` probado (varios formatos → `dd/mm/yyyy`; fechas inválidas y años bisiestos correctamente). `next typegen` ✅, `eslint` ✅, `next build` ✅.
@@ -295,6 +296,9 @@ guardiavirtual/
   parte con secciones editables, exige revisión humana y **guarda los casos y
   borradores en base de datos** (SQLite + Prisma), con historial en el panel
   lateral.
+- **Detecta procedimientos mezclados**: si el funcionario narra un caso
+  distinto al ya conversado, la IA lo señala como contradicción y **el
+  borrador queda bloqueado** (no se redacta un parte con dos procedimientos).
 - **Autenticación real** con sesión firmada, `proxy.ts` + validación por
   endpoint, y credenciales solo en `.env.local`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /

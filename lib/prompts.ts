@@ -31,9 +31,10 @@ REGLAS:
 5. Si el mensaje actual completa o corrige un dato, actualiza el valor.
 6. Si un dato no está informado, usa null. Nunca uses "pendiente" ni cadenas vacías.
 7. No mezcles procedimientos distintos.
-8. Corrige errores de redacción y ortografía sin alterar los hechos.
-9. Si detectas inconsistencias, listalas en "contradicciones" sin asumir cuál es correcta.
-10. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
+8. Si el mensaje actual describe un procedimiento DISTINTO al de los antecedentes acumulados (por ejemplo, una denuncia de violencia intrafamiliar y luego un robo), NO los mezcles: conserva los antecedentes previos tal cual y registra la contradicción en "contradicciones" explicando qué Procedimientos se contradicen.
+9. Corrige errores de redacción y ortografía sin alterar los hechos.
+10. Si detectas inconsistencias, listalas en "contradicciones" sin asumir cuál es correcta.
+11. Responde únicamente con JSON válido en español, sin Markdown ni explicaciones fuera del JSON.
 
 FORMATO DE SALIDA (JSON con estas claves exactas):
 {

@@ -14,10 +14,11 @@ type Props = {
  */
 export default function EstadoCaso({ faltantes, contradicciones }: Props) {
   const completo = faltantes.length === 0;
+  const bloqueado = contradicciones.length > 0;
 
   return (
     <div className="space-y-2 px-6 py-3">
-      {contradicciones.length > 0 && (
+      {bloqueado && (
         <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">⚠ Contradicciones detectadas</p>
           <ul className="mt-1 list-disc space-y-0.5 pl-5">
@@ -26,7 +27,9 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
             ))}
           </ul>
           <p className="mt-2 text-xs text-amber-800">
-            Revisá estos puntos con el funcionario antes de usar el borrador.
+            Revisá estos puntos con el funcionario. Si se trata de otro
+            procedimiento, abrí un caso nuevo con «+ Nuevo»: no se puede
+            redactar un parte que mezcle dos procedimientos distintos.
           </p>
         </div>
       )}
@@ -40,7 +43,7 @@ export default function EstadoCaso({ faltantes, contradicciones }: Props) {
         </div>
       )}
 
-      {completo && (
+      {completo && !bloqueado && (
         <div className="rounded-xl border border-oliva-600 bg-oliva-600 px-4 py-3 text-sm font-medium text-oliva-50">
           ✓ Antecedentes completos. Ya podés generar el borrador del parte.
         </div>

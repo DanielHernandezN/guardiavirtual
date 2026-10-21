@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import { camposFaltantes } from "@/lib/antecedentes";
+import { camposFaltantes, puedeRedactarBorrador } from "@/lib/antecedentes";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import EstadoCaso from "./EstadoCaso";
 
@@ -34,8 +34,9 @@ export default function Chat({ onBorradorGenerado }: Props) {
     });
     const [borradorCargando, setBorradorCargando] = useState(false);
 
-    // El borrador solo está disponible cuando no falta ningún campo obligatorio.
-    const puedeConfeccionar = camposFaltantes(datosAntecedentes).length === 0;
+    // El borrador solo está disponible si no faltan campos y no hay
+    // contradicciones entre procedimientos.
+    const puedeConfeccionar = puedeRedactarBorrador(datosAntecedentes);
 
     const finalMensajes = useRef<HTMLDivElement>(null);
     useEffect(() => {
