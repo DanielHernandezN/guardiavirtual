@@ -6,6 +6,11 @@ import type { BorradorParte, SeccionBorrador } from "@/lib/types";
 type Props = {
   borrador: BorradorParte;
   onCerrar: () => void;
+  /** Guarda el borrador (con los cambios del funcionario) en la base de datos. */
+  onGuardar?: (
+    borrador: BorradorParte,
+    confirmar: boolean
+  ) => boolean | Promise<boolean>;
 };
 
 /** Escapa HTML para la vista de impresión. */
@@ -15,7 +20,7 @@ const escaparHtml = (texto: string): string =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-export default function BorradorPanel({ borrador, onCerrar }: Props) {
+export default function BorradorPanel({ borrador, onCerrar, onGuardar }: Props) {
   const [titulo, setTitulo] = useState(borrador.titulo);
   const [secciones, setSecciones] = useState<SeccionBorrador[]>(
     borrador.secciones
@@ -23,10 +28,31 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
   const [revisado, setRevisado] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const textoCompleto = `${titulo}\n\n${secciones
     .map((seccion) => `${seccion.titulo}\n${seccion.contenido}`)
     .join("\n\n")}`;
+
+  /** El borrador con las ediciones del funcionario. */
+  const borradorActual: BorradorParte = {
+    ...borrador,
+    titulo,
+    secciones,
+    textoCompleto,
+  };
+
+  const guardar = async (confirmar: boolean) => {
+    if (!onGuardar) return;
+
+    setGuardando(true);
+    try {
+      const ok = await onGuardar(borradorActual, confirmar);
+      if (ok && confirmar) setConfirmado(true);
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const actualizarContenido = (indice: number, contenido: string) => {
     setSecciones((previas) =>
@@ -168,6 +194,16 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
           )}
 
           <div className="mt-4 flex flex-wrap gap-3">
+            {onGuardar && (
+              <button
+                type="button"
+                onClick={() => guardar(false)}
+                disabled={guardando}
+                className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 disabled:opacity-60"
+              >
+                {guardando ? "GUARDANDO..." : "Guardar"}
+              </button>
+            )}
             <button
               type="button"
               onClick={copiar}
@@ -191,8 +227,8 @@ export default function BorradorPanel({ borrador, onCerrar }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => setConfirmado(true)}
-              disabled={!revisado}
+              onClick={() => guardar(true)}
+              disabled={!revisado || guardando || !onGuardar}
               className="rounded-xl bg-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-50 transition hover:bg-oliva-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Confirmar borrador

@@ -1,0 +1,70 @@
+// ─────────────────────────────────────────────────────────────
+// Esquema de base de datos — Guardia Virtual
+// ─────────────────────────────────────────────────────────────
+// Fuente: https://pris.ly/d/prisma-schema
+//
+// Para producción (Vercel + Postgres) basta con:
+//   1. Cambiar provider a "postgresql"
+//   2. Apuntar DATABASE_URL a la URL de Postgres
+//   3. Ejecutar `npx prisma migrate deploy`
+//
+// Ver el capítulo de Prisma en la documentación de Next.js:
+// https://nextjs.org/docs/app/building-your-application/data-fetching/prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Un procedimiento trabajado por un funcionario.
+/// Guarda los antecedentes y sus borradores generados.
+model Caso {
+  id                String   @id @default(cuid())
+  /// Título legible del caso (ej: "Hurto de bicicleta").
+  titulo            String
+  /// Tipo de procedimiento (hurto, robo, accidente...).
+  tipoProcedimiento String?
+  /// Especie involucrada.
+  especie           String?
+  /// Lugar de ocurrencia.
+  lugar             String?
+  /// Fecha del hecho en formato dd/mm/yyyy.
+  fecha             String?
+  /// Estado del caso: BORRADOR | CONFIRMADO.
+  estado            String   @default("BORRADOR")
+  /// Antecedentes estructurados, serializados como JSON.
+  antecedentes      String   @default("{}")
+  /// ID del funcionario (origen: USUARIOS_JSON por ahora).
+  usuarioId         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  borradores Borrador[]
+
+  @@index([usuarioId, createdAt])
+  @@index([estado])
+}
+
+/// Borrador del parte generado por la IA para un caso.
+/// Puede haber varios (el funcionario edita y vuelve a generar).
+model Borrador {
+  id           String    @id @default(cuid())
+  casoId       String
+  titulo       String
+  /// Secciones del parte, serializadas como JSON.
+  secciones    String    @default("[]")
+  /// Texto plano completo del parte.
+  texto        String
+  /// Estado del borrador: BORRADOR | CONFIRMADO.
+  estado       String    @default("BORRADOR")
+  generadoEn   DateTime  @default(now())
+  confirmadoEn DateTime?
+
+  caso Caso @relation(fields: [casoId], references: [id], onDelete: Cascade)
+
+  @@index([casoId, generadoEn])
+}

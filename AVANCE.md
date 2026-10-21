@@ -242,12 +242,21 @@ guardiavirtual/
 - **No hay credenciales en el repositorio**: `USUARIOS_JSON` es obligatoria. Si falta o es inválida, nadie puede autenticarse y el login responde `503`.
 - La verificación se hace en el proxy **y** en cada endpoint/layout. La guía de Next 16 recomienda no depender únicamente del proxy.
 
-### Fase 5 — Persistencia y gestión de casos
-- [ ] Elegir base de datos (Supabase/Postgres + Prisma recomendado; SQLite como MVP local).
-- [ ] Modelos: `Usuario`, `Caso`, `Antecedentes`, `Borrador`, `Historial`.
-- [ ] CRUD de casos; persistir antecedentes y borradores.
-- [ ] Listado e historial de casos en el dashboard.
-- [ ] Reabrir caso y continuar.
+### Fase 5 — Persistencia y gestión de casos — ✅ COMPLETADA
+- [x] Base de datos: **SQLite local con Prisma 6.19.3** (estable; se descartó Prisma 7/8 RC porque exige `prisma.config.ts` y un driver adapter nativo). Migrar a Postgres es cambiar `provider` en `prisma/schema.prisma` + la `DATABASE_URL`.
+- [x] Modelos (`prisma/schema.prisma`): `Caso` (titulo, tipo, especie, lugar, fecha, estado, antecedentes JSON, usuarioId) y `Borrador` (titulo, secciones JSON, texto, estado, generadoEn, confirmadoEn) con relación `onDelete: Cascade`.
+- [x] Migración inicial aplicada (`prisma/migrations/20261021015443_init`).
+- [x] API: `GET/POST /api/casos` (listar y guardar) y `GET/DELETE /api/casos/[id]`.
+- [x] Panel lateral con el **historial de casos**: listar, abrir un caso guardado (reabre su borrador), botón "+ Nuevo" (reinicia el chat).
+- [x] Guardar y confirmar borradores: botones "Guardar" y "Confirmar borrador" en el visor, que persisten con sus ediciones.
+- [x] El usuario (`usuarioId`) sigue viniendo de `USUARIOS_JSON`; la tabla `Usuario` en base de datos queda para más adelante.
+
+**Archivos nuevos:** `prisma/schema.prisma`, `prisma/migrations/`, `lib/db.ts`, `lib/casos.ts`, `app/api/casos/route.ts`, `app/api/casos/[id]/route.ts`, `app/components/DashboardWorkspace.tsx`, `app/components/PanelLateral.tsx`.
+**Archivos modificados:** `app/dashboard/page.tsx`, `app/components/chat.tsx`, `app/components/BorradorPanel.tsx`, `package.json` (scripts `db:*`), `.gitignore` (ignora `prisma/*.db`), `.env` / `.env.example` / `.env.local`.
+
+**Nota de configuración:** `DATABASE_URL` va en el archivo **`.env`** (no `.env.local`), porque la CLI de Prisma solo lee `.env`. Next.js también carga `.env`, así que la app usa la misma conexión.
+
+**Scripts útiles:** `npm run db:migrate` (aplica migraciones), `npm run db:studio` (explorador de datos), `npm run db:generate`.
 
 ### Fase 6 — UI/UX del dashboard
 - [ ] Panel lateral con datos reales del funcionario.
@@ -263,19 +272,41 @@ guardiavirtual/
 - [ ] Despliegue en Vercel + base de datos.
 - [ ] Variables de entorno en producción.
 
+### Fase 8 — Plantillas de parte (DIFERIDA, pendiente de_definition)
+> Decisión del usuario: **aplazar**. El usuario aportará más adelante la
+> plantilla real de los partes que usa Carabineros, para que la IA la rellene
+> en vez de usar la estructura fija de 4 secciones.
+
+- [ ] Recibir el documento modelo de la unidad (formato del parte).
+- [ ] Modelar la plantilla como secciones ordenadas + encabezado fijo
+      (Unidad, fecha, hora, funcionario, tipo de procedimiento).
+- [ ] Sección **"Declaración de hechos"** con el estilo que defina el usuario
+      (primera persona como el relato del afectado, o tercera persona
+      objetiva del funcionario).
+- [ ] La IA rellena cada sección solo con los antecedentes; `[PENDIENTE]` en lo que falte.
+- [ ] Base actual a reemplazar: `SECCIONES_PARTE` en `lib/plantillas.ts`.
+
 ---
 
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fase 0 completada y verificada** (entorno, `.env.example`, metadata, tokens de marca, typegen/lint/build en verde).
-- El **chat y la extracción de antecedentes con IA funcionan** y están conectados a OpenRouter.
-- El **dashboard y el login son visuales**, sin autenticación ni persistencia.
-- **Lo más importante pendiente:** generar el **borrador del parte policial** (Fase 3). Es el corazón del proyecto.
+- **Fases 0, 1, 2, 3, 4 y 5 completadas.** El sistema, con IA real
+  (OpenRouter, modelo gratuito), extrae antecedentes, redacta el borrador del
+  parte con secciones editables, exige revisión humana y **guarda los casos y
+  borradores en base de datos** (SQLite + Prisma), con historial en el panel
+  lateral.
+- **Autenticación real** con sesión firmada, `proxy.ts` + validación por
+  endpoint, y credenciales solo en `.env.local`.
+- **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /
+  asistente).
+- **Fase 8 diferida:** el usuario aportará la plantilla real de los partes de
+  Carabineros para que la IA la rellene.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Probar el flujo completo en el navegador** (login → chat → borrador → confirmar). La IA ya responde con el modelo gratuito.
-2. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
-3. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
+1. Verificar en el navegador el flujo completo: login → chat → borrador → **Guardar/Confirmar** → abrir el caso desde el historial.
+2. **Fase 6:** pulir el dashboard (estado vacío, filtros, datos reales del funcionario).
+3. **Fase 7:** calidad, seguridad y despliegue (migrar SQLite → Postgres para Vercel).
+4. **Fase 8 (cuando el usuario entregue la plantilla):** partes con el formato oficial de la unidad.
 
 ### Configuración local (qué se debe completar en `.env.local`)
 
@@ -299,7 +330,21 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 
 ---
 
-## 8. Convenciones de trabajo
+## 8. Problemas conocidos y soluciones
+
+| Síntoma | Causa | Solución |
+|---------|-------|----------|
+| `Module not found: Can't resolve 'nanoid/non-secure'` o `source-map-js` | Caché de Turbopack corrupta tras una instalación interrumpida | `Remove-Item -Recurse -Force .next` y volver a compilar |
+| `Could not find the Next.js package (next/package.json)` | `node_modules` a medio instalar mientras corría el dev server | Detener el server, `npm ci`, `npx prisma generate` |
+| `EPERM: unlink ... .node` en `npm ci` | El dev server tiene bloqueado un módulo nativo | Detener el dev server antes de `npm ci` |
+| `@prisma/client did not initialize yet` | Falta generar el cliente | `npm run db:generate` |
+| `Environment variable not found: DATABASE_URL` | La CLI de Prisma solo lee `.env` | `DATABASE_URL` va en `.env` (no en `.env.local`) |
+| Avisos `LF will be replaced by CRLF` | `core.autocrlf` de Windows | Normalizado con `.gitattributes` (`eol=lf`) |
+
+> **Antes de una instalación:** detener siempre el dev server. En Windows deja
+> bloqueados los módulos nativos de `node_modules`.
+
+## 9. Convenciones de trabajo
 
 - Documentar en **español**.
 - Actualizar este `AVANCE.md` al final de cada sesión (marcar casillas y anotar bloqueos).

@@ -4,10 +4,17 @@ import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { camposFaltantes } from "@/lib/antecedentes";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
-import BorradorPanel from "./BorradorPanel";
 import EstadoCaso from "./EstadoCaso";
 
-export default function Chat() {
+type Props = {
+  /** Notifica que se generó un borrador para mostrarlo en el visor. */
+  onBorradorGenerado: (
+    borrador: BorradorParte,
+    antecedentes: Antecedentes
+  ) => void;
+};
+
+export default function Chat({ onBorradorGenerado }: Props) {
 
     type Mensaje = {
         contenido: string;
@@ -25,9 +32,7 @@ export default function Chat() {
         descripcionHechos: null,
         contradicciones: [],
     });
-    const [borrador, setBorrador] = useState<BorradorParte | null>(null);
     const [borradorCargando, setBorradorCargando] = useState(false);
-    const [mostrarBorrador, setMostrarBorrador] = useState(false);
 
     // El borrador solo está disponible cuando no falta ningún campo obligatorio.
     const puedeConfeccionar = camposFaltantes(datosAntecedentes).length === 0;
@@ -134,8 +139,7 @@ export default function Chat() {
                 throw new Error(data.error ?? "No se pudo generar el borrador.");
             }
 
-            setBorrador(data.borrador);
-            setMostrarBorrador(true);
+            onBorradorGenerado(data.borrador, datosAntecedentes);
         } catch (error) {
             setMensajes((mensajesActuales) => [
                 ...mensajesActuales,
@@ -291,12 +295,6 @@ export default function Chat() {
                   >{isLoading ? "PROCESANDO..." : "ENVIAR"}</button>
               </form>
             </div>
-            {mostrarBorrador && borrador && (
-                <BorradorPanel
-                    borrador={borrador}
-                    onCerrar={() => setMostrarBorrador(false)}
-                />
-            )}
           </section>
   );
 }
