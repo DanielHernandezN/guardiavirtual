@@ -1,6 +1,8 @@
 import { camposFaltantes } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
+import { errorComoJson } from "@/lib/errores";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
+import { registrarUso } from "@/lib/limites";
 import {
   PROMPT_REDAR_PARTE,
   construirMensajeBorrador,
@@ -8,6 +10,7 @@ import {
 import { SECCIONES_PARTE, tituloPorTipo } from "@/lib/plantillas";
 import { esquemaAntecedentes, esquemaBorrador } from "@/lib/schemas";
 import type { BorradorParte, SeccionBorrador } from "@/lib/types";
+import { leerJsonLimitado } from "@/lib/validacion";
 
 /** Concatena el título y las secciones en un texto plano legible. */
 const construirTextoCompleto = (
@@ -28,12 +31,42 @@ export async function POST(request: Request) {
       return Response.json({ ok: false, error: "No autenticado." }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
+    // La redacción consume una llamada al modelo: comparte el límite con
+    // `/api/chat` (misma cuota del proveedor).
+    const limite = registrarUso(`ia:${sesion.id}`);
+    if (!limite.permitido) {
+      return Response.json(
+        {
+          ok: false,
+          error: `Demasiadas solicitudes seguidas. Intente de nuevo en ${limite.reintentoEnSegundos} segundos.`,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limite.reintentoEnSegundos) },
+        }
+      );
+    }
+
+    const cuerpo = await leerJsonLimitado(request);
+    if (!cuerpo.ok) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            cuerpo.motivo === "tamaño"
+              ? "La solicitud es demasiado grande."
+              : "El cuerpo de la solicitud no es JSON válido.",
+        },
+        { status: cuerpo.motivo === "tamaño" ? 413 : 400 }
+      );
+    }
+
+    const datos = cuerpo.datos as Record<string, unknown>;
     const antecedentesEntrada =
-      body?.antecedentes &&
-      typeof body.antecedentes === "object" &&
-      !Array.isArray(body.antecedentes)
-        ? (body.antecedentes as Record<string, unknown>)
+      datos?.antecedentes &&
+      typeof datos.antecedentes === "object" &&
+      !Array.isArray(datos.antecedentes)
+        ? (datos.antecedentes as Record<string, unknown>)
         : {};
 
     const antecedentes = esquemaAntecedentes.parse(antecedentesEntrada);
@@ -96,10 +129,7 @@ export async function POST(request: Request) {
 
     return Response.json({ ok: true, borrador });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Error interno del servidor al generar el borrador.";
-    return Response.json({ ok: false, error: message }, { status: 500 });
+    const { status, body } = errorComoJson(error);
+    return Response.json({ ok: false, error: body.error }, { status });
   }
 }

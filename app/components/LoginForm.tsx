@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { pedirJson } from "@/lib/cliente";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -23,23 +24,22 @@ export default function LoginForm() {
     setMensaje("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setMensaje(data.error ?? "No se pudo iniciar sesión.");
-        return;
-      }
+      await pedirJson<{ ok: boolean; usuario?: { id: string; nombre: string } }>(
+        "/api/auth/login",
+        {
+          method: "POST",
+          body: JSON.stringify({ id, password }),
+        }
+      );
 
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      setMensaje("No se pudo iniciar sesión. Inténtalo de nuevo.");
+    } catch (error) {
+      setMensaje(
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesión. Inténtalo de nuevo."
+      );
     } finally {
       setCargando(false);
     }

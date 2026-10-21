@@ -28,6 +28,8 @@ export type CasoResumen = {
   estado: string;
   creadoEn: string;
   actualizadoEn: string;
+  /** `true` si el caso está en la papelera (eliminado lógicamente). */
+  enPapelera: boolean;
   antecedentes: Antecedentes;
   borradores: BorradorGuardado[];
 };
@@ -130,6 +132,7 @@ type FilaCaso = {
   createdAt: Date;
   updatedAt: Date;
   antecedentes: string;
+  eliminadoEn: Date | null;
   borradores: Array<{
     id: string;
     titulo: string;
@@ -152,6 +155,7 @@ export const toCasoResumen = (fila: FilaCaso): CasoResumen => ({
   estado: fila.estado,
   creadoEn: fila.createdAt.toISOString(),
   actualizadoEn: fila.updatedAt.toISOString(),
+  enPapelera: Boolean(fila.eliminadoEn),
   antecedentes: parseAntecedentes(fila.antecedentes) as Antecedentes,
   borradores: fila.borradores.map((borrador) => ({
     id: borrador.id,

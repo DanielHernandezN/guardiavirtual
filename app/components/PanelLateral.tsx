@@ -13,14 +13,17 @@ type Props = {
   onAbrirCaso: (caso: CasoResumen) => void;
   onNuevoCaso: () => void;
   onEliminarCaso: (caso: CasoResumen) => void;
+  onRestaurarCaso: (caso: CasoResumen) => void;
+  onVaciarPapelera: () => void;
 };
 
-type Filtro = "TODOS" | "BORRADOR" | "CONFIRMADO";
+type Filtro = "TODOS" | "BORRADOR" | "CONFIRMADO" | "PAPELERA";
 
 const FILTROS: Array<{ id: Filtro; etiqueta: string }> = [
   { id: "TODOS", etiqueta: "Todos" },
   { id: "BORRADOR", etiqueta: "En borrador" },
   { id: "CONFIRMADO", etiqueta: "Confirmados" },
+  { id: "PAPELERA", etiqueta: "Papelera" },
 ];
 
 /**
@@ -36,6 +39,8 @@ export default function PanelLateral({
   onAbrirCaso,
   onNuevoCaso,
   onEliminarCaso,
+  onRestaurarCaso,
+  onVaciarPapelera,
 }: Props) {
   const [filtro, setFiltro] = useState<Filtro>("TODOS");
   const [busqueda, setBusqueda] = useState("");
@@ -44,8 +49,14 @@ export default function PanelLateral({
     const texto = busqueda.trim().toLowerCase();
 
     return casos.filter((caso) => {
+      const enPapelera = caso.enPapelera;
+
       const coincideEstado =
-        filtro === "TODOS" || caso.estado === filtro;
+        filtro === "TODOS"
+          ? true
+          : filtro === "PAPELERA"
+          ? enPapelera
+          : !enPapelera && caso.estado === filtro;
 
       const coincideTexto =
         !texto ||
@@ -58,7 +69,11 @@ export default function PanelLateral({
     });
   }, [casos, filtro, busqueda]);
 
-  const confirmados = casos.filter((caso) => caso.estado === "CONFIRMADO").length;
+  const confirmados = casos.filter(
+    (caso) => caso.estado === "CONFIRMADO" && !caso.enPapelera
+  ).length;
+
+  const enPapelera = casos.filter((caso) => caso.enPapelera).length;
 
   return (
     <section className="
@@ -85,7 +100,8 @@ export default function PanelLateral({
           <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
             Casos
             <span className="ml-2 font-normal normal-case text-oliva-500">
-              {casos.length} total · {confirmados} confirmados
+              {casos.length - enPapelera} total · {confirmados} confirmados
+              {enPapelera > 0 ? ` · ${enPapelera} en papelera` : ""}
             </span>
           </h3>
           <button
@@ -114,6 +130,16 @@ export default function PanelLateral({
             </button>
           ))}
         </div>
+
+        {filtro === "PAPELERA" && enPapelera > 0 && (
+          <button
+            type="button"
+            onClick={onVaciarPapelera}
+            className="rounded-lg border border-oliva-700 px-2.5 py-1 text-xs text-oliva-300 transition hover:border-amber-500 hover:text-amber-300"
+          >
+            Vaciar papelera ({enPapelera})
+          </button>
+        )}
 
         {/* Búsqueda */}
         <input
@@ -154,7 +180,9 @@ export default function PanelLateral({
                       </p>
                       <p className="mt-0.5 text-xs text-oliva-300">
                         {caso.fecha ?? "sin fecha"} ·{" "}
-                        {caso.estado === "CONFIRMADO"
+                        {caso.enPapelera
+                          ? "En papelera"
+                          : caso.estado === "CONFIRMADO"
                           ? "Confirmado"
                           : "En borrador"}
                         {caso.borradores.length > 0
@@ -163,14 +191,25 @@ export default function PanelLateral({
                       </p>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => onEliminarCaso(caso)}
-                      title="Eliminar caso"
-                      className="mt-1 text-xs text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline"
-                    >
-                      Eliminar
-                    </button>
+                    {caso.enPapelera ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestaurarCaso(caso)}
+                        title="Restaurar caso"
+                        className="mt-1 text-xs text-oliva-400 underline-offset-2 transition hover:text-oliva-100 hover:underline"
+                      >
+                        Restaurar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onEliminarCaso(caso)}
+                        title="Mover a la papelera"
+                        className="mt-1 text-xs text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </li>
               );

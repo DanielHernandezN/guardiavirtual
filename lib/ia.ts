@@ -1,4 +1,5 @@
 import { parseModelContent } from "./parse";
+import { ErrorLimiteProveedor, ErrorTiempoAgotado } from "./errores";
 
 /**
  * Cliente de IA — Guardia Virtual
@@ -10,7 +11,7 @@ import { parseModelContent } from "./parse";
  *   OpenRouter  https://openrouter.ai/api/v1/chat/completions
  *   OpenAI      https://api.openai.com/v1/chat/completions
  *   Gemini      https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
- *   Groq        https://api.groq.com/openai/v1/chat/completions
+ *   Groq        https://api.groq.com/openai/chat/completions
  *   Mistral     https://api.mistral.ai/v1/chat/completions
  *
  * Variables:
@@ -27,9 +28,14 @@ export type MensajeModelo = {
 export type OpcionesModelo = {
   /** 0 = determinista (extracción), 0.2 = redacción. */
   temperatura?: number;
+  /** Tiempo máximo de espera de la respuesta, en milisegundos. */
+  timeoutMs?: number;
 };
 
 const BASE_URL_POR_DEFECTO = "https://openrouter.ai/api/v1/chat/completions";
+
+/** Tiempo máximo por defecto para esperar al modelo (2 minutos). */
+export const TIMEOUT_POR_DEFECTO_MS = 120_000;
 
 export const ERROR_SIN_CLAVE =
   "Falta la clave de la API de IA (AI_API_KEY u OPENROUTER_API_KEY).";
@@ -55,10 +61,15 @@ export const hayClaveDeIA = (): boolean => Boolean(obtenerApiKey());
 /** Nombre del modelo configurado (para diagnóstico). */
 export const modeloConfigurado = (): string => obtenerModelo();
 
-/** Llama al modelo y devuelve el contenido de texto de la respuesta. */
+/**
+ * Llama al modelo y devuelve el contenido de texto de la respuesta.
+ *
+ * Aplica un tiempo máximo de espera (`timeoutMs`) para que una llamada
+ * colgada no deje al funcionario esperando indefinidamente.
+ */
 export const llamarModelo = async (
   mensajes: MensajeModelo[],
-  { temperatura = 0 }: OpcionesModelo = {}
+  { temperatura = 0, timeoutMs = TIMEOUT_POR_DEFECTO_MS }: OpcionesModelo = {}
 ): Promise<string> => {
   const apiKey = obtenerApiKey();
 
@@ -78,18 +89,39 @@ export const llamarModelo = async (
     cabeceras["X-Title"] = "Guardiavirtual";
   }
 
-  const response = await fetch(obtenerBaseUrl(), {
-    method: "POST",
-    headers: cabeceras,
-    body: JSON.stringify({
-      model: obtenerModelo(),
-      temperature: temperatura,
-      response_format: { type: "json_object" },
-      messages: mensajes,
-    }),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(obtenerBaseUrl(), {
+      method: "POST",
+      headers: cabeceras,
+      body: JSON.stringify({
+        model: obtenerModelo(),
+        temperature: temperatura,
+        response_format: { type: "json_object" },
+        messages: mensajes,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    // El timeout de `AbortSignal` lanza un DOMException con nombre
+    // "TimeoutError"; cualquier otro fallo es de red.
+    if (
+      error instanceof Error &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    ) {
+      throw new ErrorTiempoAgotado();
+    }
+
+    throw error;
+  }
 
   if (!response.ok) {
+    // 429: el proveedor agotó la cuota o el límite por minuto.
+    if (response.status === 429) {
+      throw new ErrorLimiteProveedor();
+    }
+
     const errorText = await response.text();
     throw new Error(`La API de IA falló: ${errorText}`);
   }

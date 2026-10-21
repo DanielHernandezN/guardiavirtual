@@ -1,0 +1,106 @@
+# Despliegue — Guardia Virtual (Cabo Virtual)
+
+Guía para publicar la aplicación en **Vercel** con **PostgreSQL**.
+
+> En desarrollo la aplicación usa **SQLite** (archivo local `prisma/dev.db`),
+> sin necesidad de infraestructura. En Vercel el sistema de archivos es de
+> solo lectura, así que la base de datos debe ser **PostgreSQL** (Vercel
+> Postgres, Neon, Supabase, Railway, etc.).
+
+---
+
+## 1. Base de datos
+
+1. Crear una base de datos PostgreSQL y obtener la URL de conexión:
+
+   ```
+   postgresql://usuario:clave@host:5432/guardiavirtual?sslmode=require
+   ```
+
+2. Preparar el esquema de Prisma para PostgreSQL:
+
+   ```powershell
+   npm run db:use:postgres
+   ```
+
+   El script reescribe el `provider` de `prisma/schema.prisma`. Para volver
+   a SQLite: `npm run db:use:sqlite`.
+
+3. Sincronizar el esquema con la base de datos:
+
+   ```powershell
+   $env:DATABASE_URL = "postgresql://..."
+   npx prisma db push --skip-generate
+   npx prisma generate
+   ```
+
+   > El historial de migraciones de `prisma/migrations` está escrito en SQL de
+   > SQLite. Para PostgreSQL se usa `prisma db push`, que es idempotente.
+   > Si más adelante se adoptan migraciones en producción, hay que generar
+   > las de PostgreSQL con `prisma migrate dev` sobre una base de datos
+   > Postgres y versionarlas por separado.
+
+---
+
+## 2. Variables de entorno
+
+En **Vercel → Project → Settings → Environment Variables**, definir:
+
+| Variable | Obligatoria | Descripción |
+|----------|-------------|-------------|
+| `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
+| `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
+| `AI_MODEL` | no | Modelo a usar (por defecto `minimax/minimax-m3.1-flash:free`). |
+| `SESSION_SECRET` | **sí** | Secreto de firma de la sesión (HMAC-SHA256). Sin él, el sistema queda **inaccesible** en producción (fallo cerrado). |
+| `USUARIOS_JSON` | **sí** | Lista de funcionarios: `[{"id":"...","nombre":"...","password":"..."}]`. Sin ella, nadie puede autenticarse. |
+| `DATABASE_URL` | **sí** | URL de PostgreSQL. |
+
+Generar un `SESSION_SECRET` seguro:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+> `SESSION_SECRET` y `USUARIOS_JSON` **no** pueden tener valores por defecto:
+> son los dos controles de acceso del sistema.
+
+---
+
+## 3. Despliegue
+
+1. Subir el código a GitHub y conectar el repositorio en Vercel.
+2. Vercel usa el framework detectado (`nextjs`). El `vercel.json` del
+   repositorio define el comando de compilación:
+
+   ```bash
+   npm run db:use:postgres && prisma db push --skip-generate && prisma generate && next build
+   ```
+
+3. Variables de entorno configuradas en **Production, Preview y Development**
+   (o solo en Production, según la política de la unidad).
+4. Desplegar. El script `postinstall` (`prisma generate`) ya regenera el
+   cliente de Prisma en cada instalación.
+
+---
+
+## 4. Verificación posterior
+
+- `GET /` → 200 (pantalla de acceso).
+- `POST /api/auth/login` con credenciales válidas → 200 y cookie de sesión.
+- `GET /dashboard` → 200 con sesión; 401/redirect sin sesión.
+- Crear un caso desde el chat y confirmar un borrador: debe aparecer en el
+  historial (comprueba que la escritura en PostgreSQL funciona).
+
+---
+
+## 5. Limitaciones conocidas en este despliegue
+
+- **Rate limiting en memoria** (`lib/limites.ts`): cada instancia de Vercel
+  lleva su propio contador. Para un límite global hay que usar un almacén
+  compartido (Redis, Upstash). El límite por funcionario funciona mientras
+  el usuarioPegue a la misma instancia, lo cual no está garantizado.
+- **Sesión sin estado** (cookie firmada): no requiere servidor de sesiones,
+  por lo que escala bien en varias instancias.
+- **Cifrado de contraseñas** con `scrypt`: el hash se regenera en cada
+  arranque porque `USUARIOS_JSON` guarda la contraseña en claro. Si se
+  migra el usuario a la base de datos, el hash debe persistir.

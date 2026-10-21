@@ -4,11 +4,12 @@
 // Fuente: https://pris.ly/d/prisma-schema
 //
 // Para producción (Vercel + Postgres) basta con:
-//   1. Cambiar provider a "postgresql"
+//   1. Cambiar el proveedor: `npm run db:use:postgres`
 //   2. Apuntar DATABASE_URL a la URL de Postgres
-//   3. Ejecutar `npx prisma migrate deploy`
+//   3. Sincronizar el esquema: `npx prisma db push`
 //
-// Ver el capítulo de Prisma en la documentación de Next.js:
+// Ver la guía de despliegue en DEPLOY.md y el capítulo de Prisma en la
+// documentación de Next.js:
 // https://nextjs.org/docs/app/building-your-application/data-fetching/prisma
 
 generator client {
@@ -18,6 +19,25 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+/// Funcionario con acceso al sistema.
+/// La fuente de verdad de las credenciales es `USUARIOS_JSON`; esta tabla
+/// se sincroniza al iniciar sesión y da integridad referencial a los casos.
+model Usuario {
+  id           String   @id
+  /// Nombre completo del funcionario.
+  nombre       String
+  /// Hash `scrypt` de la contraseña (formato `salt:hash`).
+  passwordHash String
+  /// `false` para desactivar el acceso sin borrar su historial.
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  casos Caso[]
+
+  @@index([activo])
 }
 
 /// Un procedimiento trabajado por un funcionario.
@@ -38,15 +58,19 @@ model Caso {
   estado            String   @default("BORRADOR")
   /// Antecedentes estructurados, serializados como JSON.
   antecedentes      String   @default("{}")
-  /// ID del funcionario (origen: USUARIOS_JSON por ahora).
+  /// ID del funcionario (sincronizado con la tabla `Usuario`).
   usuarioId         String
+  /// Fecha de eliminación (papelera). `null` si el caso está activo.
+  eliminadoEn       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  usuario Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   borradores Borrador[]
 
   @@index([usuarioId, createdAt])
   @@index([estado])
+  @@index([eliminadoEn])
 }
 
 /// Borrador del parte generado por la IA para un caso.

@@ -37,6 +37,7 @@ export default function BorradorPanel({
   const [confirmado, setConfirmado] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
 
   const textoCompleto = `${titulo}\n\n${secciones
     .map((seccion) => `${seccion.titulo}\n${seccion.contenido}`)
@@ -60,9 +61,17 @@ export default function BorradorPanel({
     if (!onGuardar) return;
 
     setGuardando(true);
+    setError("");
+
     try {
       const ok = await onGuardar(borradorActual, confirmar);
       if (ok && confirmar) setConfirmado(true);
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo guardar el borrador."
+      );
     } finally {
       setGuardando(false);
     }
@@ -254,6 +263,12 @@ export default function BorradorPanel({
             <p className="mt-3 rounded-lg border border-oliva-500 bg-oliva-50 px-3 py-2 text-sm text-oliva-800">
               Borrador revisado y confirmado. Ya puedes copiarlo, descargarlo o
               imprimirlo.
+            </p>
+          )}
+
+          {error && (
+            <p className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900">
+              {error}
             </p>
           )}
 

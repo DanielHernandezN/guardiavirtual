@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Chat from "./chat";
 import PanelLateral from "./PanelLateral";
 import BorradorPanel from "./BorradorPanel";
+import { ErrorDeApi, pedirJson } from "@/lib/cliente";
 import type { Antecedentes, BorradorParte } from "@/lib/types";
 import type { CasoResumen } from "@/lib/casos";
 
@@ -31,27 +32,32 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
     useState<Antecedentes | null>(null);
   const [mensajeEstado, setMensajeEstado] = useState("");
 
-  /** Descarga el listado de casos del servidor. */
+  /**
+   * Descarga el listado de casos del servidor.
+   * No escribe estado: los errores los comunica quien la invoca.
+   */
   const cargarCasos = useCallback(async (): Promise<CasoResumen[]> => {
-    try {
-      const response = await fetch("/api/casos");
-      if (!response.ok) return [];
-      const data = await response.json();
-      return Array.isArray(data.casos) ? data.casos : [];
-    } catch {
-      // Silencio: la lista de casos es secundaria.
-      return [];
-    }
+    const data = await pedirJson<{ casos?: CasoResumen[] }>("/api/casos");
+    return Array.isArray(data.casos) ? data.casos : [];
   }, []);
 
   useEffect(() => {
     let activo = true;
 
-    void cargarCasos().then((listado) => {
-      if (activo) {
-        setCasos(listado);
-      }
-    });
+    void cargarCasos()
+      .then((listado) => {
+        if (activo) {
+          setCasos(listado);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!activo) return;
+
+        // Una sesión expirada se comunica; el resto es secundario.
+        if (error instanceof ErrorDeApi && error.esSesionInvalida) {
+          setMensajeEstado("La sesión expiró. Vuelva a iniciar sesión.");
+        }
+      });
 
     return () => {
       activo = false;
@@ -66,20 +72,20 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
     setMensajeEstado("Guardando...");
 
     try {
-      const response = await fetch("/api/casos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          casoId,
-          antecedentes: antecedentesVisibles ?? {},
-          borrador,
-          confirmar,
-        }),
-      });
+      const data = await pedirJson<{ caso?: CasoResumen; error?: string }>(
+        "/api/casos",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            casoId,
+            antecedentes: antecedentesVisibles ?? {},
+            borrador,
+            confirmar,
+          }),
+        }
+      );
 
-      const data = await response.json();
-
-      if (!response.ok || !data.caso) {
+      if (!data.caso) {
         throw new Error(data.error ?? "No se pudo guardar el caso.");
       }
 
@@ -89,13 +95,12 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
           ? "Borrador confirmado y guardado en el historial."
           : "Borrador guardado en el historial."
       );
-      setCasos(await cargarCasos());
+      setCasos(await cargarCasos().catch(() => casos));
       return true;
     } catch (error) {
       setMensajeEstado(
         error instanceof Error ? error.message : "No se pudo guardar el caso."
-      );
-      return false;
+      );      return false;
     }
   };
 
@@ -120,20 +125,18 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
     setMensajeEstado("");
   };
 
-  /** Elimina un caso del historial (con sus borradores). */
+  /** Mueve un caso a la papelera (se puede restaurar después). */
   const eliminarCaso = async (caso: CasoResumen) => {
     const aceptado = window.confirm(
-      `¿Eliminar el caso "${caso.titulo}"? Esta acción no se puede deshacer.`
+      `¿Eliminar el caso "${caso.titulo}"? Podrá restaurarlo desde la papelera.`
     );
 
     if (!aceptado) return;
 
     try {
-      const response = await fetch(`/api/casos/${caso.id}`, { method: "DELETE" });
-
-      if (!response.ok) {
-        throw new Error("No se pudo eliminar el caso.");
-      }
+      await pedirJson<{ ok: boolean }>(`/api/casos/${caso.id}`, {
+        method: "DELETE",
+      });
 
       if (caso.id === casoId) {
         setCasoId(null);
@@ -141,11 +144,63 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
         setAntecedentesVisibles(null);
       }
 
-      setCasos(await cargarCasos());
-      setMensajeEstado(`Caso "${caso.titulo}" eliminado.`);
+      setCasos(await cargarCasos().catch(() => casos));
+      setMensajeEstado(`Caso "${caso.titulo}" movido a la papelera.`);
     } catch (error) {
       setMensajeEstado(
         error instanceof Error ? error.message : "No se pudo eliminar el caso."
+      );
+    }
+  };
+
+  /** Restaura un caso desde la papelera. */
+  const restaurarCaso = async (caso: CasoResumen) => {
+    try {
+      await pedirJson<{ ok: boolean }>(`/api/casos/${caso.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ accion: "restaurar" }),
+      });
+
+      setCasos(await cargarCasos().catch(() => casos));
+      setMensajeEstado(`Caso "${caso.titulo}" restaurado.`);
+    } catch (error) {
+      setMensajeEstado(
+        error instanceof Error ? error.message : "No se pudo restaurar el caso."
+      );
+    }
+  };
+
+  /** Vacía la papelera: elimina definitivamente los casos eliminados. */
+  const vaciarPapelera = async () => {
+    const eliminados = casos.filter((caso) => caso.enPapelera);
+
+    if (eliminados.length === 0) return;
+
+    const aceptado = window.confirm(
+      `¿Eliminar definitivamente ${eliminados.length} caso(s) de la papelera? Esta acción no se puede deshacer.`
+    );
+
+    if (!aceptado) return;
+
+    try {
+      for (const caso of eliminados) {
+        await pedirJson<{ ok: boolean }>(
+          `/api/casos/${caso.id}?permanente=1`,
+          { method: "DELETE" }
+        );
+      }
+
+      if (casoId && eliminados.some((caso) => caso.id === casoId)) {
+        setCasoId(null);
+        setBorradorVisible(null);
+        setAntecedentesVisibles(null);
+      }
+
+      setCasos(await cargarCasos().catch(() => casos));
+      setMensajeEstado("Papelera vaciada.");
+    } catch (error) {
+      setMensajeEstado(
+        error instanceof Error ? error.message : "No se pudo vaciar la papelera."
       );
     }
   };
@@ -160,6 +215,8 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
         mensajeEstado={mensajeEstado}
         onAbrirCaso={abrirCaso}
         onEliminarCaso={eliminarCaso}
+        onRestaurarCaso={restaurarCaso}
+        onVaciarPapelera={vaciarPapelera}
         onNuevoCaso={() => {
           setCasoId(null);
           setBorradorVisible(null);

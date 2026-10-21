@@ -1,0 +1,22 @@
+# Deployment — Guardia Virtual (Cabo Virtual)
+# ──────────────────────────────────────────────
+# Configuración para Vercel + PostgreSQL.
+#
+# En Vercel NO se puede usar SQLite (el sistema de archivos es de solo
+# lectura), así que en producción el proveedor de la base de datos es
+# PostgreSQL.
+#
+# El historial de migraciones del repositorio (`prisma/migrations`) está
+# escrito en SQL de SQLite. Para PostgreSQL se sincroniza el esquema con
+# `prisma db push`, que es idempotente y adequate mientras el modelo no
+# cambie de forma incompatible.
+#
+# Ver la guía completa en DEPLOY.md de la raíz del repositorio.
+
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run db:use:postgres && prisma db push --skip-generate && prisma generate && next build",
+  "installCommand": "npm ci",
+  "regions": ["scl1"]
+}

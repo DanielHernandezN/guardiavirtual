@@ -83,11 +83,12 @@ REGLAS ESTRICTAS:
 1. No inventes hechos, fechas, horas, lugares, nombres, especies, patentes ni procedimientos.
 2. Usa ÚNICAMENTE la información contenida en los antecedentes proporcionados.
 3. Si un dato falta, escribe [PENDIENTE] en ese lugar. Nunca lo completes con suposiciones.
-4. Redacta en español formal, objetivo y en tercera persona.
-5. Usa español NEUTRO: no uses voseo (vos, podés, contame, revisá) ni modismos o regionalismos (acá, che, laburo). Es un documento oficial: emplea "usted" o la forma impersonal.
-6. No incluyas opiniones, valoraciones ni conclusiones no sustentadas en los hechos.
-7. Respeta exactamente las secciones solicitadas, con el mismo nombre de sección.
-8. Responde únicamente con JSON válido, sin Markdown ni texto fuera del JSON.
+4. Excepción para la hora: cuando falte la hora del hecho, NO escribas "a las [PENDIENTE]". Redacta en su lugar "a una hora no informada" (o "a una hora no precisada"). La hora no es un campo que el funcionario complete después.
+5. Redacta en español formal, objetivo y en tercera persona.
+6. Usa español NEUTRO: no uses voseo (vos, podés, contame, revisá) ni modismos o regionalismos (acá, che, laburo). Es un documento oficial: emplea "usted" o la forma impersonal.
+7. No incluyas opiniones, valoraciones ni conclusiones no sustentadas en los hechos.
+8. Respeta exactamente las secciones solicitadas, con el mismo nombre de sección.
+9. Responde únicamente con JSON válido, sin Markdown ni texto fuera del JSON.
 
 FORMATO DE SALIDA (JSON con estas claves exactas):
 {

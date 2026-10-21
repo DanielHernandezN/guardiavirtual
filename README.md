@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Guardia Virtual — Cabo Virtual
 
-## Getting Started
+Asistente de apoyo documental para funcionarios de guardia: extrae los
+**antecedentes** de un caso a partir de la conversación, redacta el
+**borrador del parte policial**, exige **revisión humana** y guarda el
+historial de casos.
 
-First, run the development server:
+> El sistema es un *asistente documental*: no reemplaza la decisión del
+> funcionario ni la firma oficial. **Nunca inventa datos**: lo que falta se
+> marca como `[PENDIENTE]`.
 
-```bash
+---
+
+## Stack
+
+| Capa | Tecnología |
+|------|-----------|
+| Framework | Next.js 16.3.3 (App Router) |
+| UI | React 19 + Tailwind CSS v4 (paleta de verde olivo) |
+| Lenguaje | TypeScript 5 (strict) |
+| IA | API compatible con OpenAI (OpenRouter, OpenAI, Gemini, Groq, Mistral) |
+| Datos | Prisma 6 + SQLite (desarrollo) / PostgreSQL (producción) |
+| Sesión | Cookie firmada con HMAC-SHA256, contraseñas con `scrypt` |
+
+---
+
+## Puesta en marcha
+
+```powershell
+npm install
+Copy-Item .env.example .env.local   # y completa los valores
+npm run db:migrate                  # crea prisma/dev.db
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La aplicación queda en <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variables de entorno
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Obligatoria | Descripción |
+|----------|-------------|-------------|
+| `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
+| `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
+| `AI_MODEL` | no | Modelo (por defecto `minimax/minimax-m3.1-flash:free`). |
+| `SESSION_SECRET` | **sí en producción** | Firma de la cookie de sesión. Sin él, el sistema queda inaccesible. |
+| `USUARIOS_JSON` | **sí** | Funcionarios con acceso: `[{"id":"...","nombre":"...","password":"..."}]`. |
+| `DATABASE_URL` | **sí** |Va en `.env` (no `.env.local`): la CLI de Prisma solo lee `.env`. |
 
-## Learn More
+> **Nunca subas claves ni contraseñas al repositorio.** `.env` y `.env.local`
+> están en `.gitignore`; solo se versiona `.env.example`.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor de desarrollo. |
+| `npm run build` | Compilación de producción. |
+| `npm run lint` | ESLint. |
+| `npm run typecheck` | TypeScript sin emitir. |
+| `npm test` | Pruebas unitarias (runner nativo de Node + `tsx`). |
+| `npm run db:migrate` | Aplica las migraciones en desarrollo. |
+| `npm run db:studio` | Explorador de datos de Prisma. |
+| `npm run db:use:sqlite` / `db:use:postgres` | Cambia el proveedor de la base de datos. |
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estructura
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/
+  api/            chat, borrador, casos, auth
+  components/     Chat, BorradorPanel, PanelLateral, DashboardWorkspace…
+  dashboard/      espacio de trabajo (protegido por sesión)
+lib/              dominio: types, schemas, prompts, ia, sesion, casos, límites
+prisma/           esquema y migraciones
+tests/            pruebas unitarias
+```
+
+---
+
+## Documentación
+
+- [`AVANCE.md`](./AVANCE.md) — bitácora del proyecto: dónde quedó y qué sigue.
+- [`DEPLOY.md`](./DEPLOY.md) — publicación en Vercel con PostgreSQL.
+- [`prompt.md`](./prompt.md) — documentación de los prompts (la fuente real
+  está en `lib/prompts.ts`).
+
+---
+
+## Cómo funciona
+
+1. El funcionario narra el caso en el chat.
+2. El modelo extrae los antecedentes estructurados (tipo de procedimiento,
+   especie, lugar, fecha) y detecta **contradicciones** o un **cambio de
+   procedimiento**.
+3. Con los cuatro campos obligatorios completos (y sin contradicciones), se
+   habilita **GENERAR BORRADOR**.
+4. El modelo redacta las secciones del parte; lo que falte queda como
+   `[PENDIENTE]`.
+5. El funcionario revisa, edita y **confirma** el borrador; se guarda en la
+   base de datos y aparece en el historial.

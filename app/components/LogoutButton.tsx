@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { pedirJson } from "@/lib/cliente";
 
 /** Cierra la sesión y vuelve al login. */
 export default function LogoutButton() {
@@ -12,12 +13,15 @@ export default function LogoutButton() {
     setCargando(true);
 
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
-      router.refresh();
+      await pedirJson<{ ok: boolean }>("/api/auth/logout", { method: "POST" });
     } catch {
-      setCargando(false);
+      // Aunque el servidor no responda, se vuelve al login: la cookie
+      // puede haber caducado igualmente.
     }
+
+    router.push("/");
+    router.refresh();
+    setCargando(false);
   };
 
   return (

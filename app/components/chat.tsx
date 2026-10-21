@@ -3,6 +3,7 @@
 import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { camposFaltantes, puedeRedactarBorrador } from "@/lib/antecedentes";
+import { pedirJson } from "@/lib/cliente";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import EstadoCaso from "./EstadoCaso";
 
@@ -18,9 +19,8 @@ export default function Chat({ onBorradorGenerado }: Props) {
 
     type Mensaje = {
         contenido: string;
-        autor: string;
+        autor: "funcionario" | "cabo" | "error";
     };
-
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -77,19 +77,13 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 antecedentes: datosAntecedentes,
             };
 
-            const response = await fetch("/api/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            const data: ResultadoAnalisis & { error?: string } = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error ?? "Error al procesar el caso.");
-            }
+            const data = await pedirJson<ResultadoAnalisis & { error?: string }>(
+                "/api/chat",
+                {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                }
+            );
 
             if (!data.respuesta) {
                 throw new Error("La API no devolvió una respuesta conversacional.");
@@ -120,7 +114,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 ...mensajesActuales,
                 {
                     contenido: error instanceof Error ? error.message : "No pude procesar la solicitud.",
-                    autor: "cabo"
+                    autor: "error"
                 }
             ]);
         } finally {
@@ -131,17 +125,15 @@ export default function Chat({ onBorradorGenerado }: Props) {
     const handleGenerarBorrador = async () => {
         setBorradorCargando(true);
         try {
-            const response = await fetch("/api/borrador", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ antecedentes: datosAntecedentes }),
-            });
+            const data = await pedirJson<{ ok: boolean; error?: string; borrador?: BorradorParte }>(
+                "/api/borrador",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ antecedentes: datosAntecedentes }),
+                }
+            );
 
-            const data = await response.json();
-
-            if (!response.ok || !data.ok) {
+            if (!data.ok || !data.borrador) {
                 throw new Error(data.error ?? "No se pudo generar el borrador.");
             }
 
@@ -151,7 +143,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 ...mensajesActuales,
                 {
                     contenido: error instanceof Error ? error.message : "No pude generar el borrador.",
-                    autor: "cabo",
+                    autor: "error",
                 },
             ]);
         } finally {
@@ -245,12 +237,14 @@ export default function Chat({ onBorradorGenerado }: Props) {
                     <div className={
                         mensaje.autor === "funcionario"
                         ? "flex flex-col gap-1 p-4 rounded-xl bg-oliva-200 text-oliva-900 border border-oliva-300"
+                        : mensaje.autor === "error"
+                        ? "flex flex-col gap-1 p-4 rounded-xl bg-red-50 text-red-900 border border-red-300"
                         : "flex flex-col gap-1 p-4 rounded-xl bg-oliva-800 text-oliva-50 border border-oliva-700"
                     }>
                     <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
-                        {mensaje.autor}
+                        {mensaje.autor === "error" ? "error" : mensaje.autor}
                     </p>
-                    <p>{mensaje.contenido}</p>
+                    <p className="whitespace-pre-wrap">{mensaje.contenido}</p>
                     </div>
                 </div>
                 ))}

@@ -1,9 +1,12 @@
 import { camposFaltantes, crearRespuestaConversacional } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
+import { ErrorEntradaInvalida, respuestaDeError } from "@/lib/errores";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
+import { registrarUso } from "@/lib/limites";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
 import { esquemaAntecedentes, esquemaRespuestaModelo } from "@/lib/schemas";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
+import { esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
 
 export async function POST(request: Request) {
   try {
@@ -12,21 +15,55 @@ export async function POST(request: Request) {
       return Response.json({ error: "No autenticado." }, { status: 401 });
     }
 
-    const body = await request.json().catch(() => ({}));
-    const mensaje = typeof body?.mensaje === "string" ? body.mensaje.trim() : "";
-    const antecedentesEntrada =
-      body?.antecedentes &&
-      typeof body.antecedentes === "object" &&
-      !Array.isArray(body.antecedentes)
-        ? (body.antecedentes as Record<string, unknown>)
-        : {};
-
-    if (!mensaje) {
+    const cuerpo = await leerJsonLimitado(request);
+    if (!cuerpo.ok) {
       return Response.json(
-        { error: "Se requiere un mensaje para analizar el caso." },
-        { status: 400 }
+        {
+          error:
+            cuerpo.motivo === "tamaño"
+              ? "La solicitud es demasiado grande."
+              : "El cuerpo de la solicitud no es JSON válido.",
+        },
+        { status: cuerpo.motivo === "tamaño" ? 413 : 400 }
       );
     }
+
+    const datos = cuerpo.datos as Record<string, unknown>;
+    const mensajeValidado = esquemaMensaje.safeParse({
+      mensaje: typeof datos?.mensaje === "string" ? datos.mensaje : "",
+    });
+
+    if (!mensajeValidado.success) {
+      throw new ErrorEntradaInvalida(
+        mensajeValidado.error.issues[0]?.message ?? "Mensaje inválido."
+      );
+    }
+
+    const mensaje = mensajeValidado.data.mensaje;
+
+    // Límite de uso por funcionario: el chat consume llamadas al modelo.
+    // Se comprueba **después** de validar, para que una petición inválida
+    // no consuma cuota. El límite es compartido con `/api/borrador` porque
+    // ambos consumen la misma cuota del proveedor.
+    const limite = registrarUso(`ia:${sesion.id}`);
+    if (!limite.permitido) {
+      return Response.json(
+        {
+          error: `Demasiadas consultas seguidas. Intente de nuevo en ${limite.reintentoEnSegundos} segundos.`,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limite.reintentoEnSegundos) },
+        }
+      );
+    }
+
+    const antecedentesEntrada =
+      datos?.antecedentes &&
+      typeof datos.antecedentes === "object" &&
+      !Array.isArray(datos.antecedentes)
+        ? (datos.antecedentes as Record<string, unknown>)
+        : {};
 
     if (!hayClaveDeIA()) {
       return Response.json({ error: ERROR_SIN_CLAVE }, { status: 500 });
@@ -83,10 +120,6 @@ export async function POST(request: Request) {
 
     return Response.json(resultado);
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Error interno del servidor al procesar el chat.";
-    return Response.json({ error: message }, { status: 500 });
+    return respuestaDeError(error);
   }
 }

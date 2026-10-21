@@ -6,7 +6,9 @@ export async function POST() {
 
   respuesta.headers.append(
     "Set-Cookie",
-    `${SESION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`
+    `${SESION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${
+      process.env.NODE_ENV === "production" ? "; Secure" : ""
+    }`
   );
 
   return respuesta;

@@ -3,8 +3,29 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 21/10/2026
-- **Estado general:** 🟢 Funcional — Fases 0 a 6 completadas. El sistema extrae antecedentes, redacta el borrador del parte, exige revisión humana y guarda los casos con historial. Pendiente: despliegue (Fase 7) y formato oficial de los partes (Fase 8).
-- **Último commit analizado:** `85afdb2` — "Usa espanol neutro en la interfaz, documentacion y prompts"
+- **Estado general:** 🟢 Funcional — Fases 0 a 7 completadas. El sistema extrae antecedentes, redacta el borrador del parte, exige revisión humana, guarda los casos con historial y papelera, y cuenta con tests, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel (Fase 7, último paso) y formato oficial de los partes (Fase 8).
+- **Último commit analizado:** `64a09d5` — "AVANCE: cierre de sesion y pendientes menores anotados"
+
+---
+
+## 0. Resumen de la sesión actual (21/10/2026)
+
+Se retomó el proyecto desde `64a09d5` y se completó la **Fase 7** (calidad,
+seguridad y despliegue), además de los pendientes menores anotados:
+
+| Área | Qué se hizo |
+|------|-------------|
+| Errores | `lib/errores.ts` (traducción de excepciones a HTTP: 400/429/504/500), timeout del modelo (2 min), errores técnicos ocultos a la interfaz. |
+| Límite de uso | `lib/limites.ts`: 20 llamadas/min por funcionario (compartido entre chat y borrador) y 20 intentos/min de login por IP. |
+| Validación | `lib/validacion.ts`: cuerpo máximo 64 KB, mensaje máximo 4 000 caracteres, esquema Zod del guardado de casos, id de caso validado. |
+| Tests | 68 pruebas unitarias con el runner nativo de Node + `tsx` (`npm test`). |
+| UI | `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx`; mensajes de error diferenciados en el chat; error visible al guardar el borrador. |
+| Cabeceras | `next.config.ts`: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS. |
+| Datos | Tabla `Usuario` (integridad referencial con `Caso`), papelera de casos (borrado lógico + restauración). |
+| Despliegue | `DEPLOY.md`, `vercel.json`, `scripts/proveedor-db.mjs` (SQLite ↔ PostgreSQL), `postinstall: prisma generate`. |
+| Formato | El modelo ya no escribe *"a las [PENDIENTE]"*: usa *"a una hora no informada"*. |
+
+**Commits de esta sesión:** se resumirán al cerrar la sesión.
 
 ---
 
@@ -89,67 +110,130 @@ recarga única de $10). Los que sirven: `minimax/minimax-m3.1-flash:free`,
 guardiavirtual/
 ├── app/
 │   ├── api/
-│   │   └── chat/
-│   │       └── route.ts            # ✅ Endpoint de extracción de antecedentes (con IA)
+│   │   ├── auth/
+│   │   │   ├── login/route.ts        # ✅ Login con rate limiting y sincronización de usuarios
+│   │   │   └── logout/route.ts       # ✅ Cierre de sesión
+│   │   ├── borrador/route.ts         # ✅ Generación del borrador (IA) + validaciones
+│   │   ├── casos/
+│   │   │   ├── route.ts              # ✅ Listado y guardado de casos
+│   │   │   └── [id]/route.ts         # ✅ Ver, papelera, restaurar y borrar
+│   │   └── chat/route.ts             # ✅ Endpoint de extracción de antecedentes (con IA)
 │   ├── components/
-│   │   ├── chat.tsx                # ✅ UI del chat + acumulación de antecedentes
-│   │   └── LoginForm.tsx           # ⚠️ Login visual (sin autenticación real)
+│   │   ├── chat.tsx                  # ✅ UI del chat + acumulación de antecedentes
+│   │   ├── BorradorPanel.tsx         # ✅ Visor editable del borrador
+│   │   ├── DashboardWorkspace.tsx    # ✅ Coordinación chat + historial + visor
+│   │   ├── EstadoCaso.tsx            # ✅ Faltantes y contradicciones
+│   │   ├── LoginForm.tsx             # ✅ Login
+│   │   ├── LogoutButton.tsx          # ✅ Cierre de sesión
+│   │   └── PanelLateral.tsx          # ✅ Funcionario, filtros, búsqueda y papelera
 │   ├── dashboard/
-│   │   └── page.tsx                # ⚠️ Dashboard con datos hardcodeados
+│   │   ├── error.tsx                 # ✅ Error boundary del dashboard
+│   │   ├── layout.tsx                # ✅ Revalida la sesión en el servidor
+│   │   └── page.tsx                 # ✅ Espacio de trabajo
+│   ├── error.tsx                     # ✅ Error boundary raíz
+│   ├── global-error.tsx              # ✅ Error global
+│   ├── not-found.tsx                 # ✅ Página 404
 │   ├── globals.css
-│   ├── layout.tsx                  # ⚠️ metadata por defecto ("Create Next App")
-│   └── page.tsx                    # ✅ Página de login
-├── public/                         # SVGs por defecto
-├── AGENTS.md                       # Reglas del agente Next.js
-├── CLAUDE.md                       # @AGENTS.md
-├── prompt.md                       # ⚠️ Prompt de análisis (NO se usa en el código actual)
-├── AVANCE.md                       # ← Este archivo
+│   ├── layout.tsx
+│   └── page.tsx                      # ✅ Página de login
+├── lib/
+│   ├── antecedentes.ts               # ✅ Reglas de dominio
+│   ├── auth-server.ts                # ✅ Sesión en el servidor
+│   ├── casos.ts                      # ✅ Serialización de casos y papelera
+│   ├── cliente.ts                    # ✅ Cliente HTTP del frontend
+│   ├── db.ts                         # ✅ Cliente de Prisma
+│   ├── errores.ts                    # ✅ Errores controlados (400/429/504/500)
+│   ├── fecha.ts                      # ✅ Normalización de fechas
+│   ├── ia.ts                         # ✅ Cliente de IA (cualquier proveedor)
+│   ├── limites.ts                    # ✅ Rate limiting
+│   ├── parse.ts                      # ✅ Parseo de la salida del modelo
+│   ├── plantillas.ts                 # ✅ Secciones y títulos del parte
+│   ├── prompts.ts                    # ✅ Única fuente de prompts
+│   ├── schemas.ts                    # ✅ Validación con Zod
+│   ├── sesion.ts                     # ✅ Cookies firmadas y hashes
+│   ├── types.ts                      # ✅ Contrato de datos
+│   ├── usuarios.ts                   # ✅ Funcionarios (USUARIOS_JSON)
+│   ├── usuarios-db.ts                # ✅ Sincronización con la tabla Usuario
+│   └── validacion.ts                 # ✅ Validación de entradas
+├── prisma/                           # ✅ Esquema, migraciones y SQLite local
+├── public/
+├── scripts/proveedor-db.mjs          # ✅ Cambio SQLite ↔ PostgreSQL
+├── tests/                            # ✅ 68 pruebas unitarias
+├── AGENTS.md
+├── CLAUDE.md
+├── prompt.md                         # ✅ Documentación de los prompts
+├── AVANCE.md                         # ← Este archivo
+├── DEPLOY.md                         # ✅ Guía de despliegue
 ├── eslint.config.mjs
-├── next.config.ts
+├── next.config.ts                    # ✅ Cabeceras de seguridad
 ├── package.json
 ├── postcss.config.mjs
-└── tsconfig.json
+├── proxy.ts                          # ✅ Protección de rutas
+├── tsconfig.json
+└── vercel.json                       # ✅ Configuración de despliegue
 ```
 
 ---
 
 ## 4. Estado de cada pieza (revisión)
 
+> Esta sección resume el estado **a fecha de hoy** (tras la Fase 7). El
+> detalle histórico de cada fase está en la sección 6.
+
 ### ✅ Funciona / implementado
 
 1. **Página de login** (`app/page.tsx`) — diseño completo y responsivo.
-2. **Formulario de login** (`app/components/LoginForm.tsx`) — valida que ID y contraseña no estén vacíos y muestra mensajes. *Sin autenticación real todavía.*
-3. **Chat** (`app/components/chat.tsx`) — UI funcional: envía mensajes, muestra historial, scroll automático, estado "PROCESANDO...".
-4. **API de chat** (`app/api/chat/route.ts`) — extrae y acumula antecedentes estructurados usando un LLM:
-   - Devuelve JSON: `respuesta`, `tipoProcedimiento`, `especie`, `lugar`, `fecha`, `descripcionHechos`, `contradicciones`, `puedeConfeccionarBorrador`, `faltantes`.
-   - Acumula antecedentes entre mensajes (el servidor recibe el estado previo).
-   - Normaliza valores vacíos (`pendiente`, `null`, `sin información`) a `null`.
-   - Determina si se puede confeccionar borrador (faltan campos mínimos).
-5. **Dashboard básico** (`app/dashboard/page.tsx`) — layout con panel lateral y el chat.
+2. **Autenticación real** (`app/api/auth/login/route.ts`, `lib/sesion.ts`,
+   `lib/usuarios.ts`) — contraseñas con `scrypt`, comparación a prueba de
+   timing, token de sesión firmado con HMAC-SHA256 en cookie `HttpOnly` de
+   8 h, `Secure` en producción. Sin credenciales en el repositorio.
+3. **Protección de rutas** (`proxy.ts`, `app/dashboard/layout.tsx`) — `/dashboard`
+   y `/api/*` exigen sesión; la verificación se repite en cada endpoint.
+4. **Chat** (`app/components/chat.tsx`) — envío, historial, scroll automático,
+   estados de carga, errores diferenciados.
+5. **API de chat** (`app/api/chat/route.ts`) — extrae y acumula antecedentes
+   con un LLM, normaliza valores vacíos a `null`, detecta contradicciones y
+   cambio de procedimiento, y valida la entrada.
+6. **Generación del borrador** (`app/api/borrador/route.ts`,
+   `app/components/BorradorPanel.tsx`) — secciones editables, indicadores de
+   completitud, copiar, descargar `.txt`, imprimir y confirmación humana
+   obligatoria.
+7. **Persistencia** (`prisma/`, `lib/casos.ts`) — casos y borradores en
+   SQLite (desarrollo) o PostgreSQL (producción), con tabla `Usuario`
+   sincronizada y clave foránea.
+8. **Historial de casos** (`app/components/PanelLateral.tsx`) — filtros por
+   estado, búsqueda, contador, papelera con restauración y borrado definitivo.
+9. **Manejo de errores** (`lib/errores.ts`, `app/error.tsx`,
+   `app/global-error.tsx`, `app/not-found.tsx`) — errores técnicos traducidos
+   a mensajes comprensibles; límites 400/429/504 con `Retry-After`.
+10. **Límite de uso** (`lib/limites.ts`) — 20 llamadas/min por funcionario y
+    20 intentos/min de login por IP.
+11. **Tests** (`tests/`) — 68 pruebas unitarias (`npm test`).
+12. **Despliegue** (`DEPLOY.md`, `vercel.json`, `scripts/proveedor-db.mjs`) —
+    guía completa para Vercel + PostgreSQL.
 
-### ⚠️ Implementado pero con deuda / incompleto
+### ⚠️ Deuda técnica conocida
 
-| Pieza | Problema |
-|-------|----------|
-| `prompt.md` | Está **desconectado** del código. `route.ts` usa un `systemPrompt` **inline** propio. Hay dos fuentes de verdad. |
-| `LoginForm.tsx` | No autentica; solo valida campos. No hay sesión, ni redirección al dashboard. |
-| `dashboard/page.tsx` | Datos del funcionario y agentes **hardcodeados**. El dashboard es accesible sin login. |
-| `layout.tsx` | `metadata` sigue siendo "Create Next App". |
-| `chat.tsx` | El tipo `Antecedentes` marca `tipoProcedimiento: string`, pero la API puede devolver `null` (mismatch de tipos). Envía campos extra (`puedeConfeccionarBorrador`, `faltantes`) al backend innecesariamente. |
-| Sin `.env` / `.env.example` | Las claves de API no están documentadas. Sin `OPENROUTER_API_KEY` la API responde 500. |
-| Estilos | `hover:bg-[#721212]` (rojo oscuro) en botones azules — probablemente error de color. Todas las burbujas usan el mismo azul sin diferenciar autor visualmente. |
-| `LayoutProps<"/">` | Tipo de Next 16; conviene verificar en `node_modules/next/dist/docs/` (AGENTS.md) tras instalar dependencias. |
+| Pieza | Problema | Impacto |
+|-------|----------|---------|
+| `lib/limites.ts` | El contador vive **en memoria** (por proceso). | En un despliegue con varias instancias el límite no es global. Requiere Redis (Upstash) para ser efectivo. |
+| `lib/usuarios.ts` | El hash de la contraseña se **regenera en cada arranque** (`scrypt` con sal aleatoria). | La columna `passwordHash` de la tabla `Usuario` no es estable. Al migrar los usuarios a la base de datos hay que persistir el hash. |
+| `lib/usuarios-db.ts` | La sincronización con `USUARIOS_JSON` ocurre al iniciar sesión. | Un funcionario que nunca ha iniciado sesión no existe en la tabla `Usuario` (por eso `asegurarUsuario` la crea al guardar un caso). |
+| `prisma/migrations` | El historial de migraciones está escrito en **SQL de SQLite**. | En PostgreSQL se usa `prisma db push` (ver `DEPLOY.md`). Si se adoptan migraciones en producción, hay que generar las de PostgreSQL aparte. |
+| `prompt.md` | Sigue siendo **documentación**: el prompt real vive en `lib/prompts.ts`. | Sin impacto funcional; conviene mantenerlo sincronizado. |
+| `app/api/chat/route.ts` | El estado de los antecedentes viaja en el cuerpo de la petición. | Cada mensaje reenvía el estado completo. Con casos muy largos puede llegar al límite de 64 KB. |
+| `app/dashboard/page.tsx` | Datos del funcionario tomados de la sesión (correcto), pero sin lista de "agentes" a futuro. | Sin impacto actual. |
 
 ### ❌ Pendiente (lo que falta para el objetivo)
 
-1. **Generación del borrador del parte policial** — el **núcleo del producto** no existe. Hoy solo se extraen antecedentes y se dice si *se puede* redactar. Falta el endpoint y la UI que redactan el documento.
-2. **Autenticación real** y protección de rutas.
-3. **Persistencia** (base de datos): los antecedentes se pierden al recargar.
-4. **Gestión de casos** (crear, listar, reabrir, historial).
-5. **Revisión y exportación** del borrador (imprimir / PDF / copiar / descargar).
-6. **Validación de formato de fecha** (`dd/mm/yyyy`) y de datos obligatorios.
-7. **Manejo de errores** en UI (clave faltante, rate limit, timeout del LLM).
-8. **Tests** y despliegue.
+1. **Publicación real en Vercel** — requiere cuenta de Vercel y una base de
+   datos PostgreSQL (el usuario debe hacerlo; la guía está en `DEPLOY.md`).
+2. **Fase 8: plantilla oficial de los partes** — el usuario debe aportar el
+   documento modelo de la unidad.
+3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
+   instancias.
+4. **Migración de usuarios a la base de datos** con hash de contraseña
+   persistente (eliminaría `USUARIOS_JSON`).
 
 ---
 
@@ -269,12 +353,30 @@ guardiavirtual/
 - [x] Diferenciar visualmente mensajes funcionario vs. asistente.
 - [x] Paleta de UI en tonos de verde olivo (escala de 11 tokens, de oscuro a claro). Ver "Paleta de UI".
 
-### Fase 7 — Calidad, seguridad y despliegue
-- [ ] Manejo de errores y estados de carga en toda la UI.
-- [ ] Protección de endpoints, rate limiting y validación de entrada.
-- [ ] Tests (extracción, validación de borrador, auth).
-- [ ] Despliegue en Vercel + base de datos.
-- [ ] Variables de entorno en producción.
+### Fase 7 — Calidad, seguridad y despliegue — ✅ COMPLETADA (falta el despliegue real)
+- [x] **Manejo de errores y estados de carga en toda la UI**: `app/error.tsx` (dashboard), `app/global-error.tsx`, `app/not-found.tsx`; errores del chat con estilo propio; error visible al guardar un borrador; mensajes vacíos del cliente sin romper la interfaz.
+- [x] **Protección de endpoints, rate limiting y validación de entrada**:
+  - `lib/limites.ts`: 20 llamadas/min por funcionario (clave `ia:<id>`), compartido entre `/api/chat` y `/api/borrador`; 20 intentos/min de login por IP (clave `login:<ip>`). Respuesta `429` con cabecera `Retry-After`.
+  - `lib/validacion.ts`: `leerJsonLimitado` (64 KB, 413 si se excede), `esquemaMensaje` (4 000 caracteres), `esquemaGuardarCaso` (secciones, títulos, borradores acotados).
+  - `lib/errores.ts`: `ErrorEntradaInvalida`, `ErrorLimiteProveedor` (429), `ErrorTiempoAgotado` (504) y traducción de fallos de red/Zod a mensajes comprensibles.
+  - `lib/ia.ts`: tiempo máximo de espera (2 min) con `AbortSignal.timeout`; el 429 del proveedor se distingue del error genérico.
+  - `app/api/casos/[id]`: se valida el formato del id antes de consultar la base de datos.
+  - Cookie de sesión con `Secure` en producción.
+- [x] **Tests (extracción, validación de borrador, auth)**: 68 pruebas con el runner nativo de Node (`node --import tsx --test`). Cubren: normalización de antecedentes y fechas, reglas de dominio (faltantes y contradicciones), esquemas Zod, hash y verificación de contraseñas, ciclo de vida del token de sesión, usuarios del entorno, límite de uso, validación de entrada, traducción de errores, cliente HTTP del frontend, casos y papelera, plantillas del parte y parseo de la salida del modelo.
+- [x] **Despliegue en Vercel + base de datos**: `DEPLOY.md` con el procedimiento completo; `vercel.json` con el comando de compilación; `scripts/proveedor-db.mjs` para cambiar entre SQLite y PostgreSQL; `postinstall: prisma generate`.
+- [x] **Variables de entorno en producción**: documentadas en `DEPLOY.md` y `.env.example`. `SESSION_SECRET` y `USUARIOS_JSON` siguen siendo obligatorias (fallo cerrado).
+- [x] **Cabeceras de seguridad** en `next.config.ts`: `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
+- [ ] **Publicar en Vercel** (requiere una cuenta de Vercel y una base de datos PostgreSQL: queda en manos del usuario).
+
+**Archivos nuevos en esta fase:** `lib/errores.ts`, `lib/limites.ts`, `lib/validacion.ts`, `lib/cliente.ts`, `lib/usuarios-db.ts`, `app/error.tsx` (global-error y not-found), `app/dashboard/error.tsx`, `tests/*.test.ts` (4 archivos), `scripts/proveedor-db.mjs`, `DEPLOY.md`, `vercel.json`.
+**Archivos modificados:** `lib/ia.ts`, `lib/casos.ts`, `lib/prompts.ts`, `app/api/chat/route.ts`, `app/api/borrador/route.ts`, `app/api/casos/route.ts`, `app/api/casos/[id]/route.ts`, `app/api/auth/login/route.ts`, `app/api/auth/logout/route.ts`, `app/components/chat.tsx`, `app/components/LoginForm.tsx`, `app/components/LogoutButton.tsx`, `app/components/PanelLateral.tsx`, `app/components/DashboardWorkspace.tsx`, `app/components/BorradorPanel.tsx`, `prisma/schema.prisma`, `next.config.ts`, `package.json`, `README.md`, `.env.example`.
+
+**Verificación:** `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 68/68 · `npm run build` ✅ · pruebas manuales contra el servidor de desarrollo (login, extracción de antecedentes, generación de borrador, guardado de caso, papelera, rate limit 429, cabeceras de seguridad).
+
+### Fase 7 bis — Pendientes menores resueltos
+- [x] **Hora en los partes:** el prompt de redacción prohíbe *"a las [PENDIENTE]"* y exige *"a una hora no informada"*. Verificado en una generación real.
+- [x] **Usuario en base de datos:** existe la tabla `Usuario`, sincronizada con `USUARIOS_JSON` al iniciar sesión (`lib/usuarios-db.ts`), con clave foránea desde `Caso` y bandera `activo` para desactivar accesos.
+- [x] **Papelera de casos:** el borrado es lógico (`eliminadoEn`); se puede restaurar desde el panel lateral y vaciar la papelera con borrado definitivo.
 
 ### Fase 8 — Plantillas de parte (DIFERIDA, pendiente de_definition)
 > Decisión del usuario: **aplazar**. El usuario aportará más adelante la
@@ -294,11 +396,18 @@ guardiavirtual/
 
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0, 1, 2, 3, 4, 5 y 6 completadas.** El sistema, con IA real
-  (OpenRouter, modelo gratuito), extrae antecedentes, redacta el borrador del
-  parte con secciones editables, exige revisión humana, **guarda los casos y
-  borradores en base de datos** (SQLite + Prisma) y ofrece historial con
-  filtros, búsqueda y borrado.
+- **Fases 0 a 7 completadas.** El sistema, con IA real (OpenRouter, modelo
+  gratuito), extrae antecedentes, redacta el borrador del parte con secciones
+  editables, exige revisión humana, **guarda los casos y borradores en base de
+  datos** (SQLite + Prisma, con tabla `Usuario` y papelera) y ofrece historial
+  con filtros, búsqueda, restauración y borrado definitivo.
+- **Calidad y seguridad:** 68 pruebas unitarias, rate limiting por funcionario
+  y por IP, validación de entradas y del tamaño de las peticiones, timeout del
+  modelo, errores traducidos a HTTP (400/429/504/500), cabeceras de seguridad
+  y páginas de error propias.
+- **Despliegue preparado:** `DEPLOY.md` + `vercel.json` + script de cambio de
+  proveedor de base de datos. Falta solo la publicación real (requiere cuenta
+  de Vercel y PostgreSQL).
 - **Detecta procedimientos mezclados**: si el funcionario narra un caso
   distinto al ya conversado, la IA lo señala como contradicción, **el borrador
   queda bloqueado** y el funcionario puede resolverlo con un clic ("Continuar
@@ -307,26 +416,27 @@ guardiavirtual/
 - **Autenticación real** con sesión firmada, `proxy.ts` + validación por
   endpoint, y credenciales solo en `.env.local`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /
-  asistente).
+  asistente / error).
 - **Fase 8 diferida:** el usuario aportará la plantilla real de los partes de
   Carabineros para que la IA la rellene.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Fase 7:** calidad, seguridad y despliegue (migrar SQLite → Postgres para Vercel, rate limiting, tests).
+1. **Publicar en Vercel** (último paso de la Fase 7): crear la base de datos
+   PostgreSQL, configurar las variables de entorno y desplegar. Guía en
+   `DEPLOY.md`.
 2. **Fase 8 (cuando el usuario entregue la plantilla real de los partes):** la IA rellenará ese formato, incluida la sección "Declaración de hechos".
 3. Probar más escenarios adversarios en el chat (correcciones, contradicciones, cambio de procedimiento).
-4. Detalle menor: el modelo redacta *"a las [PENDIENTE]"* cuando falta la hora.
-   Ajustar el prompt para que use una fórmula más natural (pendiente de
-   decisión del usuario).
+4. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
+   memoria; en un despliegue con varias instancias hay que moverlo a Redis
+   (Upstash) para que el límite sea global.
 
 ### Pendientes menores anotados
-- **Hora en los partes:** el modelo escribe *"a las [PENDIENTE]"*. Conviene
-  definir la fórmula (por ejemplo *"a una hora no informada"*) en el prompt de
-  redacción.
-- **Usuario en base de datos:** la tabla `Usuario` no existe todavía; el
-  `usuarioId` viene de `USUARIOS_JSON`. Migrarlo en la Fase 5/7.
-- **Eliminar casos:** la UI ya permite borrarlos, pero no hay papelera
-  (borrado definitivo).
+- ~~**Hora en los partes:**~~ ✅ resuelto en la Fase 7 (el modelo usa
+  *"a una hora no informada"*).
+- ~~**Usuario en base de datos:**~~ ✅ resuelto en la Fase 7 (tabla `Usuario`
+  sincronizada con `USUARIOS_JSON`).
+- ~~**Eliminar casos:**~~ ✅ resuelto en la Fase 7 (papelera con restauración
+  y borrado definitivo).
 
 ### Configuración local (qué se debe completar en `.env.local`)
 
@@ -337,6 +447,10 @@ guardiavirtual/
 | `AI_MODEL` | ✅ definido | `minimax/minimax-m3.1-flash:free` |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
 | `USUARIOS_JSON` | ✅ definido | ID `daniel` |
+| `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
+
+> En producción, `SESSION_SECRET` y `USUARIOS_JSON` son **obligatorias** y
+> `DATABASE_URL` debe apuntar a PostgreSQL. Ver `DEPLOY.md`.
 
 **Nunca escribir la clave completa en este archivo ni en ningún archivo versionado.**
 `.env.local` está en `.gitignore` y no se sube a GitHub. Para configurarla:
@@ -359,7 +473,10 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 | `EPERM: unlink ... .node` en `npm ci` | El dev server tiene bloqueado un módulo nativo | Detener el dev server antes de `npm ci` |
 | `@prisma/client did not initialize yet` | Falta generar el cliente | `npm run db:generate` |
 | `Environment variable not found: DATABASE_URL` | La CLI de Prisma solo lee `.env` | `DATABASE_URL` va en `.env` (no en `.env.local`) |
+| `Environment variable not found: DATABASE_URL` al ejecutar un script con `node` | Node no carga `.env` de forma automática (solo Next.js lo hace) | `$env:DATABASE_URL = "file:./dev.db"` antes de ejecutar el script, o usar `npx prisma ...` |
 | Avisos `LF will be replaced by CRLF` | `core.autocrlf` de Windows | Normalizado con `.gitattributes` (`eol=lf`) |
+| `npm test` no encuentra los módulos `@/lib/...` | El runner nativo no aplica los alias de `tsconfig` | `tsx` los resuelve: siempre usar `npm test` (no `node --test` a secas) |
+| `PrismaClientInitializationError` al abrir la base de datos | El cliente no se generó tras cambiar el esquema | `npm run db:generate` |
 
 > **Antes de una instalación:** detener siempre el dev server. En Windows deja
 > bloqueados los módulos nativos de `node_modules`.
@@ -376,3 +493,9 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 - Actualizar este `AVANCE.md` al final de cada sesión (marcar casillas y anotar bloqueos).
 - Mantener la regla de `AGENTS.md`: leer las docs de Next en `node_modules/next/dist/docs/` antes de escribir código nuevo.
 - No inventar datos en los partes: es requisito del dominio policial.
+- **Antes de dar por terminada una fase:** `npm run typecheck`, `npm run lint`,
+  `npm test` y `npm run build` en verde, y pruebas manuales contra el servidor
+  de desarrollo.
+- **Los secretos no se versionan:** claves de IA, `SESSION_SECRET` y
+  `USUARIOS_JSON` viven solo en `.env` / `.env.local`. En `AVANCE.md` y
+  documentos se anota solo la huella o el nombre de la variable.

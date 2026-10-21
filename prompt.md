@@ -75,3 +75,17 @@ realiza en el servidor (`lib/antecedentes.ts`), no en el modelo.
 La salida del modelo se valida con Zod (`lib/schemas.ts`): si el modelo
 responde algo que no cumple el contrato, la API devuelve error en vez de
 datos corruptos. El funcionario siempre revisa el borrador antes de usarlo.
+
+## Redacción del borrador (`PROMPT_REDAR_PARTE`)
+
+El segundo prompt, también en `lib/prompts.ts`, redacta el parte a partir de
+los antecedentes completos. Reglas que conviene tener presentes al probarlo:
+
+- Escribe `[PENDIENTE]` donde falte un dato. **Excepción:** si falta la
+  **hora**, no se escribe *"a las [PENDIENTE]"*; se redacta *"a una hora no
+  informada"* (o *"a una hora no precisada"*).
+- Respeta exactamente las secciones pedidas (`SECCIONES_PARTE` en
+  `lib/plantillas.ts`).
+- Español formal, en tercera persona y en español neutro.
+- Si hay contradicciones, el servidor **bloquea** la generación (HTTP 409):
+  no se redacta un parte que mezcle dos procedimientos distintos.
