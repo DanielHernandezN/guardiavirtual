@@ -2,9 +2,9 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 20/10/2026
-- **Estado general:** 🟡 En desarrollo — **Fase 0 completada**. Flujo de chat y extracción de antecedentes operativo (local). Pendiente el núcleo del producto (generación del parte policial).
-- **Último commit analizado:** `44edcce` — "elimina responder / responderCabo() termina de dar la lógica y se integra IA mediante API"
+- **Última actualización:** 21/10/2026
+- **Estado general:** 🟢 Funcional — Fases 0 a 6 completadas. El sistema extrae antecedentes, redacta el borrador del parte, exige revisión humana y guarda los casos con historial. Pendiente: despliegue (Fase 7) y formato oficial de los partes (Fase 8).
+- **Último commit analizado:** `85afdb2` — "Usa espanol neutro en la interfaz, documentacion y prompts"
 
 ---
 
@@ -315,6 +315,18 @@ guardiavirtual/
 1. **Fase 7:** calidad, seguridad y despliegue (migrar SQLite → Postgres para Vercel, rate limiting, tests).
 2. **Fase 8 (cuando el usuario entregue la plantilla real de los partes):** la IA rellenará ese formato, incluida la sección "Declaración de hechos".
 3. Probar más escenarios adversarios en el chat (correcciones, contradicciones, cambio de procedimiento).
+4. Detalle menor: el modelo redacta *"a las [PENDIENTE]"* cuando falta la hora.
+   Ajustar el prompt para que use una fórmula más natural (pendiente de
+   decisión del usuario).
+
+### Pendientes menores anotados
+- **Hora en los partes:** el modelo escribe *"a las [PENDIENTE]"*. Conviene
+  definir la fórmula (por ejemplo *"a una hora no informada"*) en el prompt de
+  redacción.
+- **Usuario en base de datos:** la tabla `Usuario` no existe todavía; el
+  `usuarioId` viene de `USUARIOS_JSON`. Migrarlo en la Fase 5/7.
+- **Eliminar casos:** la UI ya permite borrarlos, pero no hay papelera
+  (borrado definitivo).
 
 ### Configuración local (qué se debe completar en `.env.local`)
 
@@ -359,6 +371,8 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
   sin voseo (vos, podés, contame, revisá) ni modismos regionales (aquí, che,
   laburo). El texto puede terminar en un documento oficial. Esta regla también
   se le indica al modelo de IA en `lib/prompts.ts`.
+- **El asistente también se comunica en español neutro** (indicación explícita
+  del usuario).
 - Actualizar este `AVANCE.md` al final de cada sesión (marcar casillas y anotar bloqueos).
 - Mantener la regla de `AGENTS.md`: leer las docs de Next en `node_modules/next/dist/docs/` antes de escribir código nuevo.
 - No inventar datos en los partes: es requisito del dominio policial.
