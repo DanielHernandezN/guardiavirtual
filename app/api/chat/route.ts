@@ -1,6 +1,6 @@
 import { camposFaltantes, crearRespuestaConversacional } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
-import { parseModelContent } from "@/lib/parse";
+import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
 import { esquemaAntecedentes } from "@/lib/schemas";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
@@ -28,64 +28,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY ?? process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return Response.json(
-        {
-          error:
-            "Falta OPENROUTER_API_KEY o OPENAI_API_KEY en las variables de entorno.",
-        },
-        { status: 500 }
-      );
+    if (!hayClaveDeIA()) {
+      return Response.json({ error: ERROR_SIN_CLAVE }, { status: 500 });
     }
-
-    const model =
-      process.env.OPENROUTER_MODEL ??
-      process.env.OPENAI_MODEL ??
-      "openai/gpt-4o-mini";
 
     // Normaliza y valida los antecedentes acumulados que envía el cliente.
     const antecedentesPrevios = esquemaAntecedentes.parse(antecedentesEntrada);
 
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "http://localhost:3000",
-          "X-Title": "Guardiavirtual",
+    const validados = esquemaAntecedentes.parse(
+      await llamarModeloJson([
+        { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
+        {
+          role: "user",
+          content: construirMensajeUsuario(antecedentesPrevios, mensaje),
         },
-        body: JSON.stringify({
-          model,
-          temperature: 0,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
-            {
-              role: "user",
-              content: construirMensajeUsuario(antecedentesPrevios, mensaje),
-            },
-          ],
-        }),
-      }
+      ])
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`La API de IA falló: ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("La respuesta de la API no incluye contenido válido.");
-    }
-
-    const objeto = parseModelContent(content);
-    const validados = esquemaAntecedentes.parse(objeto);
 
     // Combina el resultado del modelo con los antecedentes previos,
     // conservando los datos ya conocidos cuando el modelo devuelve null.

@@ -28,11 +28,38 @@ Construir una **IA que ayude a confeccionar partes policiales** (partes, actuaci
 | Framework | **Next.js 16.3.3** (App Router) | Proyecto bootstrapped con `create-next-app`. Ver reglas de `AGENTS.md`: leer docs en `node_modules/next/dist/docs/` antes de escribir código. |
 | UI | **React 19.2.8** + **Tailwind CSS v4** (`@tailwindcss/postcss`) | Estilos con clases utilitarias y colores arbitrarios. |
 | Lenguaje | **TypeScript 5** (strict) | |
-| IA / LLM | **OpenRouter** (fallback a OpenAI) | Endpoint `https://openrouter.ai/api/v1/chat/completions`. Modelo por defecto `openai/gpt-4o-mini`. |
+| IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL`. Por defecto OpenRouter con modelo **gratuito** `minimax/minimax-m3.1-flash:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
 | Estilo de API | **Rutas API de Next.js** (`app/api/...`) | |
 | Despliegue objetivo | **Vercel** (sugerido) | Aún no configurado. |
 
 > ⚠️ `node_modules` **no está instalado** en el workspace actual. Antes de compilar: `npm install`.
+
+### Proveedor de IA (configurable)
+
+Todo el acceso al modelo pasa por **`lib/ia.ts`**, así que cambiar de proveedor
+no requiere tocar código, solo variables de entorno:
+
+| Variable | Descripción | Por defecto |
+|----------|-------------|-------------|
+| `AI_BASE_URL` | Endpoint del proveedor | `https://openrouter.ai/api/v1/chat/completions` |
+| `AI_API_KEY` | Clave del proveedor | — (obligatoria) |
+| `AI_MODEL` | Identificador del modelo | `minimax/minimax-m3.1-flash:free` |
+
+Proveedores compatibles (formato OpenAI `chat/completions`):
+
+| Proveedor | `AI_BASE_URL` | Costo |
+|-----------|---------------|-------|
+| OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | Modelos `:free` sin tarjeta |
+| OpenAI | `https://api.openai.com/v1/chat/completions` | De pago |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | Capa gratuita |
+| Groq | `https://api.groq.com/openai/v1/chat/completions` | Capa gratuita |
+
+**Modelos gratuitos de OpenRouter** (verificados contra la API, oct-2026): 18
+gratuitos, de los cuales **9 soportan `response_format`** (requisito para que
+Zod valide la respuesta). Límites: 20 req/min y 50 req/día (1000/día con una
+recarga única de $10). Los que sirven: `minimax/minimax-m3.1-flash:free`,
+`nvidia/nemotron-3.5-super-vl:free`, `google/gemma-4-31b-it:free`,
+`openrouter/free` (enruta a uno aleatorio).
 
 ---
 
@@ -225,8 +252,8 @@ guardiavirtual/
 - **Lo más importante pendiente:** generar el **borrador del parte policial** (Fase 3). Es el corazón del proyecto.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. Configurar `.env.local` (copiar de `.env.example`): `OPENROUTER_API_KEY`, `SESSION_SECRET` y `USUARIOS_JSON`. **Las dos últimas son obligatorias**: sin `USUARIOS_JSON` el login responde `503` y sin `SESSION_SECRET` nadie puede autenticarse.
-2. Probar el flujo completo con clave real: login → chat → borrador → confirmar.
+1. **Pegar la clave de OpenRouter** en `.env.local` (`AI_API_KEY=`): se crea gratis y sin tarjeta en https://openrouter.ai/keys. Next recarga `.env.local` en caliente, no hace falta reiniciar el servidor.
+2. Probar el flujo completo con el modelo gratuito: login → chat → borrador → confirmar.
 3. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
 4. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
 

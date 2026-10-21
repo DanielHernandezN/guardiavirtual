@@ -1,6 +1,6 @@
 import { camposFaltantes } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
-import { parseModelContent } from "@/lib/parse";
+import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import {
   PROMPT_REDAR_PARTE,
   construirMensajeBorrador,
@@ -52,61 +52,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY ?? process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    if (!hayClaveDeIA()) {
       return Response.json(
-        {
-          ok: false,
-          error:
-            "Falta OPENROUTER_API_KEY o OPENAI_API_KEY en las variables de entorno.",
-        },
+        { ok: false, error: ERROR_SIN_CLAVE },
         { status: 500 }
       );
     }
 
-    const model =
-      process.env.OPENROUTER_MODEL ??
-      process.env.OPENAI_MODEL ??
-      "openai/gpt-4o-mini";
-
-    const response = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": "http://localhost:3000",
-          "X-Title": "Guardiavirtual",
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0.2,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: PROMPT_REDAR_PARTE },
-            {
-              role: "user",
-              content: construirMensajeBorrador(antecedentes, SECCIONES_PARTE),
-            },
-          ],
-        }),
-      }
+    const validados = esquemaBorrador.parse(
+      await llamarModeloJson(
+        [
+          { role: "system", content: PROMPT_REDAR_PARTE },
+          {
+            role: "user",
+            content: construirMensajeBorrador(antecedentes, SECCIONES_PARTE),
+          },
+        ],
+        { temperatura: 0.2 }
+      )
     );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`La API de IA falló: ${errorText}`);
-    }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("La respuesta de la API no incluye contenido válido.");
-    }
-
-    const validados = esquemaBorrador.parse(parseModelContent(content));
     const titulo = tituloPorTipo(antecedentes.tipoProcedimiento);
 
     const borrador: BorradorParte = {
