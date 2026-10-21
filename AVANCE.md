@@ -252,10 +252,30 @@ guardiavirtual/
 - **Lo más importante pendiente:** generar el **borrador del parte policial** (Fase 3). Es el corazón del proyecto.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Pegar la clave de OpenRouter** en `.env.local` (`AI_API_KEY=`): se crea gratis y sin tarjeta en https://openrouter.ai/keys. Next recarga `.env.local` en caliente, no hace falta reiniciar el servidor.
+1. **Configurar la clave de IA** (ver "Configuración local" más abajo).
 2. Probar el flujo completo con el modelo gratuito: login → chat → borrador → confirmar.
 3. **Fase 5:** persistencia (base de datos) para que los casos y borradores se guarden.
 4. **Fase 6:** UI del dashboard (historial de casos, datos reales del funcionario).
+
+### Configuración local (qué se debe completar en `.env.local`)
+
+| Variable | Estado | Notas |
+|----------|--------|-------|
+| `AI_BASE_URL` | ✅ definido | OpenRouter |
+| `AI_API_KEY` | ⚠️ **pendiente** | Clave de OpenRouter: `sk-or-v1-27f...7ff` (huella; la clave completa vive solo en `.env.local`) |
+| `AI_MODEL` | ✅ definido | `minimax/minimax-m3.1-flash:free` |
+| `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
+| `USUARIOS_JSON` | ✅ definido | ID `daniel` |
+
+**Nunca escribir la clave completa en este archivo ni en ningún archivo versionado.**
+`.env.local` está en `.gitignore` y no se sube a GitHub. Para configurarla:
+
+```powershell
+$key = Read-Host "Pega tu clave de OpenRouter"
+(Get-Content .env.local) -replace '^AI_API_KEY=.*$', "AI_API_KEY=$key" | Set-Content .env.local
+```
+
+Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 
 ---
 
