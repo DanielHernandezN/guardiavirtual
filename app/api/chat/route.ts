@@ -1,6 +1,11 @@
-import { camposFaltantes, crearRespuestaConversacional } from "@/lib/antecedentes";
+import {
+  camposFaltantes,
+  combinarDatos,
+  crearRespuestaConversacional,
+} from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
 import { ErrorEntradaInvalida, respuestaDeError } from "@/lib/errores";
+import { fechaDeHoy } from "@/lib/fecha";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import { registrarUso } from "@/lib/limites";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
@@ -77,7 +82,11 @@ export async function POST(request: Request) {
         { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
         {
           role: "user",
-          content: construirMensajeUsuario(antecedentesPrevios, mensaje),
+          content: construirMensajeUsuario(
+            antecedentesPrevios,
+            mensaje,
+            fechaDeHoy()
+          ),
         },
       ])
     );
@@ -91,10 +100,12 @@ export async function POST(request: Request) {
           lugar: validados.lugar,
           fecha: validados.fecha,
           descripcionHechos: validados.descripcionHechos ?? mensaje,
+          detenido: validados.detenido,
+          detencion: validados.detencion,
           contradicciones: validados.contradicciones,
         }
       : // Mismo procedimiento: se conserva lo ya conocido cuando el modelo
-        // devuelve null.
+        // devuelve null (incluidos los datos del detenido y de la detención).
         {
           tipoProcedimiento:
             validados.tipoProcedimiento ?? antecedentesPrevios.tipoProcedimiento,
@@ -105,6 +116,14 @@ export async function POST(request: Request) {
             validados.descripcionHechos ??
             antecedentesPrevios.descripcionHechos ??
             mensaje,
+          detenido: combinarDatos(
+            validados.detenido,
+            antecedentesPrevios.detenido
+          ),
+          detencion: combinarDatos(
+            validados.detencion,
+            antecedentesPrevios.detencion
+          ),
           contradicciones: validados.contradicciones,
         };
 

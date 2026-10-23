@@ -42,6 +42,7 @@ describe("token de sesión", () => {
     const token = crearTokenSesion({
       id: "funcionario",
       nombre: "Funcionario de Prueba",
+      grado: "Sgto. 1ro.",
       exp: Date.now() + SESION_TTL_MS,
     });
 
@@ -49,6 +50,7 @@ describe("token de sesión", () => {
 
     assert.equal(payload?.id, "funcionario");
     assert.equal(payload?.nombre, "Funcionario de Prueba");
+    assert.equal(payload?.grado, "Sgto. 1ro.");
   });
 
   it("rechaza un token con la firma alterada", () => {
@@ -117,6 +119,25 @@ describe("usuarios del entorno", () => {
     try {
       assert.equal(hayUsuariosConfigurados(), true);
       assert.equal(buscarUsuario("prueba")?.nombre, "Funcionario de Prueba");
+      assert.equal(buscarUsuario("prueba")?.grado, null);
+    } finally {
+      if (original !== undefined) process.env.USUARIOS_JSON = original;
+    }
+  });
+
+  it("conserva el grado cuando está configurado", () => {
+    const original = process.env.USUARIOS_JSON;
+    process.env.USUARIOS_JSON = JSON.stringify([
+      {
+        id: "prueba",
+        nombre: "Funcionario de Prueba",
+        grado: "Sgto. 1ro.",
+        password: "clave",
+      },
+    ]);
+
+    try {
+      assert.equal(buscarUsuario("prueba")?.grado, "Sgto. 1ro.");
     } finally {
       if (original !== undefined) process.env.USUARIOS_JSON = original;
     }

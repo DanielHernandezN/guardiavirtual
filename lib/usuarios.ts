@@ -8,7 +8,9 @@ import { hashPassword } from "./sesion";
  * Los funcionarios se configuran **únicamente** por la variable de entorno
  * `USUARIOS_JSON`:
  *
- *   [{"id":"daniel.hernandez","nombre":"Daniel Hernández","password":"..."}]
+ *   [{"id":"daniel.hernandez","nombre":"Daniel Hernández","grado":"Sgto. 1ro.","password":"..."}]
+ *
+ * `grado` es opcional: si falta, el parte usa solo el nombre.
  *
  * No hay credenciales por defecto en el código: si `USUARIOS_JSON` no está
  * definida o es inválida, **nadie puede autenticarse**. Esto evita que el
@@ -20,18 +22,27 @@ import { hashPassword } from "./sesion";
 export type Usuario = {
   id: string;
   nombre: string;
+  /** Grado o jerarquía (por ejemplo, "Sgto. 1ro."); opcional. */
+  grado: string | null;
   passwordHash: string;
 };
 
 type UsuarioConfig = {
   id: string;
   nombre: string;
+  grado?: string;
   password: string;
 };
 
-const aUsuario = ({ id, nombre, password }: UsuarioConfig): Usuario => ({
+const aUsuario = ({
   id,
   nombre,
+  grado,
+  password,
+}: UsuarioConfig): Usuario => ({
+  id,
+  nombre,
+  grado: grado?.trim() || null,
   passwordHash: hashPassword(password),
 });
 

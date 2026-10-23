@@ -2,13 +2,41 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 21/10/2026
-- **Estado general:** 🟢 Funcional — Fases 0 a 7 completadas. El sistema extrae antecedentes, redacta el borrador del parte, exige revisión humana, guarda los casos con historial y papelera, y cuenta con tests, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel (Fase 7, último paso) y formato oficial de los partes (Fase 8).
-- **Último commit analizado:** `872ef81` — "Fase 7: calidad, seguridad, pruebas y despliegue"
+- **Última actualización:** 22/10/2026
+- **Estado general:** 🟢 Funcional — Fases 0 a 7 completadas y **Fase 8 implementada** (parte de detenido con encabezado, cierre, firma y vista previa). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
+- **Último commit analizado:** `872ef81` — "Fase 7: calidad, seguridad, pruebas y despliegue" (los cambios de la Fase 8 están en el árbol de trabajo, sin commit).
 
 ---
 
-## 0. Resumen de la sesión actual (21/10/2026)
+## 0. Resumen de la sesión actual (22/10/2026)
+
+Se implementó la **Fase 8: plantilla del parte de detenido**, a partir del
+modelo de parte aportado por el usuario (detención por robo por sorpresa).
+
+| Área | Qué se hizo |
+|------|-------------|
+| Datos | `lib/types.ts`: nuevos tipos `DatosDetenido` y `DatosDetencion`; `Antecedentes` ahora incluye `detenido` y `detencion`. |
+| Extracción | `lib/prompts.ts`: el modelo extrae nombre, RUT, edad, nacionalidad, estado civil, estudios, ocupación, nacimiento, domicilio, teléfono y correo del detenido; hora, fecha, delito, lugar, personal aprehensor, acompañante, vehículo y constatación de lesiones. |
+| Normalización | `lib/schemas.ts`: esquemas anidados tolerantes (si no hay detención, todos los campos quedan en `null`); `lib/fecha.ts`: `normalizarHora` y `fechaDeHoy` (zona `America/Santiago`). |
+| Plantilla | `lib/plantillas.ts`: `SECCIONES_DETENIDO`, `seccionesPara()` y `tituloPorTipo(tipo, detencion)` → «PARTE DE DETENIDO». |
+| Redacción | El relato de HECHOS usa el estilo oficial: tercera persona, pasado y párrafos que comienzan con «Que, ». Las diligencias (derechos, esposas, calabozo, lesiones, traslado) solo se mencionan si constan. |
+| Acumulación | `app/api/chat/route.ts`: los datos del detenido y de la detención se combinan campo por campo; un `cambioDeProcedimiento` los reemplaza completos. |
+| UI | El chat inicializa los antecedentes con `crearAntecedentesVacios()`; el visor del borrador muestra detenido, delito y hora de detención. |
+| Encabezado | `lib/plantillas.ts`: encabezado fijo con UNIDAD (variable `UNIDAD_NOMBRE`), PARTE NRO., FECHA/HORA de confección, FUNCIONARIO (sesión) y MATERIA (delito o procedimiento). Se genera en el servidor, se puede editar y se incluye al copiar, descargar e imprimir. |
+| Cierre | `construirPieParte`: fórmula «Es cuanto puedo informar a Ud.», línea de firma, nombre del funcionario (con grado si está configurado) y unidad. |
+| Vista previa | El visor del borrador tiene un botón **Vista previa / Editar** que muestra el documento completo con el formato de impresión. |
+| Tests | 89 pruebas (`npm test`), incluidas normalización de hora, esquema anidado, detección de detención, combinación de datos, encabezado, cierre del parte y grado del funcionario. |
+| Modelo | `minimax/minimax-m3.1-flash:free` fue **retirado por OpenRouter el 22/10/2026** (404). `openrouter/free` devolvía respuestas vacías de forma intermitente. Se eligió **`poolside/laguna-s-2.1:free`** para extracción y redacción: respondió en ~13 s y ~12 s respectivamente, con JSON válido y acentos correctos. Se agregaron reintentos automáticos en `lib/ia.ts`. |
+
+**Verificación:** `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 89/89 · `npm run build` ✅. Además, prueba real contra `poolside/laguna-s-2.1:free` con el caso de detención por robo por sorpresa: extracción completa en ~13 s, borrador con las 5 secciones en ~12 s, encabezado y cierre incluidos.
+
+> **Privacidad:** el parte de ejemplo contenía datos personales. En el
+> repositorio solo se documenta la **estructura** del documento, nunca nombres,
+> RUT, teléfonos ni correos reales.
+
+---
+
+## 0 bis. Resumen de la sesión anterior (21/10/2026)
 
 Se retomó el proyecto desde `64a09d5` y se completó la **Fase 7** (calidad,
 seguridad y despliegue), además de los pendientes menores anotados:
@@ -50,7 +78,7 @@ Construir una **IA que ayude a confeccionar partes policiales** (partes, actuaci
 | Framework | **Next.js 16.3.3** (App Router) | Proyecto bootstrapped con `create-next-app`. Ver reglas de `AGENTS.md`: leer docs en `node_modules/next/dist/docs/` antes de escribir código. |
 | UI | **React 19.2.8** + **Tailwind CSS v4** (`@tailwindcss/postcss`) | Estilos con clases utilitarias y colores arbitrarios. |
 | Lenguaje | **TypeScript 5** (strict) | |
-| IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL`. Por defecto OpenRouter con modelo **gratuito** `minimax/minimax-m3.1-flash:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
+| IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL` (+ `AI_MODEL_REDACCION` opcional). Por defecto OpenRouter con el modelo **gratuito** `poolside/laguna-s-2.1:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
 | Estilo de API | **Rutas API de Next.js** (`app/api/...`) | |
 | Despliegue objetivo | **Vercel** (sugerido) | Aún no configurado. |
 
@@ -85,7 +113,8 @@ no requiere tocar código, solo variables de entorno:
 |----------|-------------|-------------|
 | `AI_BASE_URL` | Endpoint del proveedor | `https://openrouter.ai/api/v1/chat/completions` |
 | `AI_API_KEY` | Clave del proveedor | — (obligatoria) |
-| `AI_MODEL` | Identificador del modelo | `minimax/minimax-m3.1-flash:free` |
+| `AI_MODEL` | Modelo de extracción (chat) | `poolside/laguna-s-2.1:free` (`.env.local`) |
+| `AI_MODEL_REDACCION` | Modelo de redacción del borrador | `poolside/laguna-s-2.1:free` (si falta, usa `AI_MODEL`) |
 
 Proveedores compatibles (formato OpenAI `chat/completions`):
 
@@ -96,12 +125,24 @@ Proveedores compatibles (formato OpenAI `chat/completions`):
 | Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | Capa gratuita |
 | Groq | `https://api.groq.com/openai/v1/chat/completions` | Capa gratuita |
 
-**Modelos gratuitos de OpenRouter** (verificados contra la API, oct-2026): 18
-gratuitos, de los cuales **9 soportan `response_format`** (requisito para que
-Zod valide la respuesta). Límites: 20 req/min y 50 req/día (1000/día con una
-recarga única de $10). Los que sirven: `minimax/minimax-m3.1-flash:free`,
-`nvidia/nemotron-3.5-super-vl:free`, `google/gemma-4-31b-it:free`,
-`openrouter/free` (enruta a uno aleatorio).
+**Modelos gratuitos de OpenRouter** (consultados y probados el 22/10/2026):
+los modelos `:free` tienen un límite de **20 req/min y 50 req/día** (1000/día
+con una recarga única de $10). Resultados de la prueba con el prompt real de
+redacción:
+
+| Modelo | Resultado |
+|--------|-----------|
+| `poolside/laguna-s-2.1:free` | ✅ ~12 s, JSON válido, acentos correctos. **En uso.** |
+| `cohere/north-mini-code:free` | ✅ ~38 s, JSON válido; omitió la constatación de lesiones. |
+| `nvidia/nemotron-3.5-lightning:free` | ⚠️ Extracción correcta (~43 s), pero la redacción superó los 120 s. |
+| `openrouter/free` | ❌ Respuestas vacías intermitentes. |
+| `google/gemma-4-26b-a4b-it:free` | ❌ 429 del proveedor. |
+| `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` | ⚠️ ~119 s, al límite del timeout. |
+
+> ⚠️ **`minimax/minimax-m3.1-flash:free` fue retirado el 22/10/2026** al
+> terminar su periodo gratuito (OpenRouter devuelve 404). Verificar la lista
+> vigente en <https://openrouter.ai/models?max_price=0>. Si el modelo gratuito
+> falla, se puede cambiar solo con `AI_MODEL` / `AI_MODEL_REDACCION`.
 
 ---
 
@@ -144,11 +185,11 @@ guardiavirtual/
 │   ├── cliente.ts                    # ✅ Cliente HTTP del frontend
 │   ├── db.ts                         # ✅ Cliente de Prisma
 │   ├── errores.ts                    # ✅ Errores controlados (400/429/504/500)
-│   ├── fecha.ts                      # ✅ Normalización de fechas
+│   ├── fecha.ts                      # ✅ Normalización de fechas y horas
 │   ├── ia.ts                         # ✅ Cliente de IA (cualquier proveedor)
 │   ├── limites.ts                    # ✅ Rate limiting
 │   ├── parse.ts                      # ✅ Parseo de la salida del modelo
-│   ├── plantillas.ts                 # ✅ Secciones y títulos del parte
+│   ├── plantillas.ts                 # ✅ Secciones, títulos y encabezado
 │   ├── prompts.ts                    # ✅ Única fuente de prompts
 │   ├── schemas.ts                    # ✅ Validación con Zod
 │   ├── sesion.ts                     # ✅ Cookies firmadas y hashes
@@ -159,7 +200,7 @@ guardiavirtual/
 ├── prisma/                           # ✅ Esquema, migraciones y SQLite local
 ├── public/
 ├── scripts/proveedor-db.mjs          # ✅ Cambio SQLite ↔ PostgreSQL
-├── tests/                            # ✅ 68 pruebas unitarias
+├── tests/                            # ✅ 89 pruebas unitarias
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── prompt.md                         # ✅ Documentación de los prompts
@@ -209,9 +250,21 @@ guardiavirtual/
    a mensajes comprensibles; límites 400/429/504 con `Retry-After`.
 10. **Límite de uso** (`lib/limites.ts`) — 20 llamadas/min por funcionario y
     20 intentos/min de login por IP.
-11. **Tests** (`tests/`) — 68 pruebas unitarias (`npm test`).
+11. **Tests** (`tests/`) — 89 pruebas unitarias (`npm test`).
 12. **Despliegue** (`DEPLOY.md`, `vercel.json`, `scripts/proveedor-db.mjs`) —
     guía completa para Vercel + PostgreSQL.
+13. **Parte de detenido** (`lib/plantillas.ts`, `lib/types.ts`,
+    `lib/prompts.ts`) — extrae identificación del detenido (nombre, RUT, edad,
+    nacionalidad, estado civil, estudios, ocupación, nacimiento, domicilio,
+    teléfono, correo) y circunstancias de la detención (hora, fecha, delito,
+    lugar, personal aprehensor, acompañante, vehículo, lesiones). El borrador
+    se titula «PARTE DE DETENIDO» y el relato usa el estilo «Que, …».
+14. **Encabezado y cierre del parte** (`lib/plantillas.ts`,
+    `app/api/borrador/route.ts`) — UNIDAD, PARTE NRO., FECHA/HORA,
+    FUNCIONARIO y MATERIA al inicio; «Es cuanto puedo informar a Ud.» y firma
+    al final. Se generan en el servidor, son editables y se incluyen al
+    copiar, descargar e imprimir. El visor ofrece **vista previa** del
+    documento completo.
 
 ### ⚠️ Deuda técnica conocida
 
@@ -229,8 +282,9 @@ guardiavirtual/
 
 1. **Publicación real en Vercel** — requiere cuenta de Vercel y una base de
    datos PostgreSQL (el usuario debe hacerlo; la guía está en `DEPLOY.md`).
-2. **Fase 8: plantilla oficial de los partes** — el usuario debe aportar el
-   documento modelo de la unidad.
+2. **Ajustes finos de la plantilla de detenido** — la estructura implementada
+   se basa en el modelo aportado; si la unidad usa un formato oficial distinto
+   (orden de datos, secciones o encabezado), se ajusta en `lib/plantillas.ts`.
 3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
    instancias.
 4. **Migración de usuarios a la base de datos** con hash de contraseña
@@ -246,6 +300,9 @@ guardiavirtual/
 - **Seguridad:** la API key vive en variables de entorno del servidor (correcto). Nunca debe ir al cliente. Revisar que no se filtren claves en logs.
 - **Costos LLM:** `temperature: 0` y `response_format: json_object` son buenas prácticas. Considerar caché y límites de tokens.
 - **Estado en cliente:** `datosAntecedentes` se mantiene solo en memoria. Sin backend de casos no hay recuperación.
+- **Validación de identidad:** el sistema transcribe el RUT tal como lo entrega el funcionario, pero **no valida el dígito verificador** ni compara nombres (el parte de ejemplo traía al aprehensor con el mismo nombre del detenido). Conviene agregar validación de RUT y una alerta cuando el detenido y el aprehensor coincidan.
+- **Datos ambiguos:** expresiones como "arma o cuchillo" se conservan tal cual (no se inventa el objeto). La interfaz no obliga a precisarlas; el funcionario debe revisarlas antes de confirmar.
+- **Privacidad:** los casos guardan datos personales (nombre, RUT, domicilio, teléfono, correo). La base debe estar protegida y no se deben incluir partes reales en el repositorio ni en los tests.
 
 ---
 
@@ -379,30 +436,64 @@ guardiavirtual/
 - [x] **Usuario en base de datos:** existe la tabla `Usuario`, sincronizada con `USUARIOS_JSON` al iniciar sesión (`lib/usuarios-db.ts`), con clave foránea desde `Caso` y bandera `activo` para desactivar accesos.
 - [x] **Papelera de casos:** el borrado es lógico (`eliminadoEn`); se puede restaurar desde el panel lateral y vaciar la papelera con borrado definitivo.
 
-### Fase 8 — Plantillas de parte (DIFERIDA, pendiente de_definition)
-> Decisión del usuario: **aplazar**. El usuario aportará más adelante la
-> plantilla real de los partes que usa Carabineros, para que la IA la rellene
-> en vez de usar la estructura fija de 4 secciones.
+### Fase 8 — Plantilla del parte de detenido — ✅ IMPLEMENTADA (sujeta a ajustes)
+> El usuario aportó un modelo real de parte de detenido (detención por robo
+> por sorpresa) y se implementó su estructura. Si la unidad entrega un formato
+> oficial distinto, se ajusta en `lib/plantillas.ts`.
 
-- [ ] Recibir el documento modelo de la unidad (formato del parte).
-- [ ] Modelar la plantilla como secciones ordenadas + encabezado fijo
-      (Unidad, fecha, hora, funcionario, tipo de procedimiento).
-- [ ] Sección **"Declaración de hechos"** con el estilo que defina el usuario
-      (primera persona como el relato del afectado, o tercera persona
-      objetiva del funcionario).
-- [ ] La IA rellena cada sección solo con los antecedentes; `[PENDIENTE]` en lo que falte.
-- [ ] Base actual a reemplazar: `SECCIONES_PARTE` en `lib/plantillas.ts`.
+- [x] Recibir el documento modelo de la unidad. → Aportado por el usuario
+      (relato en tercera persona con párrafos «Que, …»).
+- [x] Modelar los datos del detenido como campos estructurados:
+      `DatosDetenido` en `lib/types.ts`.
+- [x] Modelar las circunstancias de la detención: `DatosDetencion`
+      (hora, fecha, delito, lugar, personal aprehensor, acompañante, vehículo,
+      constatación de lesiones).
+- [x] Extraer esos datos con el modelo (`PROMPT_EXTRAER_ANTECEDENTES`),
+      normalizarlos con Zod y acumularlos entre mensajes (`combinarDatos`).
+- [x] Plantilla de secciones (`SECCIONES_DETENIDO`): IDENTIFICACIÓN DEL
+      DETENIDO, CIRCUNSTANCIAS DE LA DETENCIÓN, HECHOS, ESPECIES INVOLUCRADAS
+      y DERECHOS Y TRASLADO.
+- [x] Estilo del relato: tercera persona, pasado, párrafos que comienzan con
+      «Que, », sin inventar diligencias.
+- [x] Título «PARTE DE DETENIDO» cuando hay detención, aunque el delito sea
+      robo, hurto u otro (`tituloPorTipo(tipo, detencion)`).
+- [x] Encabezado fijo del documento: UNIDAD (variable `UNIDAD_NOMBRE`),
+      PARTE NRO., FECHA y HORA de confección, FUNCIONARIO (sesión) y MATERIA
+      (delito o procedimiento). Se arma en el servidor y es editable.
+- [x] Cierre del documento: «Es cuanto puedo informar a Ud.», línea de firma,
+      nombre del funcionario y unidad (`construirPieParte`).
+- [x] Grado del funcionario opcional en `USUARIOS_JSON` (`grado`), incluido en
+      el encabezado y en la firma.
+- [x] Vista previa del documento completo antes de imprimir o confirmar.
+- [x] Modelo gratuito estable (`poolside/laguna-s-2.1:free`) y reintentos
+      automáticos ante respuestas vacías, 5xx, 429 y fallos de red.
+- [x] Tests y verificación completa (`typecheck`, `lint`, `test`, `build`).
+
+**Pendiente de esta fase:** confirmar con la unidad el **formato exacto** del
+encabezado (por ejemplo, si lleva repartición, folio o timbre) y el grado que
+debe figurar en la firma. El encabezado y el cierre son editables y se adaptan
+cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
+`USUARIOS_JSON`.
 
 ---
 
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0 a 7 completadas.** El sistema, con IA real (OpenRouter, modelo
-  gratuito), extrae antecedentes, redacta el borrador del parte con secciones
-  editables, exige revisión humana, **guarda los casos y borradores en base de
-  datos** (SQLite + Prisma, con tabla `Usuario` y papelera) y ofrece historial
-  con filtros, búsqueda, restauración y borrado definitivo.
-- **Calidad y seguridad:** 68 pruebas unitarias, rate limiting por funcionario
+- **Fases 0 a 8 completadas.** El sistema, con IA real (OpenRouter, modelo
+  gratuito), extrae antecedentes, **identifica al detenido y al personal
+  aprehensor**, redacta el borrador del parte con secciones editables, exige
+  revisión humana, **guarda los casos y borradores en base de datos** (SQLite +
+  Prisma, con tabla `Usuario` y papelera) y ofrece historial con filtros,
+  búsqueda, restauración y borrado definitivo.
+- **Parte de detenido:** cuando el procedimiento incluye una detención, el
+  documento se titula «PARTE DE DETENIDO» y usa las secciones IDENTIFICACIÓN
+  DEL DETENIDO, CIRCUNSTANCIAS DE LA DETENCIÓN, HECHOS, ESPECIES INVOLUCRADAS
+  y DERECHOS Y TRASLADO. El relato sigue el estilo de la unidad: tercera
+  persona, pasado y párrafos «Que, …».
+- **Documento completo:** encabezado fijo (Unidad, N.° de parte, fecha/hora,
+  funcionario y materia), cuerpo editable y cierre con firma. El visor permite
+  alternar entre edición y **vista previa**.
+- **Calidad y seguridad:** 89 pruebas unitarias, rate limiting por funcionario
   y por IP, validación de entradas y del tamaño de las peticiones, timeout del
   modelo, errores traducidos a HTTP (400/429/504/500), cabeceras de seguridad
   y páginas de error propias.
@@ -418,15 +509,18 @@ guardiavirtual/
   endpoint, y credenciales solo en `.env.local`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /
   asistente / error).
-- **Fase 8 diferida:** el usuario aportará la plantilla real de los partes de
-  Carabineros para que la IA la rellene.
 
 ### Próximos pasos inmediatos (sugeridos)
 1. **Publicar en Vercel** (último paso de la Fase 7): crear la base de datos
    PostgreSQL, configurar las variables de entorno y desplegar. Guía en
    `DEPLOY.md`.
-2. **Fase 8 (cuando el usuario entregue la plantilla real de los partes):** la IA rellenará ese formato, incluida la sección "Declaración de hechos".
-3. Probar más escenarios adversarios en el chat (correcciones, contradicciones, cambio de procedimiento).
+2. **Confirmar el formato exacto del encabezado y la firma**: si la unidad usa
+   repartición, folio, timbre o grado en la firma, se ajusta en
+   `construirEncabezadoParte` / `construirPieParte` (`lib/plantillas.ts`).
+   Hoy se completan Unidad, N.° de parte, fecha/hora, funcionario y materia,
+   más el cierre «Es cuanto puedo informar a Ud.» con línea de firma.
+3. Probar el parte de detenido con un caso real completo y ajustar la
+   redacción (orden de diligencias, denominación del delito, formato de horas).
 4. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
    memoria; en un despliegue con varias instancias hay que moverlo a Redis
    (Upstash) para que el límite sea global.
@@ -445,9 +539,11 @@ guardiavirtual/
 |----------|--------|-------|
 | `AI_BASE_URL` | ✅ definido | OpenRouter |
 | `AI_API_KEY` | ✅ definido | Clave de OpenRouter: `sk-or-v1-20...b7753` (huella; la clave completa vive solo en `.env.local`) |
-| `AI_MODEL` | ✅ definido | `minimax/minimax-m3.1-flash:free` |
+| `AI_MODEL` | ✅ definido | `poolside/laguna-s-2.1:free` (extracción) |
+| `AI_MODEL_REDACCION` | ✅ definido | `poolside/laguna-s-2.1:free` (redacción; si falta, usa `AI_MODEL`) |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
-| `USUARIOS_JSON` | ✅ definido | ID `daniel` |
+| `USUARIOS_JSON` | ✅ definido | ID `daniel`; el campo opcional `grado` se usa en el encabezado y la firma |
+| `UNIDAD_NOMBRE` | ⬜ opcional | Nombre de la unidad para el encabezado; si falta se escribe `[PENDIENTE]` |
 | `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
 
 > En producción, `SESSION_SECRET` y `USUARIOS_JSON` son **obligatorias** y

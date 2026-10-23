@@ -22,6 +22,8 @@ export const SESION_TTL_MS = 1000 * 60 * 60 * 8; // 8 horas
 export type SesionPayload = {
   id: string;
   nombre: string;
+  /** Grado o jerarquía del funcionario; opcional. */
+  grado?: string | null;
   /** Timestamp de expiración (ms). */
   exp: number;
 };

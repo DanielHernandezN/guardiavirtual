@@ -2,7 +2,11 @@
 
 import React from "react";
 import { useState, useEffect, useRef } from "react";
-import { camposFaltantes, puedeRedactarBorrador } from "@/lib/antecedentes";
+import {
+  camposFaltantes,
+  crearAntecedentesVacios,
+  puedeRedactarBorrador,
+} from "@/lib/antecedentes";
 import { pedirJson } from "@/lib/cliente";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import EstadoCaso from "./EstadoCaso";
@@ -24,14 +28,8 @@ export default function Chat({ onBorradorGenerado }: Props) {
     const [mensajes, setMensajes] = useState<Mensaje[]>([]);
     const [antecedentes, setAntecedentes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [datosAntecedentes, setDatosAntecedentes] = useState<Antecedentes>({
-        tipoProcedimiento: null,
-        especie: null,
-        lugar: null,
-        fecha: null,
-        descripcionHechos: null,
-        contradicciones: [],
-    });
+    const [datosAntecedentes, setDatosAntecedentes] =
+        useState<Antecedentes>(crearAntecedentesVacios);
     const [borradorCargando, setBorradorCargando] = useState(false);
 
     // El borrador solo está disponible si no faltan campos y no hay
@@ -99,6 +97,8 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 lugar: data.lugar,
                 fecha: data.fecha,
                 descripcionHechos: data.descripcionHechos,
+                detenido: data.detenido,
+                detencion: data.detencion,
                 contradicciones: data.contradicciones,
             });
 
@@ -220,8 +220,11 @@ export default function Chat({ onBorradorGenerado }: Props) {
                             Necesito el <strong>tipo de procedimiento</strong>, la{" "}
                             <strong>especie</strong> involucrada, el{" "}
                             <strong>lugar</strong> y la <strong>fecha</strong>.
-                            Cuando estén los cuatro, genero el borrador del
-                            parte.
+                            Si es una detención, agrega también los datos del{" "}
+                            <strong>detenido</strong> (nombre, RUT, edad,
+                            domicilio), el <strong>personal aprehensor</strong> y
+                            la <strong>hora</strong>. Cuando estén los datos,
+                            genero el borrador del parte.
                         </p>
                     </div>
                 )}

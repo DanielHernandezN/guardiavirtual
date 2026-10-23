@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { extraerPendientes } from "@/lib/casos";
+import { TITULO_ENCABEZADO, TITULO_PIE, componerTextoParte } from "@/lib/plantillas";
 import type { Antecedentes, BorradorParte, SeccionBorrador } from "@/lib/types";
 
 type Props = {
@@ -38,10 +39,9 @@ export default function BorradorPanel({
   const [copiado, setCopiado] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [vistaPrevia, setVistaPrevia] = useState(false);
 
-  const textoCompleto = `${titulo}\n\n${secciones
-    .map((seccion) => `${seccion.titulo}\n${seccion.contenido}`)
-    .join("\n\n")}`;
+  const textoCompleto = componerTextoParte(titulo, secciones);
 
   /** El borrador con las ediciones del funcionario. */
   const borradorActual: BorradorParte = {
@@ -56,6 +56,13 @@ export default function BorradorPanel({
     (total, seccion) => total + seccion.pendientes.length,
     0
   );
+
+  const indiceEncabezado = secciones.findIndex(
+    (seccion) => seccion.titulo === TITULO_ENCABEZADO
+  );
+  const seccionesCuerpo = secciones
+    .map((seccion, indice) => ({ seccion, indice }))
+    .filter(({ seccion }) => seccion.titulo !== TITULO_ENCABEZADO);
 
   const guardar = async (confirmar: boolean) => {
     if (!onGuardar) return;
@@ -111,12 +118,19 @@ export default function BorradorPanel({
     const ventana = window.open("", "_blank", "width=820,height=900");
     if (!ventana) return;
 
-    const cuerpo = secciones
-      .map(
-        (seccion) =>
-          `<h2>${escaparHtml(seccion.titulo)}</h2><p>${escaparHtml(
-            seccion.contenido
-          ).replace(/\n/g, "<br/>")}</p>`
+    const encabezado =
+      indiceEncabezado >= 0 ? secciones[indiceEncabezado] : null;
+
+    const cuerpo = seccionesCuerpo
+      .map(({ seccion }) =>
+        seccion.titulo === TITULO_PIE
+          ? `<div class="firma">${escaparHtml(seccion.contenido).replace(
+              /\n/g,
+              "<br/>"
+            )}</div>`
+          : `<h2>${escaparHtml(seccion.titulo)}</h2><p>${escaparHtml(
+              seccion.contenido
+            ).replace(/\n/g, "<br/>")}</p>`
       )
       .join("");
 
@@ -127,12 +141,22 @@ export default function BorradorPanel({
     <title>${escaparHtml(titulo)}</title>
     <style>
       body { font-family: Georgia, serif; margin: 48px; line-height: 1.6; color: #111; }
+      .encabezado { font-size: 12px; line-height: 1.5; border-bottom: 1px solid #999; padding-bottom: 10px; margin-bottom: 18px; white-space: pre-wrap; }
       h1 { border-bottom: 2px solid #4e5839; padding-bottom: 8px; font-size: 20px; }
       h2 { margin-top: 28px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #3a412c; }
       p { margin: 6px 0; }
+      .firma { margin-top: 36px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
     </style>
   </head>
   <body>
+    ${
+      encabezado
+        ? `<div class="encabezado">${escaparHtml(encabezado.contenido).replace(
+            /\n/g,
+            "<br/>"
+          )}</div>`
+        : ""
+    }
     <h1>${escaparHtml(titulo)}</h1>
     ${cuerpo}
   </body>
@@ -147,6 +171,10 @@ export default function BorradorPanel({
     { etiqueta: "Especie", valor: antecedentes?.especie },
     { etiqueta: "Lugar", valor: antecedentes?.lugar },
     { etiqueta: "Fecha", valor: antecedentes?.fecha },
+    { etiqueta: "Detenido", valor: antecedentes?.detenido?.nombre },
+    { etiqueta: "Delito", valor: antecedentes?.detencion?.delito },
+    { etiqueta: "Hora detención", valor: antecedentes?.detencion?.hora },
+    { etiqueta: "Lesiones", valor: antecedentes?.detencion?.lesiones },
   ].filter((item) => item.valor);
 
   return (
@@ -164,13 +192,22 @@ export default function BorradorPanel({
               Es un borrador: revísalo y ajústalo antes de usarlo.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onCerrar}
-            className="rounded-lg px-3 py-1.5 text-sm text-oliva-600 transition hover:bg-oliva-200 hover:text-oliva-900"
-          >
-            Cerrar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setVistaPrevia((valor) => !valor)}
+              className="rounded-lg border border-oliva-300 px-3 py-1.5 text-sm text-oliva-700 transition hover:bg-oliva-200 hover:text-oliva-900"
+            >
+              {vistaPrevia ? "Editar" : "Vista previa"}
+            </button>
+            <button
+              type="button"
+              onClick={onCerrar}
+              className="rounded-lg px-3 py-1.5 text-sm text-oliva-600 transition hover:bg-oliva-200 hover:text-oliva-900"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
 
         {/* Resumen de antecedentes */}
@@ -190,8 +227,62 @@ export default function BorradorPanel({
           </div>
         )}
 
-        {/* Cuerpo editable */}
-        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        {/* Cuerpo editable / vista previa */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          {vistaPrevia ? (
+            <div className="mx-auto max-w-2xl rounded-xl border border-oliva-300 bg-white p-8 font-serif text-sm leading-relaxed text-oliva-900 shadow-sm">
+              {indiceEncabezado >= 0 && (
+                <div className="mb-6 whitespace-pre-wrap border-b border-oliva-300 pb-4 text-xs leading-relaxed">
+                  {secciones[indiceEncabezado].contenido}
+                </div>
+              )}
+
+              <h3 className="mb-5 text-center text-base font-bold uppercase tracking-wide">
+                {titulo}
+              </h3>
+
+              {seccionesCuerpo.map(({ seccion, indice }) =>
+                seccion.titulo === TITULO_PIE ? (
+                  <div
+                    key={indice}
+                    className="mt-10 whitespace-pre-wrap text-xs leading-relaxed"
+                  >
+                    {seccion.contenido}
+                  </div>
+                ) : (
+                  <div key={indice} className="mb-6">
+                    <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-oliva-700">
+                      {seccion.titulo}
+                    </h4>
+                    <p className="whitespace-pre-wrap">{seccion.contenido}</p>
+                  </div>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {indiceEncabezado >= 0 && (
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
+                Encabezado del documento
+              </label>
+              <textarea
+                value={secciones[indiceEncabezado].contenido}
+                onChange={(e) =>
+                  actualizarContenido(indiceEncabezado, e.target.value)
+                }
+                rows={6}
+                className="w-full resize-y rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3 font-mono text-xs leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
+              />
+              <p className="mt-1 text-xs text-oliva-600">
+                Unidad, número de parte, fecha, funcionario y materia. La fecha
+                y el funcionario se completan automáticamente; la unidad se
+                configura con <code>UNIDAD_NOMBRE</code>. Puedes ajustar el
+                número de parte aquí.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
               Título
@@ -229,8 +320,8 @@ export default function BorradorPanel({
             </div>
           )}
 
-          {secciones.map((seccion, indice) => (
-            <div key={seccion.titulo}>
+          {seccionesCuerpo.map(({ seccion, indice }) => (
+            <div key={`${seccion.titulo}-${indice}`}>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
                 {seccion.titulo}
               </label>
@@ -242,6 +333,8 @@ export default function BorradorPanel({
               />
             </div>
           ))}
+            </div>
+          )}
         </div>
 
         {/* Pie: revisión y acciones */}

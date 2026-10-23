@@ -110,7 +110,14 @@ export const extraerPendientes = (
 export const tituloDeCaso = (datos: {
   tipoProcedimiento?: string | null;
   especie?: string | null;
+  /** Circunstancias de la detención, si el caso es un parte de detenido. */
+  detencion?: { delito?: string | null } | null;
 }): string => {
+  const delito = datos.detencion?.delito?.trim();
+  if (delito) {
+    return `Detención por ${delito.toLocaleLowerCase("es")}`;
+  }
+
   const tipo = datos.tipoProcedimiento?.trim();
   const especie = datos.especie?.trim();
 

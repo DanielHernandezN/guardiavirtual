@@ -1,28 +1,25 @@
-import { camposFaltantes } from "@/lib/antecedentes";
+import { camposFaltantes, esDetencion } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
 import { errorComoJson } from "@/lib/errores";
+import { fechaYHoraDeHoy } from "@/lib/fecha";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import { registrarUso } from "@/lib/limites";
 import {
   PROMPT_REDAR_PARTE,
   construirMensajeBorrador,
 } from "@/lib/prompts";
-import { SECCIONES_PARTE, tituloPorTipo } from "@/lib/plantillas";
+import {
+  TITULO_ENCABEZADO,
+  TITULO_PIE,
+  componerTextoParte,
+  construirEncabezadoParte,
+  construirPieParte,
+  seccionesPara,
+  tituloPorTipo,
+} from "@/lib/plantillas";
 import { esquemaAntecedentes, esquemaBorrador } from "@/lib/schemas";
 import type { BorradorParte, SeccionBorrador } from "@/lib/types";
 import { leerJsonLimitado } from "@/lib/validacion";
-
-/** Concatena el título y las secciones en un texto plano legible. */
-const construirTextoCompleto = (
-  titulo: string,
-  secciones: SeccionBorrador[]
-): string => {
-  const cuerpo = secciones
-    .map((seccion) => `${seccion.titulo}\n${seccion.contenido}`)
-    .join("\n\n");
-
-  return `${titulo}\n\n${cuerpo}`;
-};
 
 export async function POST(request: Request) {
   try {
@@ -106,24 +103,71 @@ export async function POST(request: Request) {
       );
     }
 
+    const detencion = esDetencion(antecedentes);
+    const secciones = seccionesPara(detencion);
+    const { fecha, hora } = fechaYHoraDeHoy();
+
     const validados = esquemaBorrador.parse(
       await llamarModeloJson(
         [
           { role: "system", content: PROMPT_REDAR_PARTE },
           {
             role: "user",
-            content: construirMensajeBorrador(antecedentes, SECCIONES_PARTE),
+            content: construirMensajeBorrador(
+              antecedentes,
+              secciones,
+              detencion,
+              fecha
+            ),
           },
         ],
-        { temperatura: 0.2 }
+        {
+          temperatura: 0,
+          modelo: process.env.AI_MODEL_REDACCION,
+          timeoutMs: 60_000,
+        }
       )
     );
-    const titulo = tituloPorTipo(antecedentes.tipoProcedimiento);
+    const titulo = tituloPorTipo(
+      antecedentes.tipoProcedimiento,
+      detencion
+    );
+
+    // Nombre con grado (si está configurado) para el encabezado y la firma.
+    const funcionario = sesion.grado?.trim()
+      ? `${sesion.grado.trim()} ${sesion.nombre}`
+      : sesion.nombre;
+
+    // El encabezado es fijo y lo arma el servidor (no el modelo): así la
+    // unidad, la fecha, el funcionario y la materia no dependen de la IA.
+    const encabezado: SeccionBorrador = {
+      titulo: TITULO_ENCABEZADO,
+      contenido: construirEncabezadoParte({
+        unidad: process.env.UNIDAD_NOMBRE ?? null,
+        fecha,
+        hora,
+        funcionario,
+        materia:
+          antecedentes.detencion.delito ?? antecedentes.tipoProcedimiento,
+      }),
+    };
+
+    const seccionesBorrador = [
+      encabezado,
+      ...validados.secciones,
+      {
+        titulo: TITULO_PIE,
+        contenido: construirPieParte({
+          funcionario,
+          unidad: process.env.UNIDAD_NOMBRE ?? null,
+        }),
+      } satisfies SeccionBorrador,
+    ];
 
     const borrador: BorradorParte = {
       titulo,
-      secciones: validados.secciones,
-      textoCompleto: construirTextoCompleto(titulo, validados.secciones),
+      secciones: seccionesBorrador,
+      textoCompleto: componerTextoParte(titulo, seccionesBorrador),
       generadoEn: new Date().toISOString(),
     };
 

@@ -50,9 +50,11 @@ En **Vercel → Project → Settings → Environment Variables**, definir:
 |----------|-------------|-------------|
 | `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
 | `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
-| `AI_MODEL` | no | Modelo a usar (por defecto `minimax/minimax-m3.1-flash:free`). |
+| `AI_MODEL` | no | Modelo de extracción (por defecto `poolside/laguna-s-2.1:free`). |
+| `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
+| `UNIDAD_NOMBRE` | no | Nombre de la unidad que aparece en el encabezado del parte. Si falta, se escribe `[PENDIENTE]`. |
 | `SESSION_SECRET` | **sí** | Secreto de firma de la sesión (HMAC-SHA256). Sin él, el sistema queda **inaccesible** en producción (fallo cerrado). |
-| `USUARIOS_JSON` | **sí** | Lista de funcionarios: `[{"id":"...","nombre":"...","password":"..."}]`. Sin ella, nadie puede autenticarse. |
+| `USUARIOS_JSON` | **sí** | Lista de funcionarios: `[{"id":"...","nombre":"...","grado":"...","password":"..."}]`. `grado` es opcional. Sin ella, nadie puede autenticarse. |
 | `DATABASE_URL` | **sí** | URL de PostgreSQL. |
 
 Generar un `SESSION_SECRET` seguro:

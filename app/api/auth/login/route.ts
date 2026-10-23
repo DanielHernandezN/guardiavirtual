@@ -115,12 +115,17 @@ export async function POST(request: Request) {
   const token = crearTokenSesion({
     id: usuario.id,
     nombre: usuario.nombre,
+    grado: usuario.grado,
     exp: Date.now() + SESION_TTL_MS,
   });
 
   const respuesta = Response.json({
     ok: true,
-    usuario: { id: usuario.id, nombre: usuario.nombre },
+    usuario: {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      grado: usuario.grado,
+    },
   });
 
   respuesta.headers.append(

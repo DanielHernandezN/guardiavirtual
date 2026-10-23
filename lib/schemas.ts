@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normalizarFecha } from "./fecha";
+import { normalizarFecha, normalizarHora } from "./fecha";
 
 /**
  * Esquemas de validación — Guardia Virtual
@@ -61,6 +61,27 @@ const textoFecha = z.preprocess((valor) => {
   return null;
 }, z.string().nullable());
 
+/** Campo de hora: normaliza a `HH:mm`; si no es interpretable, `null`. */
+const textoHora = z.preprocess((valor) => {
+  if (typeof valor === "string") {
+    const texto = valor.trim();
+    if (!texto || VALORES_VACIOS.has(texto.toLowerCase())) {
+      return null;
+    }
+    return normalizarHora(texto);
+  }
+
+  if (typeof valor === "number") {
+    return normalizarHora(String(valor));
+  }
+
+  return null;
+}, z.string().nullable());
+
+/** Indica si un valor es un objeto plano (no nulo ni arreglo). */
+const esObjeto = (valor: unknown): valor is Record<string, unknown> =>
+  Boolean(valor) && typeof valor === "object" && !Array.isArray(valor);
+
 /** Lista de textos: acepta cualquier entrada y devuelve `string[]` limpio. */
 const listaDeTextos = z.preprocess((valor) => {
   if (!Array.isArray(valor)) {
@@ -74,6 +95,42 @@ const listaDeTextos = z.preprocess((valor) => {
 }, z.array(z.string()));
 
 /**
+ * Esquema de los datos del detenido. Si el campo falta o no es un objeto,
+ * se normaliza a un objeto con todos los datos en `null`.
+ */
+export const esquemaDetenido = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    nombre: textoNullable,
+    rut: textoNullable,
+    edad: textoNullable,
+    nacionalidad: textoNullable,
+    estadoCivil: textoNullable,
+    estudios: textoNullable,
+    ocupacion: textoNullable,
+    fechaNacimiento: textoFecha,
+    domicilio: textoNullable,
+    telefono: textoNullable,
+    correo: textoNullable,
+  })
+);
+
+/** Esquema de las circunstancias de la detención. */
+export const esquemaDetencion = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    hora: textoHora,
+    fechaDetencion: textoFecha,
+    delito: textoNullable,
+    lugarDetencion: textoNullable,
+    personalAprehensor: textoNullable,
+    personalAcompanante: textoNullable,
+    vehiculo: textoNullable,
+    lesiones: textoNullable,
+  })
+);
+
+/**
  * Esquema de los antecedentes estructurados que debe devolver el modelo.
  * Coincide con `Antecedentes` en `lib/types.ts`.
  */
@@ -83,6 +140,8 @@ export const esquemaAntecedentes = z.object({
   lugar: textoNullable,
   fecha: textoFecha,
   descripcionHechos: textoNullable,
+  detenido: esquemaDetenido,
+  detencion: esquemaDetencion,
   contradicciones: listaDeTextos,
 });
 

@@ -85,3 +85,82 @@ export const normalizarFecha = (valor: string | null): string | null => {
 
   return null;
 };
+
+/**
+ * Normaliza una hora a `HH:mm` en formato de 24 horas.
+ *
+ * Acepta `15:30`, `15.30`, `15:30 hrs`, `15:30 horas` y `3:30 pm`.
+ * Devuelve `null` si la hora no se puede interpretar.
+ */
+export const normalizarHora = (valor: string | null): string | null => {
+  if (!valor) return null;
+
+  const texto = valor.trim().toLowerCase();
+  if (!texto) return null;
+
+  const coincidencia = texto.match(
+    /^(\d{1,2})[:.](\d{2})(?:\s*(?:hrs?\.?|horas?))?(?:\s*(am|pm))?$/
+  );
+
+  if (!coincidencia) return null;
+
+  let hora = Number(coincidencia[1]);
+  const minutos = Number(coincidencia[2]);
+  const sufijo = coincidencia[3];
+
+  if (Number.isNaN(hora) || Number.isNaN(minutos) || minutos > 59) {
+    return null;
+  }
+
+  if (sufijo) {
+    if (hora < 1 || hora > 12) return null;
+    if (sufijo === "pm" && hora < 12) hora += 12;
+    if (sufijo === "am" && hora === 12) hora = 0;
+  }
+
+  if (hora > 23) return null;
+
+  return `${String(hora).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+};
+
+/**
+ * Devuelve la fecha de hoy en Chile (`dd/mm/yyyy`).
+ * Sirve para interpretar expresiones como "hoy" o "esta mañana" al extraer
+ * antecedentes, sin depender de la zona horaria del servidor.
+ */
+export const fechaDeHoy = (ahora: Date = new Date()): string => {
+  const partes = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(ahora);
+
+  const valor = (tipo: string): string =>
+    partes.find((parte) => parte.type === tipo)?.value ?? "";
+
+  return `${valor("day")}/${valor("month")}/${valor("year")}`;
+};
+
+/** Devuelve la fecha y la hora actuales en Chile. */
+export const fechaYHoraDeHoy = (
+  ahora: Date = new Date()
+): { fecha: string; hora: string } => {
+  const partes = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(ahora);
+
+  const valor = (tipo: string): string =>
+    partes.find((parte) => parte.type === tipo)?.value ?? "";
+
+  return {
+    fecha: `${valor("day")}/${valor("month")}/${valor("year")}`,
+    hora: `${valor("hour")}:${valor("minute")}`,
+  };
+};

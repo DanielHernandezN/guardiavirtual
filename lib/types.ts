@@ -10,6 +10,51 @@
  */
 
 /**
+ * Datos de identificación de la persona detenida.
+ * Todos los campos son `null` cuando el procedimiento no es una detención
+ * o cuando el dato no fue informado.
+ */
+export type DatosDetenido = {
+  /** Nombre completo. */
+  nombre: string | null;
+  /** RUT con puntos y guion, tal como lo entrega el funcionario. */
+  rut: string | null;
+  /** Edad como texto ("33 años"). */
+  edad: string | null;
+  nacionalidad: string | null;
+  estadoCivil: string | null;
+  /** Nivel de estudios (por ejemplo, "estudios medios"). */
+  estudios: string | null;
+  /** Profesión u oficio. */
+  ocupacion: string | null;
+  /** Fecha de nacimiento en formato `dd/mm/yyyy`. */
+  fechaNacimiento: string | null;
+  domicilio: string | null;
+  telefono: string | null;
+  correo: string | null;
+};
+
+/** Circunstancias de la detención. */
+export type DatosDetencion = {
+  /** Hora de la detención en formato `HH:mm`. */
+  hora: string | null;
+  /** Fecha de la detención en formato `dd/mm/yyyy`. */
+  fechaDetencion: string | null;
+  /** Delito o falta que motivó la detención. */
+  delito: string | null;
+  /** Lugar exacto de la detención. */
+  lugarDetencion: string | null;
+  /** Grado y nombre del personal aprehensor. */
+  personalAprehensor: string | null;
+  /** Grado y nombre del personal que acompaña. */
+  personalAcompanante: string | null;
+  /** Vehículo policial (por ejemplo, "RP-4545"). */
+  vehiculo: string | null;
+  /** Resultado de la constatación de lesiones (por ejemplo, "sin lesiones"). */
+  lesiones: string | null;
+};
+
+/**
  * Antecedentes acumulados de un procedimiento.
  *
  * Todos los campos de texto son `null` cuando la información no está
@@ -27,6 +72,10 @@ export type Antecedentes = {
   fecha: string | null;
   /** Resumen objetivo del hecho narrado o `null`. */
   descripcionHechos: string | null;
+  /** Identificación de la persona detenida (vacía si no hay detención). */
+  detenido: DatosDetenido;
+  /** Circunstancias de la detención (vacías si no hay detención). */
+  detencion: DatosDetencion;
   /** Inconsistencias o datos en conflicto detectados. */
   contradicciones: string[];
 };

@@ -41,10 +41,15 @@ La aplicación queda en <http://localhost:3000>.
 |----------|-------------|-------------|
 | `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
 | `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
-| `AI_MODEL` | no | Modelo (por defecto `minimax/minimax-m3.1-flash:free`). |
+| `AI_MODEL` | no | Modelo de extracción (por defecto `poolside/laguna-s-2.1:free`). |
+| `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
+| `UNIDAD_NOMBRE` | no | Unidad que aparece en el encabezado del parte (si falta, `[PENDIENTE]`). |
 | `SESSION_SECRET` | **sí en producción** | Firma de la cookie de sesión. Sin él, el sistema queda inaccesible. |
-| `USUARIOS_JSON` | **sí** | Funcionarios con acceso: `[{"id":"...","nombre":"...","password":"..."}]`. |
-| `DATABASE_URL` | **sí** |Va en `.env` (no `.env.local`): la CLI de Prisma solo lee `.env`. |
+| `USUARIOS_JSON` | **sí** | Funcionarios con acceso: `[{"id":"...","nombre":"...","grado":"...","password":"..."}]`. `grado` es opcional y se usa en el parte. |
+| `DATABASE_URL` | **sí** | Va en `.env` (no `.env.local`): la CLI de Prisma solo lee `.env`. |
+
+> Si agregas o cambias `grado`, cierra la sesión y vuelve a entrar: el grado
+> viaja dentro de la cookie firmada.
 
 > **Nunca subas claves ni contraseñas al repositorio.** `.env` y `.env.local`
 > están en `.gitignore`; solo se versiona `.env.example`.
