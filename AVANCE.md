@@ -3,10 +3,12 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 27/10/2026
-- **Estado general:** 🟢 Funcional — Fases 0 a 9 completadas (parte de detenido con encabezado, cierre, firma y vista previa, e interfaz responsive). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
-- **Último commit analizado:** `6ae4069` — "Fase 8: parte de detenido y modelo gratuito estable" (árbol de trabajo limpio).
+- **Estado general:** 🟢 **En producción** — Fases 0 a 10 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: confirmar el formato exacto del encabezado con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Último commit analizado:** `cd8c204` — "Fase 9: interfaz responsive para celular, tablet y escritorio".
 
 > **Sesión 27/10/2026 — verificación de arranque:** árbol limpio, `npm test` → **89/89 ✅**, y presentes `node_modules`, `.env`, `.env.local` y `prisma/dev.db`. Se corrige la bitácora: la Fase 8 **ya está commiteada** en `6ae4069` (antes figuraba como "sin commit"). Siguiente paso sugerido: prueba real del parte de detenido y ajuste del encabezado/firma.
+>
+> **Sesión 27/10/2026 — despliegue:** se publicó en Vercel con Neon PostgreSQL. Se corrigió `vercel.json` (no era JSON válido por los comentarios `#`) y la región (`scl1` no existe; se usa `gru1`). Protección SSO de Vercel desactivada para que los funcionarios puedan entrar con su propio login. Pruebas de humo en producción: `/` 200, login 200, `/api/casos` 401 sin sesión y 200 con sesión, `/dashboard` 200, y escritura confirmada en la tabla `Usuario` de Neon.
 
 ---
 
@@ -286,15 +288,18 @@ guardiavirtual/
 
 ### ❌ Pendiente (lo que falta para el objetivo)
 
-1. **Publicación real en Vercel** — requiere cuenta de Vercel y una base de
-   datos PostgreSQL (el usuario debe hacerlo; la guía está en `DEPLOY.md`).
-2. **Ajustes finos de la plantilla de detenido** — la estructura implementada
+1. **Ajustes finos de la plantilla de detenido** — la estructura implementada
    se basa en el modelo aportado; si la unidad usa un formato oficial distinto
    (orden de datos, secciones o encabezado), se ajusta en `lib/plantillas.ts`.
+2. **Presupuesto de IA para uso diario** — el plan gratuito de OpenRouter
+   permite 50 solicitudes/día; una guardia con varios casos lo agota. Una
+   recarga única de USD 10 sube el límite a 1000/día.
 3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
    instancias.
 4. **Migración de usuarios a la base de datos** con hash de contraseña
    persistente (eliminaría `USUARIOS_JSON`).
+5. **Formato exacto del encabezado** — repartición, folio, timbre o grado en la
+   firma, según lo que exija la unidad.
 
 ---
 
@@ -430,7 +435,7 @@ guardiavirtual/
 - [x] **Despliegue en Vercel + base de datos**: `DEPLOY.md` con el procedimiento completo; `vercel.json` con el comando de compilación; `scripts/proveedor-db.mjs` para cambiar entre SQLite y PostgreSQL; `postinstall: prisma generate`.
 - [x] **Variables de entorno en producción**: documentadas en `DEPLOY.md` y `.env.example`. `SESSION_SECRET` y `USUARIOS_JSON` siguen siendo obligatorias (fallo cerrado).
 - [x] **Cabeceras de seguridad** en `next.config.ts`: `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
-- [ ] **Publicar en Vercel** (requiere una cuenta de Vercel y una base de datos PostgreSQL: queda en manos del usuario).
+- [x] **Publicar en Vercel** → completado el 27/10/2026 en la Fase 10: <https://guardiavirtual.vercel.app> con Neon PostgreSQL.
 
 **Archivos nuevos en esta fase:** `lib/errores.ts`, `lib/limites.ts`, `lib/validacion.ts`, `lib/cliente.ts`, `lib/usuarios-db.ts`, `app/error.tsx` (global-error y not-found), `app/dashboard/error.tsx`, `tests/*.test.ts` (4 archivos), `scripts/proveedor-db.mjs`, `DEPLOY.md`, `vercel.json`.
 **Archivos modificados:** `lib/ia.ts`, `lib/casos.ts`, `lib/prompts.ts`, `app/api/chat/route.ts`, `app/api/borrador/route.ts`, `app/api/casos/route.ts`, `app/api/casos/[id]/route.ts`, `app/api/auth/login/route.ts`, `app/api/auth/logout/route.ts`, `app/components/chat.tsx`, `app/components/LoginForm.tsx`, `app/components/LogoutButton.tsx`, `app/components/PanelLateral.tsx`, `app/components/DashboardWorkspace.tsx`, `app/components/BorradorPanel.tsx`, `prisma/schema.prisma`, `next.config.ts`, `package.json`, `README.md`, `.env.example`.
@@ -508,16 +513,45 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 `app/components/chat.tsx`, `app/components/EstadoCaso.tsx`,
 `app/components/BorradorPanel.tsx`, `app/page.tsx`.
 
+### Fase 10 — Despliegue en Vercel + PostgreSQL — ✅ COMPLETADA
+
+- [x] **Proyecto Vercel** `guardiavirtual` vinculado por CLI y desplegado en
+      producción: **<https://guardiavirtual.vercel.app>**.
+- [x] **PostgreSQL gestionado** con Neon desde Vercel Marketplace (plan Free,
+      región `gru1` / São Paulo). Tablas `Usuario`, `Caso` y `Borrador`
+      sincronizadas con `prisma db push`.
+- [x] **Variables de producción** cargadas de forma cifrada: `AI_BASE_URL`,
+      `AI_API_KEY`, `AI_MODEL`, `AI_MODEL_REDACCION`, `SESSION_SECRET` (nueva,
+      generada para producción) y `USUARIOS_JSON`.
+- [x] **Conexiones separadas:** `DATABASE_URL` (pooled) para la aplicación y
+      `DATABASE_URL_UNPOOLED` (directa) para el DDL durante la compilación.
+- [x] **Corrección de `vercel.json`:** no era JSON válido (tenía comentarios
+      `#`); además la región `scl1` no existe en Vercel, se cambió a `gru1`.
+- [x] **SSO de Vercel desactivado** para que el sitio sea público y los
+      funcionarios usen el login propio de la aplicación.
+- [x] **Pruebas de humo en producción:** `/` 200 · `POST /api/auth/login` 200 ·
+      `GET /api/casos` 401 sin sesión y 200 con sesión · `GET /dashboard` 200 ·
+      escritura verificada en la tabla `Usuario` de Neon.
+- [x] **Guía actualizada** (`DEPLOY.md`) con el flujo por CLI, la diferencia
+      entre conexión pooled y directa, y la advertencia de JSON sin comentarios.
+
+**Pendiente de esta fase:** ampliar el límite de IA (el plan gratuito de
+OpenRouter permite 50 solicitudes/día) y conectar el repositorio de GitHub para
+despliegues automáticos si se desea.
+
 ---
 
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0 a 8 completadas.** El sistema, con IA real (OpenRouter, modelo
+- **Fases 0 a 10 completadas.** El sistema, con IA real (OpenRouter, modelo
   gratuito), extrae antecedentes, **identifica al detenido y al personal
   aprehensor**, redacta el borrador del parte con secciones editables, exige
-  revisión humana, **guarda los casos y borradores en base de datos** (SQLite +
-  Prisma, con tabla `Usuario` y papelera) y ofrece historial con filtros,
-  búsqueda, restauración y borrado definitivo.
+  revisión humana, **guarda los casos y borradores en base de datos** (SQLite
+  en desarrollo, PostgreSQL en producción, con tabla `Usuario` y papelera) y
+  ofrece historial con filtros, búsqueda, restauración y borrado definitivo.
+- **En producción:** <https://guardiavirtual.vercel.app> (Vercel + Neon
+  PostgreSQL, región São Paulo). Variables cifradas, SSO de Vercel desactivado
+  y login propio de la aplicación. Pruebas de humo verificadas.
 - **Parte de detenido:** cuando el procedimiento incluye una detención, el
   documento se titula «PARTE DE DETENIDO» y usa las secciones IDENTIFICACIÓN
   DEL DETENIDO, CIRCUNSTANCIAS DE LA DETENCIÓN, HECHOS, ESPECIES INVOLUCRADAS
@@ -530,9 +564,8 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
   y por IP, validación de entradas y del tamaño de las peticiones, timeout del
   modelo, errores traducidos a HTTP (400/429/504/500), cabeceras de seguridad
   y páginas de error propias.
-- **Despliegue preparado:** `DEPLOY.md` + `vercel.json` + script de cambio de
-  proveedor de base de datos. Falta solo la publicación real (requiere cuenta
-  de Vercel y PostgreSQL).
+- **Despliegue en producción:** `vercel.json` (JSON válido, región `gru1`) +
+  Neon PostgreSQL + variables cifradas. Ver `DEPLOY.md`.
 - **Detecta procedimientos mezclados**: si el funcionario narra un caso
   distinto al ya conversado, la IA lo señala como contradicción, **el borrador
   queda bloqueado** y el funcionario puede resolverlo con un clic ("Continuar
@@ -544,9 +577,8 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
   asistente / error) y **diseño responsive** para celular, tablet y escritorio.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Publicar en Vercel** (último paso de la Fase 7): crear la base de datos
-   PostgreSQL, configurar las variables de entorno y desplegar. Guía en
-   `DEPLOY.md`.
+1. **Ampliar el límite de IA** (OpenRouter): una recarga única de USD 10 sube
+   de 50 a 1000 solicitudes/día, suficiente para una guardia.
 2. **Confirmar el formato exacto del encabezado y la firma**: si la unidad usa
    repartición, folio, timbre o grado en la firma, se ajusta en
    `construirEncabezadoParte` / `construirPieParte` (`lib/plantillas.ts`).
@@ -581,6 +613,20 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 
 > En producción, `SESSION_SECRET` y `USUARIOS_JSON` son **obligatorias** y
 > `DATABASE_URL` debe apuntar a PostgreSQL. Ver `DEPLOY.md`.
+
+### Configuración de producción (Vercel)
+
+| Variable | Estado | Notas |
+|----------|--------|-------|
+| `DATABASE_URL` | ✅ | Neon **pooled**, agregada por la integración |
+| `DATABASE_URL_UNPOOLED` | ✅ | Neon directa, usada por `prisma db push` en la compilación |
+| `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Cifradas en Vercel |
+| `SESSION_SECRET` | ✅ | Nueva, generada para producción (distinta de la local) |
+| `USUARIOS_JSON` | ✅ | Cifrada; mismo funcionario `daniel` |
+| `UNIDAD_NOMBRE` | ⬜ | Pendiente; el encabezado muestra `[PENDIENTE]` |
+
+**Proyecto:** `guardiavirtual` · **URL:** <https://guardiavirtual.vercel.app> ·
+**Región:** `gru1` (São Paulo) · **Base:** Neon Free (`neondb`, São Paulo).
 
 **Nunca escribir la clave completa en este archivo ni en ningún archivo versionado.**
 `.env.local` está en `.gitignore` y no se sube a GitHub. Para configurarla:
