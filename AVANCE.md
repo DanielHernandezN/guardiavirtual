@@ -532,12 +532,14 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 - [x] **Pruebas de humo en producción:** `/` 200 · `POST /api/auth/login` 200 ·
       `GET /api/casos` 401 sin sesión y 200 con sesión · `GET /dashboard` 200 ·
       escritura verificada en la tabla `Usuario` de Neon.
+- [x] **Despliegue automático:** el repositorio `DanielHernandezN/guardiavirtual`
+      ya estaba conectado; cada push a `main` compila y publica solo. El push
+      `c433d36` generó el despliegue `dxu4ro9ze`, verificado en estado Ready.
 - [x] **Guía actualizada** (`DEPLOY.md`) con el flujo por CLI, la diferencia
       entre conexión pooled y directa, y la advertencia de JSON sin comentarios.
 
 **Pendiente de esta fase:** ampliar el límite de IA (el plan gratuito de
-OpenRouter permite 50 solicitudes/día) y conectar el repositorio de GitHub para
-despliegues automáticos si se desea.
+OpenRouter permite 50 solicitudes/día).
 
 ---
 
