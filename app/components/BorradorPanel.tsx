@@ -178,12 +178,12 @@ export default function BorradorPanel({
   ].filter((item) => item.valor);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-oliva-950/70 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-oliva-200 bg-oliva-50 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-oliva-950/70 sm:items-center sm:p-4">
+      <div className="flex h-dvh max-h-dvh w-full flex-col overflow-hidden border-oliva-200 bg-oliva-50 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-3xl sm:rounded-2xl sm:border">
         {/* Encabezado */}
-        <div className="flex items-start justify-between gap-4 border-b border-oliva-200 bg-oliva-100 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-oliva-900">
+        <div className="flex flex-col gap-3 border-b border-oliva-200 bg-oliva-100 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:py-4">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-oliva-900 sm:text-lg">
               Borrador del parte policial
             </h2>
             <p className="mt-1 text-xs text-oliva-600">
@@ -192,7 +192,7 @@ export default function BorradorPanel({
               Es un borrador: revísalo y ajústalo antes de usarlo.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setVistaPrevia((valor) => !valor)}
@@ -212,7 +212,7 @@ export default function BorradorPanel({
 
         {/* Resumen de antecedentes */}
         {resumen.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-b border-oliva-200 bg-oliva-50 px-6 py-3">
+          <div className="flex flex-wrap gap-2 border-b border-oliva-200 bg-oliva-50 px-4 py-3 sm:px-6">
             {resumen.map((item) => (
               <span
                 key={item.etiqueta}
@@ -228,9 +228,9 @@ export default function BorradorPanel({
         )}
 
         {/* Cuerpo editable / vista previa */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {vistaPrevia ? (
-            <div className="mx-auto max-w-2xl rounded-xl border border-oliva-300 bg-white p-8 font-serif text-sm leading-relaxed text-oliva-900 shadow-sm">
+            <div className="mx-auto max-w-2xl rounded-xl border border-oliva-300 bg-white p-4 font-serif text-sm leading-relaxed text-oliva-900 shadow-sm sm:p-8">
               {indiceEncabezado >= 0 && (
                 <div className="mb-6 whitespace-pre-wrap border-b border-oliva-300 pb-4 text-xs leading-relaxed">
                   {secciones[indiceEncabezado].contenido}
@@ -272,7 +272,7 @@ export default function BorradorPanel({
                   actualizarContenido(indiceEncabezado, e.target.value)
                 }
                 rows={6}
-                className="w-full resize-y rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3 font-mono text-xs leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
+                className="w-full resize-y rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3 font-mono text-base leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25 sm:text-xs"
               />
               <p className="mt-1 text-xs text-oliva-600">
                 Unidad, número de parte, fecha, funcionario y materia. La fecha
@@ -290,7 +290,7 @@ export default function BorradorPanel({
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
-              className="w-full rounded-xl border border-oliva-300 bg-white px-4 py-2 text-sm font-semibold text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
+              className="w-full rounded-xl border border-oliva-300 bg-white px-4 py-2 text-base font-semibold text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25 sm:text-sm"
             />
           </div>
 
@@ -329,7 +329,7 @@ export default function BorradorPanel({
                 value={seccion.contenido}
                 onChange={(e) => actualizarContenido(indice, e.target.value)}
                 rows={Math.max(3, seccion.contenido.split("\n").length + 1)}
-                className="w-full resize-y rounded-xl border border-oliva-300 bg-white px-4 py-3 text-sm leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25"
+                className="w-full resize-y rounded-xl border border-oliva-300 bg-white px-4 py-3 text-base leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25 sm:text-sm"
               />
             </div>
           ))}
@@ -338,7 +338,7 @@ export default function BorradorPanel({
         </div>
 
         {/* Pie: revisión y acciones */}
-        <div className="border-t border-oliva-200 bg-oliva-100 px-6 py-4">
+        <div className="border-t border-oliva-200 bg-oliva-100 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
           <label className="flex cursor-pointer items-start gap-2 text-sm text-oliva-900">
             <input
               type="checkbox"
@@ -365,13 +365,13 @@ export default function BorradorPanel({
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:flex sm:flex-wrap sm:gap-3">
             {onGuardar && (
               <button
                 type="button"
                 onClick={() => guardar(false)}
                 disabled={guardando}
-                className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 disabled:opacity-60"
+                className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 disabled:opacity-60 sm:w-auto"
               >
                 {guardando ? "GUARDANDO..." : "Guardar"}
               </button>
@@ -379,21 +379,21 @@ export default function BorradorPanel({
             <button
               type="button"
               onClick={copiar}
-              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
+              className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 sm:w-auto"
             >
               {copiado ? "¡Copiado!" : "Copiar"}
             </button>
             <button
               type="button"
               onClick={descargar}
-              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
+              className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 sm:w-auto"
             >
               Descargar .txt
             </button>
             <button
               type="button"
               onClick={imprimir}
-              className="rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50"
+              className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 sm:w-auto"
             >
               Imprimir
             </button>
@@ -401,7 +401,7 @@ export default function BorradorPanel({
               type="button"
               onClick={() => guardar(true)}
               disabled={!revisado || guardando || !onGuardar}
-              className="rounded-xl bg-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-50 transition hover:bg-oliva-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="col-span-2 w-full rounded-xl bg-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-50 transition hover:bg-oliva-700 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-1 sm:w-auto"
             >
               Confirmar borrador
             </button>

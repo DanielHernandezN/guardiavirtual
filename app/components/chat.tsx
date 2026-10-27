@@ -12,6 +12,8 @@ import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types
 import EstadoCaso from "./EstadoCaso";
 
 type Props = {
+  /** Abre el menú lateral en móvil y tablet. */
+  onAbrirMenu: () => void;
   /** Notifica que se generó un borrador para mostrarlo en el visor. */
   onBorradorGenerado: (
     borrador: BorradorParte,
@@ -19,7 +21,7 @@ type Props = {
   ) => void;
 };
 
-export default function Chat({ onBorradorGenerado }: Props) {
+export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
 
     type Mensaje = {
         contenido: string;
@@ -153,62 +155,58 @@ export default function Chat({ onBorradorGenerado }: Props) {
 
     return (
     
-    <section className="
-          flex
-          flex-col
-          w-[80%]
-          h-screen
-          bg-oliva-100
-          ">
-            <div className="
-            flex
-            flex-row
-            p-6
-            justify-between
-            border-b
-            border-oliva-200
-            bg-oliva-50
-            ">
-              <div>
-                <h2 className="text-oliva-900">CABO VIRTUAL</h2>
-                <p className="text-sm text-oliva-600">Asistente de apoyo documental</p>
-              </div>
-                <div className="flex flex-row items-center gap-4">
-                  {puedeConfeccionar && (
-                    <button
-                      type="button"
-                      onClick={handleGenerarBorrador}
-                      disabled={borradorCargando}
-                      className="
-                      rounded-xl
-                      bg-oliva-600
-                      px-4
-                      py-2
-                      text-sm
-                      font-semibold
-                      text-oliva-50
-                      transition
-                      hover:bg-oliva-700
-                      disabled:opacity-60
-                      "
-                    >
-                      {borradorCargando ? "GENERANDO..." : "GENERAR BORRADOR"}
-                    </button>
-                  )}
-                  <div className="flex flex-row items-center gap-2 text-sm text-oliva-600">
-                    <p className="text-oliva-500">●</p>
-                    <p>En línea</p>
-                  </div>
+    <section className="flex min-h-0 w-full flex-1 flex-col bg-oliva-100">
+            <header className="flex flex-wrap items-center gap-3 border-b border-oliva-200 bg-oliva-50 p-4 sm:justify-between sm:p-6">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onAbrirMenu}
+                  aria-label="Abrir menú de casos"
+                  aria-controls="panel-casos"
+                  className="rounded-lg border border-oliva-300 p-2 text-oliva-700 transition hover:bg-oliva-200 hover:text-oliva-900 lg:hidden"
+                >
+                  <span className="block text-lg leading-none">☰</span>
+                </button>
+                <div className="min-w-0">
+                  <h2 className="truncate text-oliva-900">CABO VIRTUAL</h2>
+                  <p className="truncate text-sm text-oliva-600">Asistente de apoyo documental</p>
                 </div>
-            </div>
+              </div>
+              <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end sm:gap-4">
+                {puedeConfeccionar && (
+                  <button
+                    type="button"
+                    onClick={handleGenerarBorrador}
+                    disabled={borradorCargando}
+                    className="
+                    flex-1
+                    rounded-xl
+                    bg-oliva-600
+                    px-4
+                    py-2.5
+                    text-sm
+                    font-semibold
+                    text-oliva-50
+                    transition
+                    hover:bg-oliva-700
+                    disabled:opacity-60
+                    sm:flex-none
+                    sm:py-2
+                    "
+                  >
+                    {borradorCargando ? "GENERANDO..." : "GENERAR BORRADOR"}
+                  </button>
+                )}
+                <div className="hidden flex-row items-center gap-2 text-sm text-oliva-600 sm:flex">
+                  <p className="text-oliva-500">●</p>
+                  <p>En línea</p>
+                </div>
+              </div>
+            </header>
 
-            <div className="
-            flex-1 
-            p-6
-            overflow-y-auto
-            ">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
                 {mensajes.length === 0 && (
-                    <div className="mx-auto max-w-md rounded-2xl border border-oliva-200 bg-oliva-50 p-6 text-center">
+                    <div className="mx-auto max-w-md rounded-2xl border border-oliva-200 bg-oliva-50 p-4 text-center sm:p-6">
                         <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-500">
                             Nuevo parte
                         </h3>
@@ -233,16 +231,16 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 <div key={index}
                     className={
                         mensaje.autor === "funcionario"
-                        ? "flex justify-end"
-                        : "flex justify-start"
+                        ? "mt-3 flex justify-end first:mt-0"
+                        : "mt-3 flex justify-start first:mt-0"
                 }  
                 >
                     <div className={
                         mensaje.autor === "funcionario"
-                        ? "flex flex-col gap-1 p-4 rounded-xl bg-oliva-200 text-oliva-900 border border-oliva-300"
+                        ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-300 bg-oliva-200 p-3 text-oliva-900 sm:max-w-[75%] sm:p-4"
                         : mensaje.autor === "error"
-                        ? "flex flex-col gap-1 p-4 rounded-xl bg-red-50 text-red-900 border border-red-300"
-                        : "flex flex-col gap-1 p-4 rounded-xl bg-oliva-800 text-oliva-50 border border-oliva-700"
+                        ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-red-300 bg-red-50 p-3 text-red-900 sm:max-w-[75%] sm:p-4"
+                        : "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-700 bg-oliva-800 p-3 text-oliva-50 sm:max-w-[75%] sm:p-4"
                     }>
                     <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                         {mensaje.autor === "error" ? "error" : mensaje.autor}
@@ -253,8 +251,8 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 ))}
 
                 {isLoading && (
-                    <div className="flex justify-start">
-                        <div className="flex flex-col gap-1 p-4 rounded-xl bg-oliva-800 text-oliva-50 border border-oliva-700">
+                    <div className="mt-3 flex justify-start">
+                        <div className="flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-700 bg-oliva-800 p-3 text-oliva-50 sm:max-w-[75%] sm:p-4">
                             <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                                 cabo
                             </p>
@@ -278,15 +276,20 @@ export default function Chat({ onBorradorGenerado }: Props) {
             <div className="border-t border-oliva-200 bg-oliva-100">
               <form onSubmit={handleSubmit} className="
               flex
-              flex-row
-              p-6
-              gap-3
+              flex-col
+              gap-2
+              p-4
+              pb-[calc(1rem+env(safe-area-inset-bottom))]
+              sm:flex-row
+              sm:gap-3
+              sm:p-6
               "
         
               >
                 <input className="
+                min-w-0
                 flex-1
-                px-6
+                px-4
                 py-3
                 rounded-xl
                 border
@@ -298,6 +301,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 focus:border-oliva-500
                 focus:ring-2
                 focus:ring-oliva-500/25
+                sm:px-6
                 "
                 placeholder="Escriba los antecedentes"
                 value={antecedentes}
@@ -306,6 +310,8 @@ export default function Chat({ onBorradorGenerado }: Props) {
                 />
                   <button type="submit"
                   className="
+                  w-full
+                  shrink-0
                   px-6
                   py-3
                   bg-oliva-600
@@ -313,6 +319,7 @@ export default function Chat({ onBorradorGenerado }: Props) {
                   rounded-xl
                   hover:bg-oliva-700
                   disabled:opacity-60
+                  sm:w-auto
                   "
                   disabled={isLoading}
                   >{isLoading ? "PROCESANDO..." : "ENVIAR"}</button>

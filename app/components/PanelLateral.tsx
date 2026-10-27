@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import LogoutButton from "./LogoutButton";
 import type { CasoResumen } from "@/lib/casos";
 
@@ -10,6 +10,9 @@ type Props = {
   casos: CasoResumen[];
   casoActivoId: string | null;
   mensajeEstado: string;
+  /** En móvil y tablet el panel es un menú deslizable. */
+  abierto: boolean;
+  onCerrar: () => void;
   onAbrirCaso: (caso: CasoResumen) => void;
   onNuevoCaso: () => void;
   onEliminarCaso: (caso: CasoResumen) => void;
@@ -36,6 +39,8 @@ export default function PanelLateral({
   casos,
   casoActivoId,
   mensajeEstado,
+  abierto,
+  onCerrar,
   onAbrirCaso,
   onNuevoCaso,
   onEliminarCaso,
@@ -44,6 +49,18 @@ export default function PanelLateral({
 }: Props) {
   const [filtro, setFiltro] = useState<Filtro>("TODOS");
   const [busqueda, setBusqueda] = useState("");
+
+  // En móvil, Escape cierra el menú deslizable.
+  useEffect(() => {
+    if (!abierto) return;
+
+    const alPresionar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") onCerrar();
+    };
+
+    window.addEventListener("keydown", alPresionar);
+    return () => window.removeEventListener("keydown", alPresionar);
+  }, [abierto, onCerrar]);
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -76,24 +93,40 @@ export default function PanelLateral({
   const enPapelera = casos.filter((caso) => caso.enPapelera).length;
 
   return (
-    <section className="
-      w-[20%]
-      flex
-      flex-col
-      p-6
-      gap-6
-      bg-oliva-900
-      text-oliva-100
-      ">
-      <div className="flex flex-col gap-3">
-        <h2 className="text-oliva-50">CABO VIRTUAL</h2>
-        <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
-          Funcionario
-        </h3>
-        <p className="font-semibold text-oliva-100">{nombre}</p>
-        <p className="text-sm text-oliva-300">{usuarioId}</p>
-        <LogoutButton />
-      </div>
+    <>
+      {/* Velo del menú en móvil y tablet */}
+      <div
+        aria-hidden="true"
+        onClick={onCerrar}
+        className={`fixed inset-0 z-30 bg-oliva-950/60 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${
+          abierto ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      <section
+        id="panel-casos"
+        className={`fixed inset-y-0 left-0 z-40 flex w-[85vw] max-w-xs flex-col gap-4 overflow-hidden bg-oliva-900 p-5 text-oliva-100 shadow-2xl transition-transform duration-200 ease-out lg:static lg:z-auto lg:h-full lg:w-72 lg:max-w-none lg:translate-x-0 lg:gap-6 lg:p-6 lg:shadow-none xl:w-80 ${
+          abierto ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onCerrar}
+          aria-label="Cerrar menú"
+          className="absolute right-2 top-2 rounded-lg p-2 text-oliva-300 transition hover:bg-oliva-800 hover:text-oliva-50 lg:hidden"
+        >
+          ✕
+        </button>
+
+        <div className="flex flex-col gap-3 pr-8 lg:pr-0">
+          <h2 className="text-oliva-50">CABO VIRTUAL</h2>
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
+            Funcionario
+          </h3>
+          <p className="font-semibold text-oliva-100">{nombre}</p>
+          <p className="text-sm text-oliva-300">{usuarioId}</p>
+          <LogoutButton />
+        </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
@@ -107,7 +140,7 @@ export default function PanelLateral({
           <button
             type="button"
             onClick={onNuevoCaso}
-            className="rounded-lg border border-oliva-400 px-2.5 py-1 text-xs font-semibold text-oliva-200 transition hover:bg-oliva-400 hover:text-oliva-950"
+            className="shrink-0 whitespace-nowrap rounded-lg border border-oliva-400 px-3 py-2 text-sm font-semibold text-oliva-200 transition hover:bg-oliva-400 hover:text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
           >
             + Nuevo
           </button>
@@ -122,8 +155,8 @@ export default function PanelLateral({
               onClick={() => setFiltro(item.id)}
               className={
                 filtro === item.id
-                  ? "rounded-lg bg-oliva-500 px-2.5 py-1 text-xs font-semibold text-oliva-950"
-                  : "rounded-lg border border-oliva-700 px-2.5 py-1 text-xs text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100"
+                  ? "rounded-lg bg-oliva-500 px-3 py-1.5 text-sm font-semibold text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
+                  : "rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100 sm:px-2.5 sm:py-1 sm:text-xs"
               }
             >
               {item.etiqueta}
@@ -135,7 +168,7 @@ export default function PanelLateral({
           <button
             type="button"
             onClick={onVaciarPapelera}
-            className="rounded-lg border border-oliva-700 px-2.5 py-1 text-xs text-oliva-300 transition hover:border-amber-500 hover:text-amber-300"
+            className="rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-amber-500 hover:text-amber-300 sm:px-2.5 sm:py-1 sm:text-xs"
           >
             Vaciar papelera ({enPapelera})
           </button>
@@ -147,7 +180,7 @@ export default function PanelLateral({
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por título, lugar o especie"
-          className="w-full rounded-lg border border-oliva-700 bg-oliva-950/50 px-3 py-1.5 text-xs text-oliva-100 placeholder:text-oliva-500 outline-none transition focus:border-oliva-400"
+          className="w-full rounded-lg border border-oliva-700 bg-oliva-950/50 px-3 py-2 text-base text-oliva-100 placeholder:text-oliva-500 outline-none transition focus:border-oliva-400 sm:py-1.5 sm:text-xs"
         />
 
         {filtrados.length === 0 ? (
@@ -196,7 +229,7 @@ export default function PanelLateral({
                         type="button"
                         onClick={() => onRestaurarCaso(caso)}
                         title="Restaurar caso"
-                        className="mt-1 text-xs text-oliva-400 underline-offset-2 transition hover:text-oliva-100 hover:underline"
+                        className="mt-1 py-1 text-sm text-oliva-400 underline-offset-2 transition hover:text-oliva-100 hover:underline sm:text-xs"
                       >
                         Restaurar
                       </button>
@@ -205,7 +238,7 @@ export default function PanelLateral({
                         type="button"
                         onClick={() => onEliminarCaso(caso)}
                         title="Mover a la papelera"
-                        className="mt-1 text-xs text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline"
+                        className="mt-1 py-1 text-sm text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline sm:text-xs"
                       >
                         Eliminar
                       </button>
@@ -222,5 +255,6 @@ export default function PanelLateral({
         <p className="text-xs leading-relaxed text-oliva-300">{mensajeEstado}</p>
       )}
     </section>
+    </>
   );
 }

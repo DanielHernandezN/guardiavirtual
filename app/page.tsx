@@ -11,19 +11,19 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-oliva-100 flex items-center justify-center px-6 py-10">
+    <main className="flex min-h-dvh items-center justify-center bg-oliva-100 px-4 py-8 sm:px-6 sm:py-10">
 
       <section className="w-full max-w-md">
 
         {/* Encabezado */}
-        <div className="text-center mb-8">
+        <div className="mb-6 text-center sm:mb-8">
 
           {/* Logo IA */}
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-oliva-600/10">
-            <span className="text-4xl text-oliva-600">◉</span>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-oliva-600/10 sm:h-20 sm:w-20">
+            <span className="text-3xl text-oliva-600 sm:text-4xl">◉</span>
           </div>
 
-          <h1 className="text-5xl font-bold tracking-tight text-oliva-900">
+          <h1 className="text-4xl font-bold tracking-tight text-oliva-900 sm:text-5xl">
             Cabo Virtual
           </h1>
 
@@ -33,7 +33,7 @@ export default async function Home() {
         </div>
 
         {/* Tarjeta Login */}
-        <div className="rounded-2xl border border-oliva-200 bg-oliva-50 p-8 shadow-xl shadow-oliva-900/10">
+        <div className="rounded-2xl border border-oliva-200 bg-oliva-50 p-6 shadow-xl shadow-oliva-900/10 sm:p-8">
 
           <h2 className="mb-6 text-center text-2xl font-semibold text-oliva-800">
             Iniciar sesión

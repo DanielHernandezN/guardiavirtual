@@ -3,7 +3,7 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 27/10/2026
-- **Estado general:** 🟢 Funcional — Fases 0 a 8 completadas (parte de detenido con encabezado, cierre, firma y vista previa). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
+- **Estado general:** 🟢 Funcional — Fases 0 a 9 completadas (parte de detenido con encabezado, cierre, firma y vista previa, e interfaz responsive). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
 - **Último commit analizado:** `6ae4069` — "Fase 8: parte de detenido y modelo gratuito estable" (árbol de trabajo limpio).
 
 > **Sesión 27/10/2026 — verificación de arranque:** árbol limpio, `npm test` → **89/89 ✅**, y presentes `node_modules`, `.env`, `.env.local` y `prisma/dev.db`. Se corrige la bitácora: la Fase 8 **ya está commiteada** en `6ae4069` (antes figuraba como "sin commit"). Siguiente paso sugerido: prueba real del parte de detenido y ajuste del encabezado/firma.
@@ -267,6 +267,10 @@ guardiavirtual/
     al final. Se generan en el servidor, son editables y se incluyen al
     copiar, descargar e imprimir. El visor ofrece **vista previa** del
     documento completo.
+15. **Interfaz responsive** (`app/dashboard/page.tsx`,
+    `app/components/*`) — panel lateral deslizable en celular y tablet, chat
+    a pantalla completa, visor del borrador como hoja en móvil y modales
+    adaptados. Verificado en 390, 768 y 1440 px.
 
 ### ⚠️ Deuda técnica conocida
 
@@ -477,6 +481,33 @@ debe figurar en la firma. El encabezado y el cierre son editables y se adaptan
 cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 `USUARIOS_JSON`.
 
+### Fase 9 — Diseño responsive (celular, tablet y escritorio) — ✅ COMPLETADA
+
+- [x] **Dashboard adaptable**: en escritorio (≥ 1024 px) se mantiene el panel
+      lateral fijo; en celular y tablet el panel pasa a ser un **menú
+      deslizable** con velo, botón de cierre y tecla Escape.
+- [x] **Chat a pantalla completa** en móvil: encabezado con botón de menú,
+      burbujas limitadas al 85 % del ancho y formulario apilado (campo + botón).
+- [x] **Altura dinámica** (`100dvh`) con desplazamiento interno, para que el
+      campo de escritura quede siempre visible aunque el teclado del celular
+      reduzca la pantalla.
+- [x] **Visor del borrador** como hoja a pantalla completa en celular y modal
+      centrado en tablet/escritorio; acciones en cuadrícula táctil y espacio
+      para la barra inferior del teléfono (`safe-area-inset-bottom`).
+- [x] **Tipografía y controles táctiles**: campos a 16 px en móvil (evita el
+      zoom automático de iOS), botones y filtros con área de toque mayor.
+- [x] **Login** adaptado a pantallas pequeñas (logo, título y tarjeta).
+- [x] **Verificación visual real** con Chrome headless en 390×844 (celular),
+      768×1024 (tablet) y 1440×900 (escritorio): login, dashboard, menú
+      abierto, visor en edición y vista previa.
+- [x] `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ 89/89 ·
+      `npm run build` ✅.
+
+**Archivos modificados:** `app/dashboard/page.tsx`,
+`app/components/DashboardWorkspace.tsx`, `app/components/PanelLateral.tsx`,
+`app/components/chat.tsx`, `app/components/EstadoCaso.tsx`,
+`app/components/BorradorPanel.tsx`, `app/page.tsx`.
+
 ---
 
 ## 7. Dónde quedamos (resumen para retomar)
@@ -510,7 +541,7 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 - **Autenticación real** con sesión firmada, `proxy.ts` + validación por
   endpoint, y credenciales solo en `.env.local`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /
-  asistente / error).
+  asistente / error) y **diseño responsive** para celular, tablet y escritorio.
 
 ### Próximos pasos inmediatos (sugeridos)
 1. **Publicar en Vercel** (último paso de la Fase 7): crear la base de datos

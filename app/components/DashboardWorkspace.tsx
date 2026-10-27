@@ -31,6 +31,8 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
   const [antecedentesVisibles, setAntecedentesVisibles] =
     useState<Antecedentes | null>(null);
   const [mensajeEstado, setMensajeEstado] = useState("");
+  /** Menú lateral deslizable (solo móvil y tablet). */
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   /**
    * Descarga el listado de casos del servidor.
@@ -106,6 +108,7 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
 
   /** Abre un borrador ya guardado desde el historial. */
   const abrirCaso = (caso: CasoResumen) => {
+    setMenuAbierto(false);
     setCasoId(caso.id);
     setAntecedentesVisibles(caso.antecedentes ?? null);
     const ultimo = caso.borradores[0];
@@ -213,11 +216,14 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
         casos={casos}
         casoActivoId={casoId}
         mensajeEstado={mensajeEstado}
+        abierto={menuAbierto}
+        onCerrar={() => setMenuAbierto(false)}
         onAbrirCaso={abrirCaso}
         onEliminarCaso={eliminarCaso}
         onRestaurarCaso={restaurarCaso}
         onVaciarPapelera={vaciarPapelera}
         onNuevoCaso={() => {
+          setMenuAbierto(false);
           setCasoId(null);
           setBorradorVisible(null);
           setAntecedentesVisibles(null);
@@ -228,6 +234,7 @@ export default function DashboardWorkspace({ nombre, usuarioId }: Props) {
 
       <Chat
         key={claveChat}
+        onAbrirMenu={() => setMenuAbierto(true)}
         onBorradorGenerado={(borrador, antecedentes) => {
           setBorradorVisible(borrador);
           setAntecedentesVisibles(antecedentes);

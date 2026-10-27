@@ -23,7 +23,7 @@ export default function EstadoCaso({
   const bloqueado = contradicciones.length > 0;
 
   return (
-    <div className="space-y-2 px-6 py-3">
+    <div className="space-y-2 px-4 py-3 sm:px-6">
       {bloqueado && (
         <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">⚠ Contradicciones detectadas</p>
