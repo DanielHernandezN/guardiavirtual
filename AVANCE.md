@@ -2,13 +2,15 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 22/10/2026
-- **Estado general:** 🟢 Funcional — Fases 0 a 7 completadas y **Fase 8 implementada** (parte de detenido con encabezado, cierre, firma y vista previa). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
-- **Último commit analizado:** `872ef81` — "Fase 7: calidad, seguridad, pruebas y despliegue" (los cambios de la Fase 8 están en el árbol de trabajo, sin commit).
+- **Última actualización:** 27/10/2026
+- **Estado general:** 🟢 Funcional — Fases 0 a 8 completadas (parte de detenido con encabezado, cierre, firma y vista previa). El sistema extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada y guía de despliegue. Pendiente: despliegue real en Vercel y confirmar el formato exacto del encabezado con la unidad.
+- **Último commit analizado:** `6ae4069` — "Fase 8: parte de detenido y modelo gratuito estable" (árbol de trabajo limpio).
+
+> **Sesión 27/10/2026 — verificación de arranque:** árbol limpio, `npm test` → **89/89 ✅**, y presentes `node_modules`, `.env`, `.env.local` y `prisma/dev.db`. Se corrige la bitácora: la Fase 8 **ya está commiteada** en `6ae4069` (antes figuraba como "sin commit"). Siguiente paso sugerido: prueba real del parte de detenido y ajuste del encabezado/firma.
 
 ---
 
-## 0. Resumen de la sesión actual (22/10/2026)
+## 0. Resumen de la sesión de la Fase 8 (22/10/2026)
 
 Se implementó la **Fase 8: plantilla del parte de detenido**, a partir del
 modelo de parte aportado por el usuario (detención por robo por sorpresa).
@@ -80,9 +82,9 @@ Construir una **IA que ayude a confeccionar partes policiales** (partes, actuaci
 | Lenguaje | **TypeScript 5** (strict) | |
 | IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL` (+ `AI_MODEL_REDACCION` opcional). Por defecto OpenRouter con el modelo **gratuito** `poolside/laguna-s-2.1:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
 | Estilo de API | **Rutas API de Next.js** (`app/api/...`) | |
-| Despliegue objetivo | **Vercel** (sugerido) | Aún no configurado. |
+| Despliegue objetivo | **Vercel** | Configuración lista (`vercel.json`, `DEPLOY.md`); falta la publicación real con PostgreSQL. |
 
-> ⚠️ `node_modules` **no está instalado** en el workspace actual. Antes de compilar: `npm install`.
+> ℹ️ `node_modules` está instalado en el workspace (verificado el 27/10/2026). Si se reinstala: `npm install` con el servidor de desarrollo detenido.
 
 ### Paleta de UI (escala de oliva)
 
@@ -219,7 +221,7 @@ guardiavirtual/
 
 ## 4. Estado de cada pieza (revisión)
 
-> Esta sección resume el estado **a fecha de hoy** (tras la Fase 7). El
+> Esta sección resume el estado **a fecha de hoy** (tras la Fase 8). El
 > detalle histórico de cada fase está en la sección 6.
 
 ### ✅ Funciona / implementado
@@ -294,12 +296,12 @@ guardiavirtual/
 
 ## 5. Hallazgos / riesgos técnicos
 
-- **Doble prompt:** unificar `prompt.md` y el `systemPrompt` de `route.ts` en **una sola fuente** (ideal: cargar `prompt.md` o moverlo a `lib/prompts.ts`).
-- **Prompt actual pide `null`, pero `prompt.md` pide `"pendiente"`.** `route.ts` los normaliza; conviene alinear el prompt con el formato real (`null`) para evitar ambigüedad.
-- **Alucinación:** el prompt prohíbe inventar datos (correcto), pero falta validación estricta de salida del modelo (esquema/Zod) y una revisión humana obligatoria antes de "finalizar".
+- ~~**Doble prompt:**~~ ✅ resuelto en la Fase 1: `lib/prompts.ts` es la única fuente y `prompt.md` quedó como documentación.
+- ~~**`"pendiente"` vs `null`:**~~ ✅ resuelto: el modelo devuelve `null` y `lib/schemas.ts` lo normaliza.
+- ~~**Alucinación sin validación:**~~ ✅ mitigado: esquema Zod de salida, regla de no invención en el prompt y revisión humana obligatoria antes de confirmar.
 - **Seguridad:** la API key vive en variables de entorno del servidor (correcto). Nunca debe ir al cliente. Revisar que no se filtren claves en logs.
 - **Costos LLM:** `temperature: 0` y `response_format: json_object` son buenas prácticas. Considerar caché y límites de tokens.
-- **Estado en cliente:** `datosAntecedentes` se mantiene solo en memoria. Sin backend de casos no hay recuperación.
+- ~~**Estado en cliente:**~~ ✅ resuelto en la Fase 5: los casos se guardan en base de datos con historial y papelera. El caso en curso sigue en memoria hasta guardarlo.
 - **Validación de identidad:** el sistema transcribe el RUT tal como lo entrega el funcionario, pero **no valida el dígito verificador** ni compara nombres (el parte de ejemplo traía al aprehensor con el mismo nombre del detenido). Conviene agregar validación de RUT y una alerta cuando el detenido y el aprehensor coincidan.
 - **Datos ambiguos:** expresiones como "arma o cuchillo" se conservan tal cual (no se inventa el objeto). La interfaz no obliga a precisarlas; el funcionario debe revisarlas antes de confirmar.
 - **Privacidad:** los casos guardan datos personales (nombre, RUT, domicilio, teléfono, correo). La base debe estar protegida y no se deben incluir partes reales en el repositorio ni en los tests.
