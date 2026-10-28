@@ -6,6 +6,18 @@
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
 
+> **Sesión 28/10/2026 — bienvenida del chat más breve (UI/UX):** el estado
+> vacío del chat («NUEVO PARTE») ya no muestra el párrafo introductorio
+> «Cuéntame los hechos del caso y yo voy completando los antecedentes…»; queda
+> solo el título y el recordatorio de los datos necesarios (tipo de
+> procedimiento, especie, lugar, fecha, y en detenciones los datos del
+> detenido, el personal aprehensor y la hora). Ese recordatorio pasó de
+> `text-xs` a `text-sm` para que se lea bien al quedar como único texto de la
+> tarjeta. La mención al acta de aprehensor se mantiene en el marcador del campo
+> de escritura. Verificado con captura real en 900×560:
+> `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 102/102 ·
+> `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — limpieza del panel lateral (UI/UX):** a pedido del
 > usuario se quitó el título «CABO VIRTUAL», el identificador del funcionario
 > (`daniel`, que se mostraba bajo su nombre) y el filtro «Confirmados» del

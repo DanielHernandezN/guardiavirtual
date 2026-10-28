@@ -235,12 +235,7 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                         <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-500">
                             Nuevo parte
                         </h3>
-                        <p className="mt-2 text-sm text-oliva-900">
-                            Cuéntame los hechos del caso y yo voy completando los
-                            antecedentes. También puedes pegar el{" "}
-                            <strong>acta de aprehensor</strong> completa.
-                        </p>
-                        <p className="mt-3 text-xs leading-relaxed text-oliva-600">
+                        <p className="mt-3 text-sm leading-relaxed text-oliva-600">
                             Necesito el <strong>tipo de procedimiento</strong>, la{" "}
                             <strong>especie</strong> involucrada, el{" "}
                             <strong>lugar</strong> y la <strong>fecha</strong>.
