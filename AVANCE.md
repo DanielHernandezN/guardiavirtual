@@ -6,6 +6,13 @@
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
 
+> **Sesión 28/10/2026 — membrete del chat con más cuerpo (UI/UX):** el título
+> «CABO VIRTUAL» del encabezado del chat pasó de heredar el tamaño y el peso del
+> cuerpo (16 px, regular) a `text-lg font-bold tracking-tight`, para que tenga
+> presencia frente al subtítulo «Asistente de apoyo documental». Verificado con
+> captura real del encabezado: `npm run typecheck` ✅ · `npm run lint` ✅ 0
+> errores · `npm test` ✅ 102/102 · `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — sin cuadro de «Faltantes para el borrador» (UI/UX):**
 > se eliminó el recuadro que enumeraba los campos pendientes en cada mensaje.
 > Ahora `EstadoCaso` solo aparece cuando hay algo que avisar: las
