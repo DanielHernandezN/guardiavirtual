@@ -307,10 +307,42 @@ describe("validación de antecedentes", () => {
   it("no marca como sin destino los antecedentes que la plantilla usa", () => {
     const antecedentes = antecedentesDePrueba();
     antecedentes.pruebas.otras = ["Peritaje de alcoholemia en laboratorio."];
+    antecedentes.vehiculos = [
+      {
+        patente: "ABCD12",
+        marca: "Toyota",
+        modelo: "Yaris",
+        color: "blanco",
+        anio: "2020",
+        documentos: "permiso de circulación",
+        seguros: "seguro obligatorio",
+        licencias: "clase B",
+      },
+    ];
+    antecedentes.testigos = [
+      {
+        nombre: "Ana Soto",
+        rut: "9.876.543-2",
+        declaracion: "Vio al conductor descender del vehículo.",
+      },
+    ];
+    antecedentes.camaras = "Cámara municipal de Avenida O'Higgins.";
+    antecedentes.diligencias = ["Prueba respiratoria", "Empadronamiento."];
+    antecedentes.detalleEspecies = "Licencia de conducir clase B, incautada.";
+
+    // Las contradicciones son control del análisis, no contenido del parte.
+    antecedentes.contradicciones = ["El RUT aparece con dos dígitos distintos."];
 
     const sinDestino = antecedentesSinDestino(antecedentes, PLANTILLA_DETENIDO);
 
     assert.deepEqual(sinDestino, []);
+
+    const trazabilidad = construirTrazabilidad(antecedentes, TEXTO_ACTA);
+    assert.ok(
+      !Object.keys(trazabilidad.campos).some((ruta) =>
+        ruta.startsWith("contradicciones")
+      )
+    );
   });
 });
 

@@ -30,6 +30,12 @@ const esObjeto = (valor: unknown): valor is Record<string, unknown> =>
   typeof valor === "object" && valor !== null && !Array.isArray(valor);
 
 /**
+ * Campos de control del motor: describen el estado del análisis, no el
+ * contenido del procedimiento. No se mapean ni se buscan en el acta.
+ */
+const CAMPOS_DE_CONTROL = new Set(["contradicciones"]);
+
+/**
  * Recorre los antecedentes y devuelve los valores con contenido.
  * Los arreglos vacíos se devuelven como valor vacío para poder informarlos.
  */
@@ -45,6 +51,7 @@ export const recorrerValores = (
     rutaBase: string
   ): void => {
     if (valor === null || valor === undefined) return;
+    if (CAMPOS_DE_CONTROL.has(rutaBase.replace(/\[\]/g, ""))) return;
 
     if (Array.isArray(valor)) {
       if (valor.length === 0) return;
