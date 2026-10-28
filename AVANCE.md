@@ -4,7 +4,7 @@
 
 - **Última actualización:** 28/10/2026
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
-- **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
+- **Último commit analizado:** `3d8df42` — "Corrige el nombre con acentos en produccion y avisa si USUARIOS_JSON llega mal codificado" (incluye las mejoras de UI/UX del panel lateral, la bienvenida del chat y el encabezado).
 
 > **Sesión 28/10/2026 — nombre con «??» en producción (corrección):** el
 > dominio de Vercel mostraba «Daniel Hern??ndez Norambuena» mientras que en
