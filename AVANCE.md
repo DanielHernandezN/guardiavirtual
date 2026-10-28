@@ -4,7 +4,7 @@
 
 - **Última actualización:** 28/10/2026
 - **Estado general:** 🟢 **En producción** — Fases 0 a 12 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, y cuenta con **123 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
-- **Último commit analizado:** `e87dd9a` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
+- **Commit del motor documental:** `050ea4d` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
 
 > **Sesión 28/10/2026 — motor documental completo (Fase 12):** se cerró el
 > flujo que faltaba entre el acta y el Word. La ingesta acepta **TXT, DOCX y
