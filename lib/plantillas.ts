@@ -1,27 +1,41 @@
 /**
  * Plantillas del parte policial — Guardia Virtual
  * ───────────────────────────────────────────────
- * Estructura formal del documento y títulos según el tipo de procedimiento.
- * El título y las secciones se resuelven en el servidor (determinístico) para
- * que el formato sea consistente; el modelo solo redacta el contenido de cada
- * sección.
+ * Estructura formal del documento según el formato real de la unidad
+ * (9na. Comisaría Pucón). El título y las secciones se resuelven en el
+ * servidor (determinístico); el modelo solo redacta el contenido.
  *
- * Hay dos plantillas:
- * - Parte general (hurto, robo, accidente, denuncia, etc.).
- * - Parte de detenido (cuando hay una persona detenida), con identificación
- *   del detenido, circunstancias de la detención y diligencias.
- *
- * Además, todo parte lleva un encabezado fijo (Unidad, N.° de parte, fecha,
- * funcionario y materia) que también se resuelve en el servidor.
+ * Los documentos de la unidad **no llevan título interno**:
+ * 1. Membrete institucional (Carabineros de Chile, Prefectura, Comisaría).
+ * 2. Fórmula de apertura («Doy cuenta a esa Fiscalía Local…» o
+ *    «Se da cuenta…») seguida del relato con párrafos «Que, …».
+ * 3. Secciones en mayúsculas, solo las que tengan datos (LESIONES, DERECHOS,
+ *    ESPECIES SUSTRAÍDAS, etc.).
+ * 4. Instrucciones del fiscal de turno.
+ * 5. Situación del detenido (si corresponde).
+ * 6. Firmas de los funcionarios a cargo, con grado y nombre.
  */
 
-import type { SeccionBorrador } from "./types";
+import type {
+  DatosFiscal,
+  FuncionarioParte,
+  SeccionBorrador,
+} from "./types";
 
-/** Título interno de la sección que contiene el encabezado del documento. */
+/** Título interno de la sección que contiene el membrete del documento. */
 export const TITULO_ENCABEZADO = "ENCABEZADO";
 
-/** Título interno de la sección que contiene el cierre y la firma. */
+/** Título interno de la sección que contiene el relato (no imprime título). */
+export const TITULO_RELATO = "RELATO";
+
+/** Título interno de la sección que contiene las firmas. */
 export const TITULO_PIE = "CIERRE Y FIRMA";
+
+/** Título de la sección de instrucciones del fiscal de turno. */
+export const TITULO_INSTRUCCIONES = "INSTRUCCIONES DEL FISCAL DE TURNO";
+
+/** Título de la sección de situación del detenido. */
+export const TITULO_SITUACION = "SITUACIÓN DEL DETENIDO";
 
 /** Sección de la plantilla: título visible + indicación para el modelo. */
 export type SeccionPlantilla = {
@@ -30,134 +44,325 @@ export type SeccionPlantilla = {
   instruccion: string;
 };
 
+/** Apertura y relato del parte cuando hay una detención. */
+const RELATO_DETENIDO: SeccionPlantilla = {
+  titulo: TITULO_RELATO,
+  instruccion:
+    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el día de hoy [día] [fecha], siendo las HH:MM horas, personal de servicio …». Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, » (o con el conector de momento «Una vez en el lugar…»). Identifica a las personas dentro del relato, en línea corrida (nombre, edad, nacionalidad, estado civil, estudios, ocupación, fecha de nacimiento, cédula de identidad, domicilio, teléfono y correo), sin listas «Etiqueta: valor».",
+};
+
+/** Apertura y relato de una denuncia (por ejemplo, violencia intrafamiliar). */
+const RELATO_DENUNCIA: SeccionPlantilla = {
+  titulo: TITULO_RELATO,
+  instruccion:
+    "Relato completo de la denuncia, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Se da cuenta a esa Fiscalía Local que, hoy siendo las HH:MM horas se presentó en el servicio de guardia de esta unidad [nombre], individualizada en el rubro denunciante/víctima, quien da cuenta del siguiente hecho:». Cada párrafo siguiente va separado por un salto de línea y comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida, sin listas «Etiqueta: valor».",
+};
+
+/** Relato de un procedimiento general (hurto, robo, accidente, etc.). */
+const RELATO_PARTE: SeccionPlantilla = {
+  titulo: TITULO_RELATO,
+  instruccion:
+    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el día de hoy [día] [fecha], siendo las HH:MM horas, personal de servicio …». Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida, sin listas «Etiqueta: valor».",
+};
+
+const LESIONES: SeccionPlantilla = {
+  titulo: "LESIONES",
+  instruccion:
+    "Constatación de lesiones de cada persona, en el orden del relato: carácter (leve, grave o sin lesiones) y número de D.A.U. o F.A.U. si consta. Si hay detalle por región (cabeza, cara, extremidades), transcríbelo. No inventes diagnósticos.",
+};
+
+const DERECHOS: SeccionPlantilla = {
+  titulo: "DERECHOS",
+  instruccion:
+    "Lectura y ratificación de derechos del imputado: motivo de la detención, forma en que se le informaron (verbal en el lugar, por escrito en la unidad) y artículos invocados (93, 94 y 135 del C.P.P.) solo si constan.",
+};
+
+const VERIFICACION: SeccionPlantilla = {
+  titulo: "VERIFICACIÓN DE IDENTIDAD",
+  instruccion:
+    "Cómo se verificó la identidad del imputado (cédula de identidad, sistema biométrico del Registro Civil) y si hubo rectificación de datos. Si los antecedentes no lo dicen, NO devuelvas esta sección.",
+};
+
+const ANTECEDENTES: SeccionPlantilla = {
+  titulo: "ANTECEDENTES",
+  instruccion:
+    "Antecedentes penales del imputado, órdenes de detención vigentes y registro general de condenas, SOLO si el funcionario informó el resultado de la consulta. Si no hay información, NO devuelvas esta sección.",
+};
+
+const ESPECIES: SeccionPlantilla = {
+  titulo: "ESPECIES SUSTRAÍDAS",
+  instruccion:
+    "Detalle de las especies sustraídas, recuperadas o entregadas: cantidad, tipo, marca, modelo, color, número de serie o IMEI y avalúo total si consta. Una línea por especie.",
+};
+
+const INCAUTACION: SeccionPlantilla = {
+  titulo: "INCAUTACIÓN",
+  instruccion:
+    "Especies o elementos incautados, con marca, modelo, número de serie y cadena de custodia o N.U.E. si consta.",
+};
+
+const GRABACIONES: SeccionPlantilla = {
+  titulo: "GRABACIONES Y CADENA DE CUSTODIA",
+  instruccion:
+    "Registro audiovisual o evidencia remitida, con el número de cadena de custodia o N.U.E. Solo si consta.",
+};
+
+const DAÑOS: SeccionPlantilla = {
+  titulo: "DAÑOS",
+  instruccion:
+    "Daños materiales en vehículos, inmuebles o especies, indicando la parte afectada. Solo si consta.",
+};
+
+const AVALUO: SeccionPlantilla = {
+  titulo: "AVALÚO",
+  instruccion:
+    "Forma en que se determinará el avalúo (por la víctima ante la Fiscalía, por el Tribunal, etc.) o su monto si consta.",
+};
+
+const TESTIGOS: SeccionPlantilla = {
+  titulo: "TESTIGOS",
+  instruccion:
+    "Testigos del procedimiento: nombre, edad y relación con los hechos. Si no hay, indícalo.",
+};
+
+const CAMARAS: SeccionPlantilla = {
+  titulo: "CÁMARAS DE SEGURIDAD",
+  instruccion:
+    "Existencia de cámaras, quién las aportó y cómo se remitió el registro. Si no existen, indícalo.",
+};
+
+const LICENCIAS: SeccionPlantilla = {
+  titulo: "LICENCIAS DE CONDUCTOR",
+  instruccion:
+    "Licencias de los conductores: clase, municipalidad, fecha de control y vigencia. Solo si consta.",
+};
+
+const SEGUROS_OBLIGATORIOS: SeccionPlantilla = {
+  titulo: "SEGUROS OBLIGATORIOS",
+  instruccion:
+    "Seguro obligatorio de cada vehículo: aseguradora, póliza y vigencia. Solo si consta.",
+};
+
+const SEGUROS_COMPLEMENTARIOS: SeccionPlantilla = {
+  titulo: "SEGUROS COMPLEMENTARIOS",
+  instruccion:
+    "Seguros complementarios de los conductores. Si no mantienen, indícalo.",
+};
+
+const DILIGENCIAS: SeccionPlantilla = {
+  titulo: "DILIGENCIAS",
+  instruccion:
+    "Diligencias practicadas o pendientes (fijaciones fotográficas, empadronamiento, pericias, etc.). Solo las que constan.",
+};
+
+const SERNAMEG: SeccionPlantilla = {
+  titulo: "CONSENTIMIENTO SERNAMEG",
+  instruccion:
+    "Si la denunciante autoriza que sus datos se informen al Servicio Nacional de la Mujer y la Equidad de Género, y si firmó el acta. Solo si consta.",
+};
+
+const PAUTA_RIESGO: SeccionPlantilla = {
+  titulo: "PAUTA RIESGO",
+  instruccion:
+    "Resultado de la pauta de riesgo de violencia intrafamiliar, con su puntaje si consta.",
+};
+
+const IDENTIDAD_DENUNCIADO: SeccionPlantilla = {
+  titulo: "IDENTIDAD DEL DENUNCIADO",
+  instruccion:
+    "Identidad del denunciado verificada en el Registro Civil: nombre, edad, nacionalidad, estado civil, cédula, fecha de nacimiento, domicilio y antecedentes penales. Solo si consta.",
+};
+
+const CONTROL_ARMAS: SeccionPlantilla = {
+  titulo: "CONTROL DE ARMAS",
+  instruccion:
+    "Consulta a la unidad de fiscalización de armas: si el denunciado registra o no armas a su nombre. Solo si consta.",
+};
+
 /** Secciones del parte general, en orden. */
 export const SECCIONES_PARTE: readonly SeccionPlantilla[] = [
-  {
-    titulo: "ANTECEDENTES",
-    instruccion:
-      "Datos objetivos del procedimiento: tipo de procedimiento, fecha, lugar y especie involucrada. Sin narración de hechos.",
-  },
-  {
-    titulo: "HECHOS",
-    instruccion:
-      "Relato cronológico y objetivo de lo ocurrido, en tercera persona y en pasado. Cada párrafo debe comenzar con «Que, ».",
-  },
-  {
-    titulo: "ESPECIES INVOLUCRADAS",
-    instruccion:
-      "Descripción de la especie sustraída, recuperada o incautada, con la información disponible: tipo, marca, modelo, color y número de serie o IMEI si consta.",
-  },
-  {
-    titulo: "CONCLUSIÓN",
-    instruccion:
-      "Diligencias practicadas y situación final del procedimiento. Solo lo que consta en los antecedentes.",
-  },
+  RELATO_PARTE,
+  LESIONES,
+  ESPECIES,
+  INCAUTACION,
+  GRABACIONES,
+  DAÑOS,
+  AVALUO,
+  TESTIGOS,
+  CAMARAS,
+  DILIGENCIAS,
 ];
 
 /** Secciones del parte de detenido, en orden. */
 export const SECCIONES_DETENIDO: readonly SeccionPlantilla[] = [
-  {
-    titulo: "IDENTIFICACIÓN DEL DETENIDO",
-    instruccion:
-      "Un dato por línea con el formato «Etiqueta: valor»: nombre completo, RUT, edad, nacionalidad, estado civil, nivel de estudios, ocupación, fecha de nacimiento, domicilio, teléfono y correo electrónico.",
-  },
-  {
-    titulo: "CIRCUNSTANCIAS DE LA DETENCIÓN",
-    instruccion:
-      "Un dato por línea con el formato «Etiqueta: valor»: fecha y hora de la detención, delito, lugar exacto, personal aprehensor, personal acompañante y vehículo policial.",
-  },
-  {
-    titulo: "HECHOS",
-    instruccion:
-      "Relato cronológico, en tercera persona y en pasado, de cómo se produjo la detención: patrullaje o diligencia, advertencia de testigos, descripción del sujeto, interceptación, uso de la fuerza si corresponde y detención. Cada párrafo debe comenzar con «Que, ».",
-  },
-  {
-    titulo: "ESPECIES INVOLUCRADAS",
-    instruccion:
-      "Descripción de la especie sustraída, recuperada, entregada o incautada, con la información disponible: tipo, marca, modelo, color y número de serie o IMEI si consta.",
-  },
-  {
-    titulo: "DERECHOS Y TRASLADO",
-    instruccion:
-      "Diligencias posteriores a la detención, en el orden en que ocurrieron: lectura de derechos, esposamiento, ingreso al calabozo del vehículo, constatación de lesiones y traslado a la unidad policial. Solo si constan en los antecedentes.",
-  },
+  RELATO_DETENIDO,
+  DERECHOS,
+  LESIONES,
+  VERIFICACION,
+  ANTECEDENTES,
+  ESPECIES,
+  INCAUTACION,
+  DAÑOS,
+  AVALUO,
+  TESTIGOS,
+  CAMARAS,
+  LICENCIAS,
+  SEGUROS_OBLIGATORIOS,
+  SEGUROS_COMPLEMENTARIOS,
+  DILIGENCIAS,
 ];
 
-/** Devuelve las secciones que corresponden al tipo de parte. */
-export const seccionesPara = (
-  detencion: boolean
-): readonly SeccionPlantilla[] =>
-  detencion ? SECCIONES_DETENIDO : SECCIONES_PARTE;
+/** Secciones de una denuncia por violencia intrafamiliar. */
+export const SECCIONES_VIF: readonly SeccionPlantilla[] = [
+  RELATO_DENUNCIA,
+  LESIONES,
+  SERNAMEG,
+  PAUTA_RIESGO,
+  TESTIGOS,
+  CAMARAS,
+  IDENTIDAD_DENUNCIADO,
+  CONTROL_ARMAS,
+  DILIGENCIAS,
+];
 
-/** Datos que alimentan el encabezado fijo del parte. */
-export type DatosEncabezadoParte = {
-  /** Nombre de la unidad (por ejemplo, "1ra. Comisaría Villarrica"). */
-  unidad: string | null;
-  /** Número o folio del parte, si se conoce. */
-  numeroParte?: string | null;
-  /** Fecha de confección en formato `dd/mm/yyyy`. */
-  fecha: string;
-  /** Hora de confección en formato `HH:mm`. */
-  hora: string;
-  /** Funcionario que confecciona el parte. */
-  funcionario: string;
-  /** Delito o procedimiento que motiva el parte. */
-  materia: string | null;
+/** Indica si el procedimiento es una denuncia por violencia intrafamiliar. */
+export const esViolenciaIntrafamiliar = (
+  tipoProcedimiento: string | null | undefined
+): boolean =>
+  /violencia|vif|intrafamiliar/i.test(tipoProcedimiento ?? "");
+
+/**
+ * Devuelve las secciones que corresponden al tipo de parte.
+ *
+ * La violencia intrafamiliar tiene secciones propias; las detenciones usan la
+ * plantilla de detenido y el resto, la plantilla general.
+ */
+export const seccionesPara = (
+  detencion: boolean,
+  tipoProcedimiento: string | null = null
+): readonly SeccionPlantilla[] => {
+  if (esViolenciaIntrafamiliar(tipoProcedimiento)) {
+    return SECCIONES_VIF;
+  }
+
+  return detencion ? SECCIONES_DETENIDO : SECCIONES_PARTE;
+};
+
+/** Datos del membrete institucional del documento. */
+export type DatosMembrete = {
+  /** Prefectura (por ejemplo, "Prefectura Villarrica Nro. 3"). */
+  prefectura?: string | null;
+  /** Unidad (por ejemplo, "9na. Comisaría Pucón"). */
+  unidad?: string | null;
 };
 
 /**
- * Construye el encabezado del parte con los datos disponibles.
- * Los datos que falten se marcan como `[PENDIENTE]` para que el funcionario
- * los complete antes de confirmar el documento.
+ * Construye el membrete del documento. Si no hay prefectura ni unidad,
+ * devuelve una cadena vacía para no inventar datos institucionales.
  */
-export const construirEncabezadoParte = (
-  datos: DatosEncabezadoParte
-): string =>
-  [
-    `UNIDAD: ${datos.unidad?.trim() || "[PENDIENTE]"}`,
-    `PARTE NRO.: ${datos.numeroParte?.trim() || "[PENDIENTE]"}`,
-    `FECHA: ${datos.fecha}   HORA: ${datos.hora}`,
-    `FUNCIONARIO: ${datos.funcionario}`,
-    `MATERIA: ${datos.materia?.trim() || "[PENDIENTE]"}`,
-  ].join("\n");
+export const construirMembrete = ({
+  prefectura,
+  unidad,
+}: DatosMembrete): string => {
+  const lineas = [prefectura, unidad]
+    .map((linea) => linea?.trim())
+    .filter((linea): linea is string => Boolean(linea))
+    .map((linea) => linea.toUpperCase());
+
+  return lineas.length > 0
+    ? ["CARABINEROS DE CHILE", ...lineas].join("\n")
+    : "";
+};
 
 /**
- * Construye el cierre del parte con la fórmula de estilo y la firma.
- * El funcionario puede ajustar el texto en el visor antes de confirmar.
+ * Construye el bloque de instrucciones del fiscal de turno.
+ * Devuelve `null` si no hay ningún dato del fiscal.
  */
-export const construirPieParte = (datos: {
-  funcionario: string;
-  unidad?: string | null;
-}): string =>
-  [
-    "Es cuanto puedo informar a Ud.",
+export const construirInstruccionesFiscal = (
+  fiscal: DatosFiscal
+): string | null => {
+  const instrucciones = fiscal.instrucciones
+    .map((instruccion) => instruccion.trim())
+    .filter(Boolean);
+
+  if (!fiscal.nombre && !fiscal.folio && instrucciones.length === 0) {
+    return null;
+  }
+
+  const nombre = fiscal.nombre?.trim();
+  const folio = fiscal.folio?.trim();
+  const contacto = [
+    nombre ? `el fiscal de turno ${nombre}` : "el fiscal de turno",
+    folio ? `mediante folio N° ${folio}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  return [
+    `Se tomó contacto con ${contacto}, quien instruyó lo siguiente:`,
+    ...instrucciones.map(
+      (instruccion, indice) => `${indice + 1}. ${instruccion}`
+    ),
+  ].join("\n");
+};
+
+/**
+ * Construye el bloque de firmas con los funcionarios a cargo del
+ * procedimiento. Devuelve una cadena vacía si no hay funcionarios.
+ */
+export const construirPieParte = (
+  funcionarios: readonly FuncionarioParte[]
+): string => {
+  const lineas = funcionarios
+    .map((funcionario) =>
+      [funcionario.grado?.trim(), funcionario.nombre?.trim()]
+        .filter(Boolean)
+        .join(" ")
+    )
+    .filter(Boolean);
+
+  if (lineas.length === 0) {
+    return "";
+  }
+
+  return [
+    "DATOS DE LOS FUNCIONARIOS A CARGO DEL PROCEDIMIENTO.",
     "",
-    "_______________________________",
-    datos.funcionario,
-    datos.unidad?.trim() || "Funcionario",
+    ...lineas.map(
+      (linea) => `${linea.padEnd(42, " ")} _________________________`
+    ),
   ].join("\n");
+};
 
 /**
- * Compone el texto plano del parte: encabezado, título y secciones.
- * El encabezado se coloca primero, como en el documento impreso.
+ * Compone el texto plano del parte tal como se imprime en la unidad:
+ * membrete, relato, secciones y firmas. No incluye el título interno del
+ * borrador porque el formato oficial no lo lleva.
  */
 export const componerTextoParte = (
-  titulo: string,
+  _titulo: string,
   secciones: readonly SeccionBorrador[]
 ): string => {
-  const encabezado = secciones.find(
-    (seccion) => seccion.titulo === TITULO_ENCABEZADO
-  );
+  const buscar = (titulo: string) =>
+    secciones.find((seccion) => seccion.titulo === titulo);
+
+  const encabezado = buscar(TITULO_ENCABEZADO);
+  const relato = buscar(TITULO_RELATO);
+  const pie = buscar(TITULO_PIE);
   const cuerpo = secciones.filter(
-    (seccion) => seccion.titulo !== TITULO_ENCABEZADO
+    (seccion) =>
+      seccion.titulo !== TITULO_ENCABEZADO &&
+      seccion.titulo !== TITULO_RELATO &&
+      seccion.titulo !== TITULO_PIE
   );
 
   return [
     encabezado?.contenido,
-    titulo,
-    ...cuerpo.map((seccion) => `${seccion.titulo}\n${seccion.contenido}`),
+    relato?.contenido,
+    ...cuerpo.map((seccion) => `${seccion.titulo}: ${seccion.contenido}`),
+    pie?.contenido,
   ]
-    .filter((bloque): bloque is string => Boolean(bloque))
+    .filter((bloque): bloque is string => Boolean(bloque?.trim()))
     .join("\n\n");
 };
 

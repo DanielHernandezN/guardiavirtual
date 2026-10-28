@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MENSAJE_MAXIMO, TAMANO_MAXIMO_CUERPO } from "./constantes";
+
 /**
  * Validación de entradas — Guardia Virtual
  * ─────────────────────────────────────────
@@ -7,11 +9,7 @@ import { z } from "zod";
  * tamaño antes de procesarlo (y antes de gastar tokens del modelo).
  */
 
-/** Tamaño máximo del cuerpo JSON de una petición (64 KB). */
-export const TAMANO_MAXIMO_CUERPO = 64 * 1024;
-
-/** Longitud máxima del mensaje del funcionario. */
-export const MENSAJE_MAXIMO = 4_000;
+export { MENSAJE_MAXIMO, TAMANO_MAXIMO_CUERPO };
 
 /** Longitud máxima de un campo de texto libre (especie, lugar, descripción). */
 export const TEXTO_MAXIMO = 500;

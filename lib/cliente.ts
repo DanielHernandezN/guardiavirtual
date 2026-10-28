@@ -26,23 +26,41 @@ export class ErrorDeApi extends Error {
  *
  * Lanza `ErrorDeApi` con el mensaje del servidor cuando la respuesta no es
  * correcta, para que la interfaz muestre un texto comprensible.
+ *
+ * `timeoutMs` corta la espera para que una petición colgada no deje la
+ * interfaz en «procesando» para siempre.
  */
 export const pedirJson = async <T>(
   url: string,
-  init?: RequestInit
+  init?: RequestInit,
+  { timeoutMs }: { timeoutMs?: number } = {}
 ): Promise<T> => {
   let response: Response;
+  const controlador = timeoutMs ? new AbortController() : null;
+  const temporizador = controlador
+    ? setTimeout(() => controlador.abort(), timeoutMs)
+    : null;
 
   try {
     response = await fetch(url, {
       ...init,
+      signal: controlador?.signal ?? init?.signal,
       headers: {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),
       },
     });
   } catch {
+    if (controlador?.signal.aborted) {
+      throw new ErrorDeApi(
+        0,
+        "El modelo tardó demasiado en responder. Vuelve a intentarlo."
+      );
+    }
+
     throw new ErrorDeApi(0, "No hay conexión con el servidor.");
+  } finally {
+    if (temporizador) clearTimeout(temporizador);
   }
 
   let datos: unknown = null;

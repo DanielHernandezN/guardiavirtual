@@ -10,9 +10,13 @@ import {
 } from "@/lib/prompts";
 import {
   TITULO_ENCABEZADO,
+  TITULO_INSTRUCCIONES,
   TITULO_PIE,
+  TITULO_RELATO,
+  TITULO_SITUACION,
   componerTextoParte,
-  construirEncabezadoParte,
+  construirInstruccionesFiscal,
+  construirMembrete,
   construirPieParte,
   seccionesPara,
   tituloPorTipo,
@@ -104,8 +108,12 @@ export async function POST(request: Request) {
     }
 
     const detencion = esDetencion(antecedentes);
-    const secciones = seccionesPara(detencion);
-    const { fecha, hora } = fechaYHoraDeHoy();
+    const secciones = seccionesPara(
+      detencion,
+      antecedentes.tipoProcedimiento
+    );
+    const { fecha } = fechaYHoraDeHoy();
+    const comuna = process.env.UNIDAD_COMUNA?.trim() || null;
 
     const validados = esquemaBorrador.parse(
       await llamarModeloJson(
@@ -117,7 +125,8 @@ export async function POST(request: Request) {
               antecedentes,
               secciones,
               detencion,
-              fecha
+              fecha,
+              comuna
             ),
           },
         ],
@@ -133,35 +142,59 @@ export async function POST(request: Request) {
       detencion
     );
 
-    // Nombre con grado (si está configurado) para el encabezado y la firma.
-    const funcionario = sesion.grado?.trim()
-      ? `${sesion.grado.trim()} ${sesion.nombre}`
-      : sesion.nombre;
+    // El membrete es fijo y lo arma el servidor (no el modelo): así la
+    // prefectura y la unidad no dependen de la IA.
+    const membrete = construirMembrete({
+      prefectura: process.env.UNIDAD_PREFECTURA ?? null,
+      unidad: process.env.UNIDAD_NOMBRE ?? null,
+    });
 
-    // El encabezado es fijo y lo arma el servidor (no el modelo): así la
-    // unidad, la fecha, el funcionario y la materia no dependen de la IA.
-    const encabezado: SeccionBorrador = {
-      titulo: TITULO_ENCABEZADO,
-      contenido: construirEncabezadoParte({
-        unidad: process.env.UNIDAD_NOMBRE ?? null,
-        fecha,
-        hora,
-        funcionario,
-        materia:
-          antecedentes.detencion.delito ?? antecedentes.tipoProcedimiento,
-      }),
-    };
+    // El modelo devuelve solo las secciones con datos; el servidor agrega las
+    // que se construyen con datos estructurados (fiscal, situación, firmas).
+    const seccionesModelo = validados.secciones.filter(
+      (seccion) =>
+        seccion.titulo !== TITULO_ENCABEZADO &&
+        seccion.titulo !== TITULO_PIE &&
+        seccion.contenido.trim().length > 0
+    );
 
-    const seccionesBorrador = [
-      encabezado,
-      ...validados.secciones,
+    if (
+      !seccionesModelo.some((seccion) => seccion.titulo === TITULO_RELATO)
+    ) {
+      seccionesModelo.unshift({
+        titulo: TITULO_RELATO,
+        contenido: antecedentes.descripcionHechos ?? "",
+      });
+    }
+
+    const instrucciones = construirInstruccionesFiscal(antecedentes.fiscal);
+    const textoSituacion = antecedentes.detencion.situacion?.trim();
+    const situacion =
+      detencion && textoSituacion
+        ? textoSituacion.charAt(0).toUpperCase() + textoSituacion.slice(1)
+        : null;
+
+    // Firmas: el personal a cargo; si no se informó, el funcionario en sesión.
+    const funcionariosFirma =
+      antecedentes.funcionarios.length > 0
+        ? antecedentes.funcionarios
+        : [{ grado: sesion.grado ?? null, nombre: sesion.nombre }];
+
+    const seccionesBorrador: SeccionBorrador[] = [
+      ...(membrete
+        ? [{ titulo: TITULO_ENCABEZADO, contenido: membrete }]
+        : []),
+      ...seccionesModelo,
+      ...(instrucciones
+        ? [{ titulo: TITULO_INSTRUCCIONES, contenido: instrucciones }]
+        : []),
+      ...(situacion
+        ? [{ titulo: TITULO_SITUACION, contenido: situacion }]
+        : []),
       {
         titulo: TITULO_PIE,
-        contenido: construirPieParte({
-          funcionario,
-          unidad: process.env.UNIDAD_NOMBRE ?? null,
-        }),
-      } satisfies SeccionBorrador,
+        contenido: construirPieParte(funcionariosFirma),
+      },
     ];
 
     const borrador: BorradorParte = {

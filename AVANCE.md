@@ -2,10 +2,55 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 27/10/2026
-- **Estado general:** 🟢 **En producción** — Fases 0 a 10 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: confirmar el formato exacto del encabezado con la unidad y ampliar el presupuesto de IA para uso diario.
-- **Último commit analizado:** `cd8c204` — "Fase 9: interfaz responsive para celular, tablet y escritorio".
+- **Última actualización:** 28/10/2026
+- **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Último commit analizado:** `1f76015` — "AVANCE: registro del despliegue automatico desde GitHub".
 
+> **Sesión 28/10/2026 — formato oficial de la unidad (Fase 11):** se recibieron
+> cuatro documentos en `formato parte/` (dos partes ya confeccionados en el
+> servicio de guardia y dos actas de aprehensor). Se extrajo su estructura a
+> `docs/formato-parte-oficial.md` (**sin datos personales**) y se rehizo la
+> plantilla: membrete institucional, apertura «Doy/Se da cuenta…»,
+> identificación dentro del relato, secciones variables (incluidas las propias
+> de VIF), instrucciones del fiscal y firmas de todos los funcionarios a cargo.
+> La carpeta de documentos quedó en `.gitignore`. Verificación:
+> `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 92/92 ·
+> `npm run build` ✅. Prueba real contra el modelo con un caso **ficticio** de
+> detención por hurto: 12–18 s y documento con apertura, párrafos «Que, »,
+> secciones, instrucciones del fiscal y firmas; sin secciones inventadas
+> cuando el dato no constaba.
+>
+> **Ajuste tras la primera prueba del usuario:** el chat rechazaba el acta con
+> «El mensaje supera los 4000 caracteres». Se amplió el mensaje a **30 000
+> caracteres** y el cuerpo de la petición a **256 KB**, y el campo de escritura
+> pasó a `textarea` con contador y atajos (Enter envía, Mayús+Enter salta de
+> línea). Con textos largos el modelo gratuito tardaba varios minutos o se
+> colgaba, así que `lib/trozos.ts` divide el mensaje en trozos de 3 500
+> caracteres que se procesan en orden acumulando los antecedentes. Verificado:
+> acta de 4 182 caracteres en 14 s y acta de 7 308 en 79 s (tres trozos), con
+> lugar, fecha, especie, lesiones, fiscal e instrucciones. Las respuestas
+> largas del chat se muestran colapsadas con un botón «Mostrar completo».
+>
+> **Corrección de interfaz:** el formulario del chat no tenía `flex-wrap`, así
+> que la ayuda ocupaba la misma fila y aplastaba el área de texto. Se agregó
+> `flex-wrap` y el área de texto conserva todo el ancho disponible.
+>
+> **Reglas ajustadas tras la prueba:** la «especie» solo se exige en hurtos,
+> robos, receptación, daños, estafas y apropiaciones; en detenciones por
+> ebriedad o VIF ya no bloquea el borrador. La espera muestra los segundos
+> transcurridos y el cliente corta a los 6 minutos con un mensaje claro, en
+> vez de quedar en «procesando» para siempre.
+>
+> **Diagnóstico de la lentitud (bloquea la beta):** medida con
+> `poolside/laguna-s-2.1:free`, una llamada tarda entre **0,4 s y 27 s** según
+> la saturación del proveedor, con **429 intermitentes**; el enrutamiento por
+> latencia de OpenRouter no lo corrige y los modelos gratuitos de respaldo
+> también están limitados. La aplicación no es el cuello de botella: con un
+> modelo rápido (por ejemplo `google/gemini-3-flash-preview`, ~US$0,25 por
+> millón de tokens de entrada y US$1,50 de salida) cada parte cuesta ~US$0,003
+> y responde en pocos segundos. Alternativa sin costo: una clave gratuita de
+> Groq o Google AI Studio cambiando `AI_BASE_URL`, `AI_API_KEY` y `AI_MODEL`.
+>
 > **Sesión 27/10/2026 — verificación de arranque:** árbol limpio, `npm test` → **89/89 ✅**, y presentes `node_modules`, `.env`, `.env.local` y `prisma/dev.db`. Se corrige la bitácora: la Fase 8 **ya está commiteada** en `6ae4069` (antes figuraba como "sin commit"). Siguiente paso sugerido: prueba real del parte de detenido y ajuste del encabezado/firma.
 >
 > **Sesión 27/10/2026 — despliegue:** se publicó en Vercel con Neon PostgreSQL. Se corrigió `vercel.json` (no era JSON válido por los comentarios `#`) y la región (`scl1` no existe; se usa `gru1`). Protección SSO de Vercel desactivada para que los funcionarios puedan entrar con su propio login. Pruebas de humo en producción: `/` 200, login 200, `/api/casos` 401 sin sesión y 200 con sesión, `/dashboard` 200, y escritura confirmada en la tabla `Usuario` de Neon.
@@ -182,6 +227,8 @@ guardiavirtual/
 │   ├── globals.css
 │   ├── layout.tsx
 │   └── page.tsx                      # ✅ Página de login
+├── docs/
+│   └── formato-parte-oficial.md      # ✅ Estructura de los documentos de la unidad
 ├── lib/
 │   ├── antecedentes.ts               # ✅ Reglas de dominio
 │   ├── auth-server.ts                # ✅ Sesión en el servidor
@@ -197,6 +244,7 @@ guardiavirtual/
 │   ├── prompts.ts                    # ✅ Única fuente de prompts
 │   ├── schemas.ts                    # ✅ Validación con Zod
 │   ├── sesion.ts                     # ✅ Cookies firmadas y hashes
+│   ├── trozos.ts                     # ✅ Troceado de actas largas para la IA
 │   ├── types.ts                      # ✅ Contrato de datos
 │   ├── usuarios.ts                   # ✅ Funcionarios (USUARIOS_JSON)
 │   ├── usuarios-db.ts                # ✅ Sincronización con la tabla Usuario
@@ -257,18 +305,21 @@ guardiavirtual/
 11. **Tests** (`tests/`) — 89 pruebas unitarias (`npm test`).
 12. **Despliegue** (`DEPLOY.md`, `vercel.json`, `scripts/proveedor-db.mjs`) —
     guía completa para Vercel + PostgreSQL.
-13. **Parte de detenido** (`lib/plantillas.ts`, `lib/types.ts`,
-    `lib/prompts.ts`) — extrae identificación del detenido (nombre, RUT, edad,
-    nacionalidad, estado civil, estudios, ocupación, nacimiento, domicilio,
-    teléfono, correo) y circunstancias de la detención (hora, fecha, delito,
-    lugar, personal aprehensor, acompañante, vehículo, lesiones). El borrador
-    se titula «PARTE DE DETENIDO» y el relato usa el estilo «Que, …».
-14. **Encabezado y cierre del parte** (`lib/plantillas.ts`,
-    `app/api/borrador/route.ts`) — UNIDAD, PARTE NRO., FECHA/HORA,
-    FUNCIONARIO y MATERIA al inicio; «Es cuanto puedo informar a Ud.» y firma
-    al final. Se generan en el servidor, son editables y se incluyen al
-    copiar, descargar e imprimir. El visor ofrece **vista previa** del
-    documento completo.
+13. **Parte con el formato de la unidad** (`lib/plantillas.ts`,
+    `lib/types.ts`, `lib/prompts.ts`) — extrae identificación del detenido
+    (nombre, RUT, edad, nacionalidad, estado civil, estudios, ocupación,
+    nacimiento, domicilio, teléfono, correo), circunstancias de la detención
+    (hora, fecha, delito, lugar, personal aprehensor, acompañante, vehículo,
+    lesiones, situación), funcionarios a cargo y fiscal de turno con sus
+    instrucciones. El relato usa la apertura «Doy/Se da cuenta…» y el estilo
+    «Que, …», con la identificación dentro del texto.
+14. **Membrete, secciones variables y firmas** (`lib/plantillas.ts`,
+    `app/api/borrador/route.ts`) — membrete institucional configurable
+    (`UNIDAD_PREFECTURA`, `UNIDAD_NOMBRE`), secciones propias por tipo
+    (detenido, VIF y general), instrucciones del fiscal y una línea de firma
+    por funcionario con su grado. Se generan en el servidor, son editables y
+    se incluyen al copiar, descargar e imprimir. El visor ofrece **vista
+    previa** del documento completo.
 15. **Interfaz responsive** (`app/dashboard/page.tsx`,
     `app/components/*`) — panel lateral deslizable en celular y tablet, chat
     a pantalla completa, visor del borrador como hoja en móvil y modales
@@ -283,14 +334,15 @@ guardiavirtual/
 | `lib/usuarios-db.ts` | La sincronización con `USUARIOS_JSON` ocurre al iniciar sesión. | Un funcionario que nunca ha iniciado sesión no existe en la tabla `Usuario` (por eso `asegurarUsuario` la crea al guardar un caso). |
 | `prisma/migrations` | El historial de migraciones está escrito en **SQL de SQLite**. | En PostgreSQL se usa `prisma db push` (ver `DEPLOY.md`). Si se adoptan migraciones en producción, hay que generar las de PostgreSQL aparte. |
 | `prompt.md` | Sigue siendo **documentación**: el prompt real vive en `lib/prompts.ts`. | Sin impacto funcional; conviene mantenerlo sincronizado. |
-| `app/api/chat/route.ts` | El estado de los antecedentes viaja en el cuerpo de la petición. | Cada mensaje reenvía el estado completo. Con casos muy largos puede llegar al límite de 64 KB. |
+| `app/api/chat/route.ts` | El estado de los antecedentes viaja en el cuerpo de la petición. | Cada mensaje reenvía el estado completo. Las actas largas se trocean (3 500 caracteres) y consumen una llamada al modelo por trozo, lo que gasta cuota más rápido. |
 | `app/dashboard/page.tsx` | Datos del funcionario tomados de la sesión (correcto), pero sin lista de "agentes" a futuro. | Sin impacto actual. |
 
 ### ❌ Pendiente (lo que falta para el objetivo)
 
-1. **Ajustes finos de la plantilla de detenido** — la estructura implementada
-   se basa en el modelo aportado; si la unidad usa un formato oficial distinto
-   (orden de datos, secciones o encabezado), se ajusta en `lib/plantillas.ts`.
+1. **Validación de la plantilla con un caso real** — la estructura de la Fase
+   11 se basa en dos partes y dos actas de la unidad; falta probarla con un
+   caso completo y ajustar el orden de las secciones o la redacción en
+   `lib/plantillas.ts` y `lib/prompts.ts`.
 2. **Presupuesto de IA para uso diario** — el plan gratuito de OpenRouter
    permite 50 solicitudes/día; una guardia con varios casos lo agota. Una
    recarga única de USD 10 sube el límite a 1000/día.
@@ -298,8 +350,8 @@ guardiavirtual/
    instancias.
 4. **Migración de usuarios a la base de datos** con hash de contraseña
    persistente (eliminaría `USUARIOS_JSON`).
-5. **Formato exacto del encabezado** — repartición, folio, timbre o grado en la
-   firma, según lo que exija la unidad.
+5. **Datos exactos del membrete y del número de parte** — prefectura,
+   comisaría, comuna y folio visible, según lo que exija la unidad.
 
 ---
 
@@ -541,6 +593,46 @@ cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
 **Pendiente de esta fase:** ampliar el límite de IA (el plan gratuito de
 OpenRouter permite 50 solicitudes/día).
 
+### Fase 11 — Formato oficial de la unidad — ✅ COMPLETADA (sujeta a validación)
+
+Se recibieron cuatro documentos modelo en `formato parte/`: dos **partes ya
+confeccionados** en el servicio de guardia (detenido por conducción en estado
+de ebriedad y denuncia VIF) y dos **actas de aprehensor** (información que el
+personal de servicio entrega al funcionario de guardia).
+
+- [x] **Documentación de la estructura** en `docs/formato-parte-oficial.md`,
+      sin datos personales, con la tabla de brechas y las decisiones pendientes.
+- [x] **Privacidad:** `formato parte/`, `partes/` y `*.docx` quedaron en
+      `.gitignore`; los documentos no se versionan.
+- [x] **Membrete institucional** (`construirMembrete`): `CARABINEROS DE CHILE`,
+      `UNIDAD_PREFECTURA` y `UNIDAD_NOMBRE`. Si no están configuradas, el
+      documento no inventa el membrete y el funcionario puede escribirlo.
+- [x] **Sin título interno:** el formato de la unidad parte con la fórmula de
+      apertura; el título del borrador quedó solo como nombre del caso.
+- [x] **Fórmula de apertura** en la sección RELATO: «Doy cuenta a esa Fiscalía
+      Local…» (parte) y «Se da cuenta a esa Fiscalía Local…» (denuncia/VIF).
+- [x] **Identificación dentro del relato**, en línea corrida, sin listas
+      «Etiqueta: valor».
+- [x] **Secciones variables** por tipo: `SECCIONES_PARTE`,
+      `SECCIONES_DETENIDO` (DERECHOS, VERIFICACIÓN DE IDENTIDAD, ANTECEDENTES,
+      LICENCIAS, SEGUROS…) y `SECCIONES_VIF` (SERNAMEG, PAUTA RIESGO,
+      IDENTIDAD DEL DENUNCIADO, CONTROL DE ARMAS). El modelo devuelve solo las
+      que tienen datos.
+- [x] **Instrucciones del fiscal de turno** (`construirInstruccionesFiscal`):
+      nombre, folio de bitácora e instrucciones numeradas.
+- [x] **Situación del detenido** como sección propia.
+- [x] **Firmas de todos los funcionarios a cargo** (`construirPieParte`), con
+      grado y nombre; si no se informan, se usa el funcionario en sesión.
+- [x] **Extracción ampliada:** `funcionarios[]`, `fiscal{nombre, folio,
+      instrucciones[]}` y `detencion.situacion`, con combinación entre mensajes.
+- [x] **Vista previa e impresión** adaptadas al formato (membrete, relato y
+      secciones con dos puntos, sin título).
+- [x] Tests y verificación completa (92 pruebas).
+
+**Pendiente de esta fase:** validar el resultado con un caso real y confirmar
+con la unidad los datos del membrete, el número de parte y si el acta de
+aprehensor debe cargarse como archivo.
+
 ---
 
 ## 7. Dónde quedamos (resumen para retomar)
@@ -581,13 +673,11 @@ OpenRouter permite 50 solicitudes/día).
 ### Próximos pasos inmediatos (sugeridos)
 1. **Ampliar el límite de IA** (OpenRouter): una recarga única de USD 10 sube
    de 50 a 1000 solicitudes/día, suficiente para una guardia.
-2. **Confirmar el formato exacto del encabezado y la firma**: si la unidad usa
-   repartición, folio, timbre o grado en la firma, se ajusta en
-   `construirEncabezadoParte` / `construirPieParte` (`lib/plantillas.ts`).
-   Hoy se completan Unidad, N.° de parte, fecha/hora, funcionario y materia,
-   más el cierre «Es cuanto puedo informar a Ud.» con línea de firma.
-3. Probar el parte de detenido con un caso real completo y ajustar la
-   redacción (orden de diligencias, denominación del delito, formato de horas).
+2. **Completar el membrete en producción**: definir `UNIDAD_PREFECTURA`,
+   `UNIDAD_NOMBRE` y `UNIDAD_COMUNA` en Vercel (hoy el documento sale sin
+   membrete). Las firmas ya incluyen el grado de cada funcionario.
+3. Probar el parte con un caso real completo (detenido y VIF) y ajustar la
+   redacción (orden de secciones, denominación del delito, formato de horas).
 4. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
    memoria; en un despliegue con varias instancias hay que moverlo a Redis
    (Upstash) para que el límite sea global.
@@ -610,7 +700,9 @@ OpenRouter permite 50 solicitudes/día).
 | `AI_MODEL_REDACCION` | ✅ definido | `poolside/laguna-s-2.1:free` (redacción; si falta, usa `AI_MODEL`) |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
 | `USUARIOS_JSON` | ✅ definido | ID `daniel`; el campo opcional `grado` se usa en el encabezado y la firma |
-| `UNIDAD_NOMBRE` | ⬜ opcional | Nombre de la unidad para el encabezado; si falta se escribe `[PENDIENTE]` |
+| `UNIDAD_PREFECTURA` | ⬜ opcional | Prefectura del membrete (por ejemplo, `Prefectura Villarrica Nro. 3`) |
+| `UNIDAD_NOMBRE` | ⬜ opcional | Unidad del membrete (por ejemplo, `9na. Comisaría Pucón`) |
+| `UNIDAD_COMUNA` | ⬜ opcional | Comuna de la fórmula «Doy cuenta a esa Fiscalía Local de…» |
 | `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
 
 > En producción, `SESSION_SECRET` y `USUARIOS_JSON` son **obligatorias** y
@@ -625,7 +717,7 @@ OpenRouter permite 50 solicitudes/día).
 | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Cifradas en Vercel |
 | `SESSION_SECRET` | ✅ | Nueva, generada para producción (distinta de la local) |
 | `USUARIOS_JSON` | ✅ | Cifrada; mismo funcionario `daniel` |
-| `UNIDAD_NOMBRE` | ⬜ | Pendiente; el encabezado muestra `[PENDIENTE]` |
+| `UNIDAD_PREFECTURA` / `UNIDAD_NOMBRE` / `UNIDAD_COMUNA` | ⬜ | Pendientes; sin ellas el parte sale sin membrete |
 
 **Proyecto:** `guardiavirtual` · **URL:** <https://guardiavirtual.vercel.app> ·
 **Región:** `gru1` (São Paulo) · **Base:** Neon Free (`neondb`, São Paulo).

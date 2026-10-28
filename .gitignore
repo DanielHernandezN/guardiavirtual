@@ -42,6 +42,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# documentos de ejemplo con datos personales (nunca se versionan)
+/formato parte/
+/partes/
+*.docx
+
 # base de datos local (sqlite)
 prisma/*.db
 prisma/*.db-journal

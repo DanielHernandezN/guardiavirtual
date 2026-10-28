@@ -10,13 +10,16 @@ import {
 import {
   TITULO_ENCABEZADO,
   TITULO_PIE,
+  TITULO_RELATO,
   componerTextoParte,
-  construirEncabezadoParte,
+  construirInstruccionesFiscal,
+  construirMembrete,
   construirPieParte,
   seccionesPara,
   tituloPorTipo,
   SECCIONES_PARTE,
   SECCIONES_DETENIDO,
+  SECCIONES_VIF,
 } from "@/lib/plantillas";
 import { parseModelContent } from "@/lib/parse";
 
@@ -70,7 +73,18 @@ describe("título del parte", () => {
   it("expone las secciones oficiales del parte", () => {
     assert.deepEqual(
       SECCIONES_PARTE.map((seccion) => seccion.titulo),
-      ["ANTECEDENTES", "HECHOS", "ESPECIES INVOLUCRADAS", "CONCLUSIÓN"]
+      [
+        "RELATO",
+        "LESIONES",
+        "ESPECIES SUSTRAÍDAS",
+        "INCAUTACIÓN",
+        "GRABACIONES Y CADENA DE CUSTODIA",
+        "DAÑOS",
+        "AVALÚO",
+        "TESTIGOS",
+        "CÁMARAS DE SEGURIDAD",
+        "DILIGENCIAS",
+      ]
     );
   });
 
@@ -78,11 +92,38 @@ describe("título del parte", () => {
     assert.deepEqual(
       SECCIONES_DETENIDO.map((seccion) => seccion.titulo),
       [
-        "IDENTIFICACIÓN DEL DETENIDO",
-        "CIRCUNSTANCIAS DE LA DETENCIÓN",
-        "HECHOS",
-        "ESPECIES INVOLUCRADAS",
-        "DERECHOS Y TRASLADO",
+        "RELATO",
+        "DERECHOS",
+        "LESIONES",
+        "VERIFICACIÓN DE IDENTIDAD",
+        "ANTECEDENTES",
+        "ESPECIES SUSTRAÍDAS",
+        "INCAUTACIÓN",
+        "DAÑOS",
+        "AVALÚO",
+        "TESTIGOS",
+        "CÁMARAS DE SEGURIDAD",
+        "LICENCIAS DE CONDUCTOR",
+        "SEGUROS OBLIGATORIOS",
+        "SEGUROS COMPLEMENTARIOS",
+        "DILIGENCIAS",
+      ]
+    );
+  });
+
+  it("usa la plantilla de violencia intrafamiliar", () => {
+    assert.deepEqual(
+      SECCIONES_VIF.map((seccion) => seccion.titulo),
+      [
+        "RELATO",
+        "LESIONES",
+        "CONSENTIMIENTO SERNAMEG",
+        "PAUTA RIESGO",
+        "TESTIGOS",
+        "CÁMARAS DE SEGURIDAD",
+        "IDENTIDAD DEL DENUNCIADO",
+        "CONTROL DE ARMAS",
+        "DILIGENCIAS",
       ]
     );
   });
@@ -90,74 +131,96 @@ describe("título del parte", () => {
   it("elige la plantilla según el tipo de parte", () => {
     assert.equal(seccionesPara(true), SECCIONES_DETENIDO);
     assert.equal(seccionesPara(false), SECCIONES_PARTE);
+    assert.equal(
+      seccionesPara(false, "violencia intrafamiliar"),
+      SECCIONES_VIF
+    );
+    assert.equal(seccionesPara(true, "VIF"), SECCIONES_VIF);
   });
 });
 
-describe("encabezado del parte", () => {
-  it("arma el encabezado con los datos disponibles", () => {
-    const encabezado = construirEncabezadoParte({
-      unidad: "1ra. Comisaría Villarrica",
-      numeroParte: "1234",
-      fecha: "22/10/2026",
-      hora: "15:30",
-      funcionario: "Daniel Hernández Norambuena",
-      materia: "Robo por sorpresa",
+describe("membrete del parte", () => {
+  it("arma el membrete con prefectura y unidad", () => {
+    const membrete = construirMembrete({
+      prefectura: "Prefectura Villarrica Nro. 3",
+      unidad: "9na. Comisaría Pucón",
     });
 
-    assert.match(encabezado, /UNIDAD: 1ra\. Comisaría Villarrica/);
-    assert.match(encabezado, /PARTE NRO\.: 1234/);
-    assert.match(encabezado, /FECHA: 22\/10\/2026\s+HORA: 15:30/);
-    assert.match(encabezado, /FUNCIONARIO: Daniel Hernández Norambuena/);
-    assert.match(encabezado, /MATERIA: Robo por sorpresa/);
+    assert.equal(
+      membrete,
+      "CARABINEROS DE CHILE\nPREFECTURA VILLARRICA NRO. 3\n9NA. COMISARÍA PUCÓN"
+    );
   });
 
-  it("marca como pendientes los datos que faltan", () => {
-    const encabezado = construirEncabezadoParte({
-      unidad: null,
-      fecha: "22/10/2026",
-      hora: "15:30",
-      funcionario: "Funcionario de Prueba",
-      materia: null,
-    });
-
-    assert.match(encabezado, /UNIDAD: \[PENDIENTE\]/);
-    assert.match(encabezado, /PARTE NRO\.: \[PENDIENTE\]/);
-    assert.match(encabezado, /MATERIA: \[PENDIENTE\]/);
+  it("omite el membrete si no hay datos de la unidad", () => {
+    assert.equal(construirMembrete({}), "");
+    assert.equal(construirMembrete({ prefectura: null, unidad: "  " }), "");
   });
 
-  it("compone el texto con el encabezado primero y el título después", () => {
+  it("compone el texto con membrete, relato y secciones sin título", () => {
     const texto = componerTextoParte("PARTE DE DETENIDO", [
-      { titulo: TITULO_ENCABEZADO, contenido: "UNIDAD: Prueba" },
-      { titulo: "HECHOS", contenido: "Que, ocurrió el hecho." },
-      { titulo: TITULO_PIE, contenido: "Es cuanto puedo informar a Ud." },
+      { titulo: TITULO_ENCABEZADO, contenido: "CARABINEROS DE CHILE" },
+      { titulo: TITULO_RELATO, contenido: "Doy cuenta a esa Fiscalía Local." },
+      { titulo: "LESIONES", contenido: "Sin lesiones." },
+      { titulo: TITULO_PIE, contenido: "Firmas" },
     ]);
 
-    assert.ok(texto.startsWith("UNIDAD: Prueba"));
-    assert.ok(texto.indexOf("PARTE DE DETENIDO") < texto.indexOf("HECHOS"));
-    assert.ok(texto.indexOf("HECHOS") < texto.indexOf("Es cuanto puedo informar"));
+    assert.ok(texto.startsWith("CARABINEROS DE CHILE"));
+    assert.ok(!texto.includes("PARTE DE DETENIDO"));
+    assert.ok(!texto.includes(`${TITULO_RELATO}:`));
+    assert.match(texto, /LESIONES: Sin lesiones\./);
+    assert.ok(texto.indexOf("LESIONES") < texto.indexOf("Firmas"));
     assert.ok(!texto.includes(TITULO_ENCABEZADO));
   });
 });
 
-describe("cierre y firma del parte", () => {
-  it("incluye la fórmula de cierre y el nombre del funcionario", () => {
-    const pie = construirPieParte({
-      funcionario: "Daniel Hernández Norambuena",
-      unidad: "1ra. Comisaría Villarrica",
+describe("instrucciones del fiscal", () => {
+  it("numera las instrucciones y menciona el folio", () => {
+    const instrucciones = construirInstruccionesFiscal({
+      nombre: "Fiscal de Turno",
+      folio: "2026-4-44151",
+      instrucciones: [
+        "Concurrencia personal SIAT",
+        "Constatar lesiones de la víctima",
+      ],
     });
 
-    assert.match(pie, /Es cuanto puedo informar a Ud\./);
-    assert.match(pie, /Daniel Hernández Norambuena/);
-    assert.match(pie, /1ra\. Comisaría Villarrica/);
+    assert.ok(instrucciones);
+    assert.match(instrucciones, /folio N° 2026-4-44151/);
+    assert.match(instrucciones, /1\. Concurrencia personal SIAT/);
+    assert.match(instrucciones, /2\. Constatar lesiones de la víctima/);
   });
 
-  it("usa 'Funcionario' si no hay unidad", () => {
-    const pie = construirPieParte({
-      funcionario: "Funcionario de Prueba",
-      unidad: null,
-    });
+  it("devuelve null si no hay datos del fiscal", () => {
+    assert.equal(
+      construirInstruccionesFiscal({
+        nombre: null,
+        folio: null,
+        instrucciones: [],
+      }),
+      null
+    );
+  });
+});
 
-    assert.match(pie, /Funcionario de Prueba\nFuncionario$/);
+describe("cierre y firma del parte", () => {
+  it("incluye una línea de firma por funcionario", () => {
+    const pie = construirPieParte([
+      { grado: "Sargento 2do.", nombre: "Daniel Hernández Norambuena" },
+      { grado: "Cabo 1ro.", nombre: "Leonardo Cariman Huenhupi" },
+    ]);
+
+    assert.match(
+      pie,
+      /DATOS DE LOS FUNCIONARIOS A CARGO DEL PROCEDIMIENTO\./
+    );
+    assert.match(pie, /Sargento 2do\. Daniel Hernández Norambuena\s+_+/);
+    assert.match(pie, /Cabo 1ro\. Leonardo Cariman Huenhupi\s+_+/);
+    assert.ok(!pie.includes("Es cuanto puedo informar"));
+  });
+
+  it("devuelve una cadena vacía si no hay funcionarios", () => {
+    assert.equal(construirPieParte([]), "");
   });
 });
 

@@ -1,6 +1,8 @@
 import {
   camposFaltantes,
   combinarDatos,
+  combinarFiscal,
+  combinarFuncionarios,
   crearRespuestaConversacional,
 } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
@@ -9,7 +11,12 @@ import { fechaDeHoy } from "@/lib/fecha";
 import { ERROR_SIN_CLAVE, hayClaveDeIA, llamarModeloJson } from "@/lib/ia";
 import { registrarUso } from "@/lib/limites";
 import { PROMPT_EXTRAER_ANTECEDENTES, construirMensajeUsuario } from "@/lib/prompts";
-import { esquemaAntecedentes, esquemaRespuestaModelo } from "@/lib/schemas";
+import {
+  esquemaAntecedentes,
+  esquemaRespuestaModelo,
+  type RespuestaModelo,
+} from "@/lib/schemas";
+import { dividirEnTrozos } from "@/lib/trozos";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
 import { esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
 
@@ -77,55 +84,84 @@ export async function POST(request: Request) {
     // Normaliza y valida los antecedentes acumulados que envía el cliente.
     const antecedentesPrevios = esquemaAntecedentes.parse(antecedentesEntrada);
 
-    const validados = esquemaRespuestaModelo.parse(
-      await llamarModeloJson([
-        { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
-        {
-          role: "user",
-          content: construirMensajeUsuario(
-            antecedentesPrevios,
-            mensaje,
-            fechaDeHoy()
-          ),
-        },
-      ])
-    );
+    /**
+     * Acumula la respuesta del modelo sobre el estado previo.
+     * - `reiniciar`: el mensaje describe otro procedimiento, así que el
+     *   estado se reemplaza para que el caso nuevo no herede datos.
+     * - Si no, se conserva lo ya conocido cuando el modelo devuelve `null`.
+     */
+    const combinar = (
+      previos: Antecedentes,
+      validados: RespuestaModelo,
+      reiniciar: boolean
+    ): Antecedentes =>
+      reiniciar
+        ? {
+            tipoProcedimiento: validados.tipoProcedimiento,
+            especie: validados.especie,
+            lugar: validados.lugar,
+            fecha: validados.fecha,
+            descripcionHechos: validados.descripcionHechos ?? mensaje,
+            detenido: validados.detenido,
+            detencion: validados.detencion,
+            funcionarios: validados.funcionarios,
+            fiscal: validados.fiscal,
+            contradicciones: validados.contradicciones,
+          }
+        : {
+            tipoProcedimiento:
+              validados.tipoProcedimiento ?? previos.tipoProcedimiento,
+            especie: validados.especie ?? previos.especie,
+            lugar: validados.lugar ?? previos.lugar,
+            fecha: validados.fecha ?? previos.fecha,
+            descripcionHechos:
+              validados.descripcionHechos ??
+              previos.descripcionHechos ??
+              mensaje,
+            detenido: combinarDatos(validados.detenido, previos.detenido),
+            detencion: combinarDatos(validados.detencion, previos.detencion),
+            funcionarios: combinarFuncionarios(
+              validados.funcionarios,
+              previos.funcionarios
+            ),
+            fiscal: combinarFiscal(validados.fiscal, previos.fiscal),
+            contradicciones: validados.contradicciones,
+          };
 
-    const antecedentes: Antecedentes = validados.cambioDeProcedimiento
-      ? // El mensaje describe otro procedimiento: se reemplaza el estado
-        // acumulado, para que el caso nuevo no herede datos del anterior.
-        {
-          tipoProcedimiento: validados.tipoProcedimiento,
-          especie: validados.especie,
-          lugar: validados.lugar,
-          fecha: validados.fecha,
-          descripcionHechos: validados.descripcionHechos ?? mensaje,
-          detenido: validados.detenido,
-          detencion: validados.detencion,
-          contradicciones: validados.contradicciones,
-        }
-      : // Mismo procedimiento: se conserva lo ya conocido cuando el modelo
-        // devuelve null (incluidos los datos del detenido y de la detención).
-        {
-          tipoProcedimiento:
-            validados.tipoProcedimiento ?? antecedentesPrevios.tipoProcedimiento,
-          especie: validados.especie ?? antecedentesPrevios.especie,
-          lugar: validados.lugar ?? antecedentesPrevios.lugar,
-          fecha: validados.fecha ?? antecedentesPrevios.fecha,
-          descripcionHechos:
-            validados.descripcionHechos ??
-            antecedentesPrevios.descripcionHechos ??
-            mensaje,
-          detenido: combinarDatos(
-            validados.detenido,
-            antecedentesPrevios.detenido
-          ),
-          detencion: combinarDatos(
-            validados.detencion,
-            antecedentesPrevios.detencion
-          ),
-          contradicciones: validados.contradicciones,
-        };
+    // Un acta completa puede superar el tamaño que el modelo procesa bien:
+    // se envía por trozos, acumulando el estado como en mensajes sucesivos.
+    const trozos = dividirEnTrozos(mensaje);
+    const hoy = fechaDeHoy();
+    let antecedentes: Antecedentes = antecedentesPrevios;
+    let cambioDeProcedimiento = false;
+
+    for (const [indice, trozo] of trozos.entries()) {
+      const validados = esquemaRespuestaModelo.parse(
+        await llamarModeloJson(
+          [
+            { role: "system", content: PROMPT_EXTRAER_ANTECEDENTES },
+            {
+              role: "user",
+              content: construirMensajeUsuario(antecedentes, trozo, hoy),
+            },
+          ],
+          // Extracción interactiva: no se deja al funcionario esperando
+          // más de ~3 minutos por trozo (90 s por intento, dos intentos).
+          { timeoutMs: 90_000, intentos: 2 }
+        )
+      );
+
+      // Solo el primer trozo puede cambiar de procedimiento: los siguientes
+      // son continuación del mismo documento.
+      const reiniciar =
+        indice === 0 && validados.cambioDeProcedimiento;
+
+      if (indice === 0) {
+        cambioDeProcedimiento = validados.cambioDeProcedimiento;
+      }
+
+      antecedentes = combinar(antecedentes, validados, reiniciar);
+    }
 
     const faltantes = camposFaltantes(antecedentes);
 
@@ -134,7 +170,7 @@ export async function POST(request: Request) {
       ...antecedentes,
       puedeConfeccionarBorrador: faltantes.length === 0,
       faltantes,
-      cambioDeProcedimiento: validados.cambioDeProcedimiento,
+      cambioDeProcedimiento,
     };
 
     return Response.json(resultado);

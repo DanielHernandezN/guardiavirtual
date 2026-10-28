@@ -3,6 +3,8 @@ import {
   type Antecedentes,
   type DatosDetencion,
   type DatosDetenido,
+  type DatosFiscal,
+  type FuncionarioParte,
 } from "./types";
 
 /**
@@ -37,6 +39,14 @@ export const DETENCION_VACIA: DatosDetencion = {
   personalAcompanante: null,
   vehiculo: null,
   lesiones: null,
+  situacion: null,
+};
+
+/** Fiscal de turno sin datos. */
+export const FISCAL_VACIO: DatosFiscal = {
+  nombre: null,
+  folio: null,
+  instrucciones: [],
 };
 
 /** Crea unos antecedentes sin datos (caso nuevo). */
@@ -48,6 +58,8 @@ export const crearAntecedentesVacios = (): Antecedentes => ({
   descripcionHechos: null,
   detenido: { ...DETENIDO_VACIO },
   detencion: { ...DETENCION_VACIA },
+  funcionarios: [],
+  fiscal: { ...FISCAL_VACIO, instrucciones: [] },
   contradicciones: [],
 });
 
@@ -89,11 +101,68 @@ export const combinarDatos = <T extends Record<string, string | null>>(
   return resultado;
 };
 
+/**
+ * Combina el fiscal de turno entre mensajes: conserva los datos ya conocidos
+ * y reemplaza las instrucciones solo cuando el mensaje trae nuevas.
+ */
+export const combinarFiscal = (
+  nuevo: DatosFiscal,
+  previo: DatosFiscal
+): DatosFiscal => ({
+  nombre: nuevo.nombre ?? previo.nombre,
+  folio: nuevo.folio ?? previo.folio,
+  instrucciones:
+    nuevo.instrucciones.length > 0
+      ? nuevo.instrucciones
+      : previo.instrucciones,
+});
+
+/**
+ * Combina el personal a cargo evitando duplicados por nombre.
+ * Se usa para el bloque de firmas del parte.
+ */
+export const combinarFuncionarios = (
+  nuevos: FuncionarioParte[],
+  previos: FuncionarioParte[]
+): FuncionarioParte[] => {
+  const porNombre = new Map<string, FuncionarioParte>();
+
+  for (const funcionario of [...previos, ...nuevos]) {
+    const nombre = funcionario.nombre?.trim();
+    if (!nombre) continue;
+
+    const clave = nombre.toLowerCase();
+    const anterior = porNombre.get(clave);
+    porNombre.set(clave, {
+      grado: funcionario.grado ?? anterior?.grado ?? null,
+      nombre,
+    });
+  }
+
+  return [...porNombre.values()];
+};
+
+/**
+ * Indica si el procedimiento tiene especies que describir.
+ *
+ * En una detención por conducción en estado de ebriedad, una VIF o un
+ * accidente no hay «especie», así que no debe exigirse ese dato.
+ */
+export const exigeEspecie = (
+  antecedentes: Pick<Antecedentes, "tipoProcedimiento">
+): boolean =>
+  /hurt|rob|recept|apropiaci|da[ñn]o|estafa|usurpaci|especie/i.test(
+    antecedentes.tipoProcedimiento ?? ""
+  );
+
 /** Devuelve las etiquetas de los campos obligatorios que aún faltan. */
 export const camposFaltantes = (antecedentes: Antecedentes): string[] =>
-  CAMPOS_OBLIGATORIOS.filter(({ key }) => !antecedentes[key]).map(
-    ({ label }) => label
-  );
+  CAMPOS_OBLIGATORIOS.filter(({ key }) => {
+    // La especie solo se exige cuando el procedimiento la involucra.
+    if (key === "especie" && !exigeEspecie(antecedentes)) return false;
+
+    return !antecedentes[key];
+  }).map(({ label }) => label);
 
 /**
  * Indica si se puede redactar el borrador del parte.

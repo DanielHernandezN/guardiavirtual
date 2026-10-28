@@ -130,26 +130,61 @@ describe("reglas de dominio", () => {
   it("bloquea la redacción si falta un campo obligatorio", () => {
     assert.equal(puedeRedactarBorrador({ ...completo, especie: null }), false);
   });
+
+  it("no exige especie en una detención por ebriedad", () => {
+    const detencion: Antecedentes = {
+      ...crearAntecedentesVacios(),
+      tipoProcedimiento: "detención por conducción en estado de ebriedad",
+      lugar: "Calle Dos 1515, Villarrica",
+      fecha: "28/10/2026",
+    };
+
+    assert.deepEqual(camposFaltantes(detencion), []);
+    assert.equal(puedeRedactarBorrador(detencion), true);
+  });
+
+  it("no exige especie en una denuncia de violencia intrafamiliar", () => {
+    const vif: Antecedentes = {
+      ...crearAntecedentesVacios(),
+      tipoProcedimiento: "violencia intrafamiliar",
+      lugar: "Pasaje Los Aromos 120",
+      fecha: "28/10/2026",
+    };
+
+    assert.deepEqual(camposFaltantes(vif), []);
+  });
+
+  it("sí exige especie en hurtos y robos", () => {
+    const robo: Antecedentes = {
+      ...crearAntecedentesVacios(),
+      tipoProcedimiento: "robo con fuerza",
+      lugar: "Av. O'Higgins 135",
+      fecha: "28/10/2026",
+    };
+
+    assert.deepEqual(camposFaltantes(robo), ["la especie involucrada"]);
+    assert.equal(puedeRedactarBorrador(robo), false);
+  });
 });
 
 describe("esquema de detención", () => {
   it("normaliza los datos del detenido y de la detención", () => {
     const resultado = esquemaAntecedentes.parse({
       detenido: {
-        nombre: "Daniel Antonio Hernández Norambuena",
-        rut: "18.198.906-8",
+        nombre: "N.N. de prueba",
+        rut: "11.111.111-1",
         edad: 33,
         fechaNacimiento: "1992-12-07",
       },
       detencion: {
         hora: "15:30 hrs",
         fechaDetencion: "22/10/2026",
-        personalAprehensor: "Sgto. 1ro. Daniel Hernández Norambuena",
+        personalAprehensor: "Sgto. 1ro. N.N. de prueba",
         lesiones: "sin lesiones",
       },
     });
 
-    assert.equal(resultado.detenido.nombre, "Daniel Antonio Hernández Norambuena");
+    assert.equal(resultado.detenido.nombre, "N.N. de prueba");
     assert.equal(resultado.detenido.edad, "33");
     assert.equal(resultado.detenido.fechaNacimiento, "07/12/1992");
     assert.equal(resultado.detenido.telefono, null);
@@ -183,7 +218,7 @@ describe("detección de detención", () => {
   it("detecta la detención por los datos del detenido", () => {
     const datos = {
       ...crearAntecedentesVacios(),
-      detenido: { ...DETENIDO_VACIO, nombre: "Daniel" },
+      detenido: { ...DETENIDO_VACIO, nombre: "N.N. de prueba" },
     };
 
     assert.equal(esDetencion(datos), true);
@@ -210,18 +245,18 @@ describe("detección de detención", () => {
 describe("combinar datos acumulados", () => {
   it("conserva los valores previos cuando el nuevo es null", () => {
     const resultado = combinarDatos(
-      { ...DETENIDO_VACIO, nombre: null, rut: "18.198.906-8" },
-      { ...DETENIDO_VACIO, nombre: "Daniel", rut: null }
+      { ...DETENIDO_VACIO, nombre: null, rut: "11.111.111-1" },
+      { ...DETENIDO_VACIO, nombre: "N.N. de prueba", rut: null }
     );
 
-    assert.equal(resultado.nombre, "Daniel");
-    assert.equal(resultado.rut, "18.198.906-8");
+    assert.equal(resultado.nombre, "N.N. de prueba");
+    assert.equal(resultado.rut, "11.111.111-1");
   });
 
   it("reemplaza el valor cuando el nuevo está informado", () => {
     const resultado = combinarDatos(
       { ...DETENIDO_VACIO, nombre: "Otro nombre" },
-      { ...DETENIDO_VACIO, nombre: "Daniel" }
+      { ...DETENIDO_VACIO, nombre: "N.N. de prueba" }
     );
 
     assert.equal(resultado.nombre, "Otro nombre");

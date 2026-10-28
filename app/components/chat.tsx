@@ -8,6 +8,7 @@ import {
   puedeRedactarBorrador,
 } from "@/lib/antecedentes";
 import { pedirJson } from "@/lib/cliente";
+import { MENSAJE_MAXIMO } from "@/lib/constantes";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import EstadoCaso from "./EstadoCaso";
 
@@ -33,6 +34,26 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
     const [datosAntecedentes, setDatosAntecedentes] =
         useState<Antecedentes>(crearAntecedentesVacios);
     const [borradorCargando, setBorradorCargando] = useState(false);
+    // Mensajes largos (por ejemplo, un acta pegada) se muestran colapsados.
+    const [expandidos, setExpandidos] = useState<Record<number, boolean>>({});
+    // Tiempo transcurrido mientras el modelo procesa, para que la espera no
+    // parezca que la aplicación se colgó.
+    const [segundos, setSegundos] = useState(0);
+
+    useEffect(() => {
+        if (!isLoading) {
+            setSegundos(0);
+            return;
+        }
+
+        const inicio = Date.now();
+        const temporizador = setInterval(
+            () => setSegundos(Math.floor((Date.now() - inicio) / 1000)),
+            1000
+        );
+
+        return () => clearInterval(temporizador);
+    }, [isLoading]);
 
     // El borrador solo está disponible si no faltan campos y no hay
     // contradicciones entre procedimientos.
@@ -82,7 +103,9 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 {
                     method: "POST",
                     body: JSON.stringify(payload),
-                }
+                },
+                // Margen amplio: un acta larga se procesa por trozos.
+                { timeoutMs: 360_000 }
             );
 
             if (!data.respuesta) {
@@ -101,6 +124,8 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 descripcionHechos: data.descripcionHechos,
                 detenido: data.detenido,
                 detencion: data.detencion,
+                funcionarios: data.funcionarios,
+                fiscal: data.fiscal,
                 contradicciones: data.contradicciones,
             });
 
@@ -212,7 +237,8 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                         </h3>
                         <p className="mt-2 text-sm text-oliva-900">
                             Cuéntame los hechos del caso y yo voy completando los
-                            antecedentes.
+                            antecedentes. También puedes pegar el{" "}
+                            <strong>acta de aprehensor</strong> completa.
                         </p>
                         <p className="mt-3 text-xs leading-relaxed text-oliva-600">
                             Necesito el <strong>tipo de procedimiento</strong>, la{" "}
@@ -227,28 +253,53 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                     </div>
                 )}
 
-                {mensajes.map((mensaje, index) => (
-                <div key={index}
-                    className={
-                        mensaje.autor === "funcionario"
-                        ? "mt-3 flex justify-end first:mt-0"
-                        : "mt-3 flex justify-start first:mt-0"
-                }  
-                >
-                    <div className={
-                        mensaje.autor === "funcionario"
-                        ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-300 bg-oliva-200 p-3 text-oliva-900 sm:max-w-[75%] sm:p-4"
-                        : mensaje.autor === "error"
-                        ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-red-300 bg-red-50 p-3 text-red-900 sm:max-w-[75%] sm:p-4"
-                        : "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-700 bg-oliva-800 p-3 text-oliva-50 sm:max-w-[75%] sm:p-4"
-                    }>
-                    <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
-                        {mensaje.autor === "error" ? "error" : mensaje.autor}
-                    </p>
-                    <p className="whitespace-pre-wrap">{mensaje.contenido}</p>
+                {mensajes.map((mensaje, index) => {
+                    const esLargo = mensaje.contenido.length > 1200;
+                    const abierto = Boolean(expandidos[index]);
+                    const texto =
+                        esLargo && !abierto
+                            ? `${mensaje.contenido.slice(0, 1200)}…`
+                            : mensaje.contenido;
+
+                    return (
+                    <div key={index}
+                        className={
+                            mensaje.autor === "funcionario"
+                            ? "mt-3 flex justify-end first:mt-0"
+                            : "mt-3 flex justify-start first:mt-0"
+                    }
+                    >
+                        <div className={
+                            mensaje.autor === "funcionario"
+                            ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-300 bg-oliva-200 p-3 text-oliva-900 sm:max-w-[75%] sm:p-4"
+                            : mensaje.autor === "error"
+                            ? "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-red-300 bg-red-50 p-3 text-red-900 sm:max-w-[75%] sm:p-4"
+                            : "flex max-w-[85%] flex-col gap-1 break-words rounded-xl border border-oliva-700 bg-oliva-800 p-3 text-oliva-50 sm:max-w-[75%] sm:p-4"
+                        }>
+                        <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                            {mensaje.autor === "error" ? "error" : mensaje.autor}
+                        </p>
+                        <p className="whitespace-pre-wrap">{texto}</p>
+                        {esLargo && (
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setExpandidos((previos) => ({
+                                        ...previos,
+                                        [index]: !abierto,
+                                    }))
+                                }
+                                className="self-start text-xs font-semibold underline underline-offset-2 opacity-80 hover:opacity-100"
+                            >
+                                {abierto
+                                    ? "Mostrar menos"
+                                    : `Mostrar completo (${mensaje.contenido.length.toLocaleString("es-CL")} caracteres)`}
+                            </button>
+                        )}
+                        </div>
                     </div>
-                </div>
-                ))}
+                    );
+                })}
 
                 {isLoading && (
                     <div className="mt-3 flex justify-start">
@@ -256,7 +307,14 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                             <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
                                 cabo
                             </p>
-                            <p>Analizando antecedentes...</p>
+                            <p>
+                                Analizando antecedentes
+                                {segundos > 2 && ` · ${segundos} s`}...
+                            </p>
+                            <p className="text-xs opacity-70">
+                                Si pegaste un acta extensa, se procesa por
+                                partes y puede tardar un minuto.
+                            </p>
                         </div>
                     </div>
                 )}
@@ -277,6 +335,7 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
               <form onSubmit={handleSubmit} className="
               flex
               flex-col
+              flex-wrap
               gap-2
               p-4
               pb-[calc(1rem+env(safe-area-inset-bottom))]
@@ -286,9 +345,13 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
               "
         
               >
-                <input className="
+                <textarea
+                className="
                 min-w-0
+                w-full
+                max-h-48
                 flex-1
+                resize-y
                 px-4
                 py-3
                 rounded-xl
@@ -301,11 +364,20 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 focus:border-oliva-500
                 focus:ring-2
                 focus:ring-oliva-500/25
+                sm:w-auto
                 sm:px-6
                 "
-                placeholder="Escriba los antecedentes"
+                rows={2}
+                placeholder="Escriba los antecedentes o pegue el acta de aprehensor completa"
                 value={antecedentes}
                 onChange={(e) => setAntecedentes(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter envía; Mayús+Enter inserta un salto de línea.
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 disabled={isLoading}
                 />
                   <button type="submit"
@@ -323,6 +395,27 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                   "
                   disabled={isLoading}
                   >{isLoading ? "PROCESANDO..." : "ENVIAR"}</button>
+
+                  <p className="text-xs leading-relaxed text-oliva-600 sm:basis-full">
+                    Puedes pegar el acta de aprehensor completa. Enter envía;
+                    Mayús + Enter hace un salto de línea.
+                    {antecedentes.length > 0 && (
+                      <>
+                        {" "}
+                        <span
+                          className={
+                            antecedentes.length > MENSAJE_MAXIMO
+                              ? "font-semibold text-red-700"
+                              : "font-semibold"
+                          }
+                        >
+                          {antecedentes.length.toLocaleString("es-CL")} /{" "}
+                          {MENSAJE_MAXIMO.toLocaleString("es-CL")}
+                        </span>{" "}
+                        caracteres.
+                      </>
+                    )}
+                  </p>
               </form>
             </div>
           </section>

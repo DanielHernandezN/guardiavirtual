@@ -127,6 +127,32 @@ export const esquemaDetencion = z.preprocess(
     personalAcompanante: textoNullable,
     vehiculo: textoNullable,
     lesiones: textoNullable,
+    situacion: textoNullable,
+  })
+);
+
+/** Esquema de un funcionario a cargo (para las firmas). */
+export const esquemaFuncionario = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    grado: textoNullable,
+    nombre: textoNullable,
+  })
+);
+
+/** Lista de funcionarios: acepta cualquier entrada y devuelve objetos limpios. */
+const listaFuncionarios = z.preprocess(
+  (valor) => (Array.isArray(valor) ? valor : []),
+  z.array(esquemaFuncionario)
+);
+
+/** Esquema del fiscal de turno y sus instrucciones. */
+export const esquemaFiscal = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    nombre: textoNullable,
+    folio: textoNullable,
+    instrucciones: listaDeTextos,
   })
 );
 
@@ -142,6 +168,8 @@ export const esquemaAntecedentes = z.object({
   descripcionHechos: textoNullable,
   detenido: esquemaDetenido,
   detencion: esquemaDetencion,
+  funcionarios: listaFuncionarios,
+  fiscal: esquemaFiscal,
   contradicciones: listaDeTextos,
 });
 

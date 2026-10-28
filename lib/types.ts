@@ -34,6 +34,30 @@ export type DatosDetenido = {
   correo: string | null;
 };
 
+/**
+ * Funcionario que interviene en el procedimiento.
+ * Se usa para el bloque de firmas del parte.
+ */
+export type FuncionarioParte = {
+  /** Grado (por ejemplo, "Sargento 2do." o "Cabo 1ro."). */
+  grado: string | null;
+  /** Nombre completo. */
+  nombre: string | null;
+};
+
+/**
+ * Fiscal de turno y las instrucciones que impartió.
+ * Todos los documentos de la unidad cierran con este bloque.
+ */
+export type DatosFiscal = {
+  /** Nombre del fiscal de turno. */
+  nombre: string | null;
+  /** Folio de la bitácora web (por ejemplo, "2026-4-44151"). */
+  folio: string | null;
+  /** Instrucciones, en orden y sin numeración. */
+  instrucciones: string[];
+};
+
 /** Circunstancias de la detención. */
 export type DatosDetencion = {
   /** Hora de la detención en formato `HH:mm`. */
@@ -52,6 +76,8 @@ export type DatosDetencion = {
   vehiculo: string | null;
   /** Resultado de la constatación de lesiones (por ejemplo, "sin lesiones"). */
   lesiones: string | null;
+  /** Situación procesal del detenido (por ejemplo, "pasa a control de detención"). */
+  situacion: string | null;
 };
 
 /**
@@ -76,6 +102,10 @@ export type Antecedentes = {
   detenido: DatosDetenido;
   /** Circunstancias de la detención (vacías si no hay detención). */
   detencion: DatosDetencion;
+  /** Personal a cargo del procedimiento (uno por firma). */
+  funcionarios: FuncionarioParte[];
+  /** Fiscal de turno y sus instrucciones. */
+  fiscal: DatosFiscal;
   /** Inconsistencias o datos en conflicto detectados. */
   contradicciones: string[];
 };

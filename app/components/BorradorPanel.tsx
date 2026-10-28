@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { extraerPendientes } from "@/lib/casos";
-import { TITULO_ENCABEZADO, TITULO_PIE, componerTextoParte } from "@/lib/plantillas";
+import {
+  TITULO_ENCABEZADO,
+  TITULO_PIE,
+  TITULO_RELATO,
+  componerTextoParte,
+} from "@/lib/plantillas";
 import type { Antecedentes, BorradorParte, SeccionBorrador } from "@/lib/types";
 
 type Props = {
@@ -122,16 +127,22 @@ export default function BorradorPanel({
       indiceEncabezado >= 0 ? secciones[indiceEncabezado] : null;
 
     const cuerpo = seccionesCuerpo
-      .map(({ seccion }) =>
-        seccion.titulo === TITULO_PIE
-          ? `<div class="firma">${escaparHtml(seccion.contenido).replace(
-              /\n/g,
-              "<br/>"
-            )}</div>`
-          : `<h2>${escaparHtml(seccion.titulo)}</h2><p>${escaparHtml(
-              seccion.contenido
-            ).replace(/\n/g, "<br/>")}</p>`
-      )
+      .map(({ seccion }) => {
+        const contenido = escaparHtml(seccion.contenido).replace(
+          /\n/g,
+          "<br/>"
+        );
+
+        if (seccion.titulo === TITULO_PIE) {
+          return `<div class="firma">${contenido}</div>`;
+        }
+
+        if (seccion.titulo === TITULO_RELATO) {
+          return `<p class="relato">${contenido}</p>`;
+        }
+
+        return `<h2>${escaparHtml(seccion.titulo)}:</h2><p>${contenido}</p>`;
+      })
       .join("");
 
     ventana.document.write(`<!doctype html>
@@ -141,11 +152,11 @@ export default function BorradorPanel({
     <title>${escaparHtml(titulo)}</title>
     <style>
       body { font-family: Georgia, serif; margin: 48px; line-height: 1.6; color: #111; }
-      .encabezado { font-size: 12px; line-height: 1.5; border-bottom: 1px solid #999; padding-bottom: 10px; margin-bottom: 18px; white-space: pre-wrap; }
-      h1 { border-bottom: 2px solid #4e5839; padding-bottom: 8px; font-size: 20px; }
-      h2 { margin-top: 28px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #3a412c; }
-      p { margin: 6px 0; }
-      .firma { margin-top: 36px; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+      .encabezado { text-align: center; font-size: 12px; font-weight: bold; letter-spacing: .08em; line-height: 1.5; padding-bottom: 10px; margin-bottom: 18px; white-space: pre-wrap; }
+      h2 { margin-top: 20px; margin-bottom: 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #111; }
+      p { margin: 6px 0; text-align: justify; }
+      .relato { margin-top: 0; }
+      .firma { margin-top: 40px; font-size: 12px; line-height: 2; white-space: pre-wrap; }
     </style>
   </head>
   <body>
@@ -157,7 +168,6 @@ export default function BorradorPanel({
           )}</div>`
         : ""
     }
-    <h1>${escaparHtml(titulo)}</h1>
     ${cuerpo}
   </body>
 </html>`);
@@ -237,34 +247,47 @@ export default function BorradorPanel({
                 </div>
               )}
 
-              <h3 className="mb-5 text-center text-base font-bold uppercase tracking-wide">
-                {titulo}
-              </h3>
+              {seccionesCuerpo.map(({ seccion, indice }) => {
+                if (seccion.titulo === TITULO_PIE) {
+                  return (
+                    <div
+                      key={indice}
+                      className="mt-10 whitespace-pre-wrap text-xs leading-relaxed"
+                    >
+                      {seccion.contenido}
+                    </div>
+                  );
+                }
 
-              {seccionesCuerpo.map(({ seccion, indice }) =>
-                seccion.titulo === TITULO_PIE ? (
-                  <div
-                    key={indice}
-                    className="mt-10 whitespace-pre-wrap text-xs leading-relaxed"
-                  >
-                    {seccion.contenido}
-                  </div>
-                ) : (
-                  <div key={indice} className="mb-6">
-                    <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-oliva-700">
-                      {seccion.titulo}
+                if (seccion.titulo === TITULO_RELATO) {
+                  return (
+                    <p
+                      key={indice}
+                      className="mb-4 whitespace-pre-wrap text-justify"
+                    >
+                      {seccion.contenido}
+                    </p>
+                  );
+                }
+
+                return (
+                  <div key={indice} className="mb-5">
+                    <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-oliva-900">
+                      {seccion.titulo}:
                     </h4>
-                    <p className="whitespace-pre-wrap">{seccion.contenido}</p>
+                    <p className="whitespace-pre-wrap text-justify">
+                      {seccion.contenido}
+                    </p>
                   </div>
-                )
-              )}
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-5">
               {indiceEncabezado >= 0 && (
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
-                Encabezado del documento
+                Membrete del documento
               </label>
               <textarea
                 value={secciones[indiceEncabezado].contenido}
@@ -275,17 +298,17 @@ export default function BorradorPanel({
                 className="w-full resize-y rounded-xl border border-oliva-300 bg-oliva-50 px-4 py-3 font-mono text-base leading-relaxed text-oliva-900 outline-none transition focus:border-oliva-500 focus:ring-2 focus:ring-oliva-500/25 sm:text-xs"
               />
               <p className="mt-1 text-xs text-oliva-600">
-                Unidad, número de parte, fecha, funcionario y materia. La fecha
-                y el funcionario se completan automáticamente; la unidad se
-                configura con <code>UNIDAD_NOMBRE</code>. Puedes ajustar el
-                número de parte aquí.
+                Carabineros de Chile, prefectura y unidad. Se configura con{" "}
+                <code>UNIDAD_PREFECTURA</code> y <code>UNIDAD_NOMBRE</code>; si
+                no están definidas, el documento no lleva membrete y puedes
+                escribirlo aquí.
               </p>
             </div>
           )}
 
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
-              Título
+              Nombre del documento (no se imprime)
             </label>
             <input
               value={titulo}
@@ -323,7 +346,9 @@ export default function BorradorPanel({
           {seccionesCuerpo.map(({ seccion, indice }) => (
             <div key={`${seccion.titulo}-${indice}`}>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-oliva-800">
-                {seccion.titulo}
+                {seccion.titulo === TITULO_RELATO
+                  ? "Relato de los hechos"
+                  : seccion.titulo}
               </label>
               <textarea
                 value={seccion.contenido}

@@ -10,7 +10,7 @@ import {
 } from "@/lib/sesion";
 import { buscarUsuario, hayUsuariosConfigurados, listarUsuarios } from "@/lib/usuarios";
 import { limpiarUso, registrarUso } from "@/lib/limites";
-import { esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
+import { MENSAJE_MAXIMO, esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
 import { ErrorEntradaInvalida, errorComoJson, mensajeAmigable } from "@/lib/errores";
 
 /**
@@ -204,8 +204,13 @@ describe("validación de entrada", () => {
     assert.equal(esquemaMensaje.safeParse({ mensaje: "   " }).success, false);
   });
 
-  it("rechaza un mensaje demasiado largo", () => {
-    const largo = "a".repeat(5000);
+  it("acepta un acta de aprehensor completa", () => {
+    const acta = "a".repeat(15_000);
+    assert.equal(esquemaMensaje.safeParse({ mensaje: acta }).success, true);
+  });
+
+  it("rechaza un mensaje que supera el máximo", () => {
+    const largo = "a".repeat(MENSAJE_MAXIMO + 1);
     assert.equal(esquemaMensaje.safeParse({ mensaje: largo }).success, false);
   });
 
