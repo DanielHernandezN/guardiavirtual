@@ -6,6 +6,23 @@
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
 
+> **Sesión 28/10/2026 — nombre con «??» en producción (corrección):** el
+> dominio de Vercel mostraba «Daniel Hern??ndez Norambuena» mientras que en
+> local se veía correcto. La causa no era el código ni la base de datos: la
+> variable `USUARIOS_JSON` de producción se había guardado con una codificación
+> que destruyó la «á» (es de tipo *Sensitive*, así que no se puede leer desde la
+> CLI). Reiniciada la variable con el JSON de `.env.local` —que tiene el nombre
+> correcto— vía API de Vercel (`PATCH`/upsert de `/v10/projects/{id}/env`), se
+> redeployó y se verificó con un login real contra
+> <https://guardiavirtual.vercel.app>: `POST /api/auth/login` devuelve
+> «Daniel Hernández Norambuena» y `/dashboard` ya no contiene `??` ni `Ã¡`.
+> Queda una sola variable `USUARIOS_JSON` (actualizada, tipo *Sensitive*,
+> producción). **La contraseña de producción es ahora la de `.env.local`.**
+> Además, `lib/usuarios.ts` avisa por consola si un nombre configurado trae `?`
+> o U+FFFD, y `DEPLOY.md` documenta cómo cargar valores con tildes sin romper
+> la codificación. `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ 102/102 · `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — membrete del chat con más cuerpo (UI/UX):** el título
 > «CABO VIRTUAL» del encabezado del chat pasó de heredar el tamaño y el peso del
 > cuerpo (16 px, regular) a `text-lg font-bold tracking-tight`, para que tenga

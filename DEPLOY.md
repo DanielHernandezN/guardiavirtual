@@ -76,6 +76,16 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 > `SESSION_SECRET` y `USUARIOS_JSON` **no** pueden tener valores por defecto:
 > son los dos controles de acceso del sistema.
 
+> **Acentos y eñes en las variables:** el valor debe llegar como UTF-8. Una
+> variable guardada con la página de códigos de Windows puede dejar el nombre
+> como `Hern??ndez` (la tilde se pierde y no se puede recuperar). Para
+> cargarla sin riesgo, escribe el valor en un archivo UTF-8 **sin BOM** y usa
+> `npx vercel env add USUARIOS_JSON production < valor.txt`, o pégalo en el
+> dashboard de Vercel. Las variables de tipo *Sensitive* no se pueden volver a
+> leer desde la CLI: si se corrompen, hay que reescribirlas. Al iniciar sesión,
+> la aplicación avisa por consola (`[auth] El nombre del funcionario …`) si
+> detecta nombres con `?` o el carácter U+FFFD.
+
 ---
 
 ## 3. Despliegue

@@ -39,12 +39,24 @@ const aUsuario = ({
   nombre,
   grado,
   password,
-}: UsuarioConfig): Usuario => ({
-  id,
-  nombre,
-  grado: grado?.trim() || null,
-  passwordHash: hashPassword(password),
-});
+}: UsuarioConfig): Usuario => {
+  // Síntoma típico de una variable de entorno pegada con una codificación que
+  // no es UTF-8: las tildes y la eñe llegan destruidas ("Hern??ndez"). No se
+  // corrige sola (la información ya se perdió), pero conviene detectarla.
+  if (/[\uFFFD?]/.test(nombre)) {
+    console.warn(
+      `[auth] El nombre del funcionario "${id}" tiene caracteres inválidos ` +
+        "(`?` o U+FFFD). Revisa que USUARIOS_JSON se haya guardado como UTF-8."
+    );
+  }
+
+  return {
+    id,
+    nombre: nombre.trim(),
+    grado: grado?.trim() || null,
+    passwordHash: hashPassword(password),
+  };
+};
 
 /** Lista de funcionarios configurados en el entorno. */
 export const listarUsuarios = (): Usuario[] => {
