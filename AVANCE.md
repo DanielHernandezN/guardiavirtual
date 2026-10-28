@@ -1,4 +1,4 @@
-# AVANCE — Guardia Virtual (Cabo Virtual)
+# AVANCE — Guardia Virtual
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
@@ -6,6 +6,16 @@
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Último commit analizado:** `3d8df42` — "Corrige el nombre con acentos en produccion y avisa si USUARIOS_JSON llega mal codificado" (incluye las mejoras de UI/UX del panel lateral, la bienvenida del chat y el encabezado).
 
+> **Sesión 28/10/2026 — el producto se llama «Guardia Virtual»:** el usuario
+> cambió el título del login (`app/page.tsx`) de «Cabo Virtual» a «Guardia
+> Virtual». Para que la marca sea coherente se alinearon el encabezado del chat
+> («GUARDIA VIRTUAL», antes «CABO VIRTUAL»), el título de la pestaña
+> (`metadata` de `app/layout.tsx`: «Guardia Virtual — Sistema de apoyo
+> documental») y los encabezados de `README.md`, `DEPLOY.md`, `AVANCE.md` y los
+> comentarios de `globals.css`, `lib/types.ts` y `lib/prompts.ts`. Las menciones
+> históricas de la bitácora se conservan tal cual. `npm run typecheck` ✅ ·
+> `npm run lint` ✅ 0 errores · `npm test` ✅ 102/102 · `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — nombre con «??» en producción (corrección):** el
 > dominio de Vercel mostraba «Daniel Hern??ndez Norambuena» mientras que en
 > local se veía correcto. La causa no era el código ni la base de datos: la

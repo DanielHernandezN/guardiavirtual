@@ -194,7 +194,7 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 </button>
                 <div className="min-w-0">
                   <h2 className="truncate text-lg font-bold tracking-tight text-oliva-900">
-                    CABO VIRTUAL
+                    GUARDIA VIRTUAL
                   </h2>
                   <p className="truncate text-sm text-oliva-600">Asistente de apoyo documental</p>
                 </div>

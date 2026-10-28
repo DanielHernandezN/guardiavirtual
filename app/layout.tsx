@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cabo Virtual — Guardia Virtual",
+  title: "Guardia Virtual — Sistema de apoyo documental",
   description:
     "Sistema de apoyo documental con IA para la confección de partes policiales.",
 };

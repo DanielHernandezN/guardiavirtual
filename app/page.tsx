@@ -24,7 +24,7 @@ export default async function Home() {
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-oliva-900 sm:text-5xl">
-            Cabo Virtual
+            Guardia Virtual
           </h1>
 
           <p className="mt-2 text-sm uppercase tracking-[0.18em] text-oliva-600">

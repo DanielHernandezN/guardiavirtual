@@ -1,4 +1,4 @@
-# Guardia Virtual — Cabo Virtual
+# Guardia Virtual
 
 Asistente de apoyo documental para funcionarios de guardia: extrae los
 **antecedentes** de un caso a partir de la conversación, redacta el

@@ -1,5 +1,5 @@
 /**
- * Tipos del dominio — Guardia Virtual / Cabo Virtual
+ * Tipos del dominio — Guardia Virtual
  * ────────────────────────────────────────────────────
  * Define la estructura de datos del "parte policial" y de los
  * antecedentes que la IA extrae a partir de los mensajes del funcionario.

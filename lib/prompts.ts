@@ -2,7 +2,7 @@ import type { Antecedentes } from "./types";
 import type { SeccionPlantilla } from "./plantillas";
 
 /**
- * Prompts del sistema — Guardia Virtual / Cabo Virtual
+ * Prompts del sistema — Guardia Virtual
  * ─────────────────────────────────────────────────────
  * ÚNICA fuente de verdad para los textos que se envían al modelo de IA.
  * Los route handlers deben importar desde aquí y NO repetir los prompts

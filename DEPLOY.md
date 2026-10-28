@@ -1,4 +1,4 @@
-# Despliegue — Guardia Virtual (Cabo Virtual)
+# Despliegue — Guardia Virtual
 
 Guía para publicar la aplicación en **Vercel** con **PostgreSQL**.
 
