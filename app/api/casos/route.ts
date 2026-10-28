@@ -70,8 +70,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const { casoId, confirmar, antecedentes: antecedentesCrudos, borrador } =
-      validado.data;
+    const {
+      casoId,
+      confirmar,
+      antecedentes: antecedentesCrudos,
+      borrador,
+      documento,
+    } = validado.data;
 
     const antecedentes = esquemaAntecedentes.parse(antecedentesCrudos ?? {});
 
@@ -85,6 +90,9 @@ export async function POST(request: Request) {
       fecha: antecedentes.fecha,
       estado,
       antecedentes: JSON.stringify(antecedentes),
+      // La trazabilidad se guarda junto al caso para conservar la relación
+      // entre el documento de origen y los antecedentes extraídos.
+      ...(documento ? { documento: JSON.stringify(documento) } : {}),
     };
 
     // Los casos tienen clave foránea hacia `Usuario`: se asegura la
@@ -117,6 +125,7 @@ export async function POST(request: Request) {
             texto: borrador.textoCompleto ?? "",
             secciones: JSON.stringify(borrador.secciones ?? []),
             estado,
+            plantilla: borrador.plantilla ?? null,
             confirmadoEn: confirmar ? new Date() : null,
           },
         });

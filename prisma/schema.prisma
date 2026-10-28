@@ -58,6 +58,9 @@ model Caso {
   estado            String   @default("BORRADOR")
   /// Antecedentes estructurados, serializados como JSON.
   antecedentes      String   @default("{}")
+  /// Metadatos del documento de origen y trazabilidad (JSON): plantilla,
+  /// hash del archivo, observaciones y extractos de respaldo por campo.
+  documento         String?
   /// ID del funcionario (sincronizado con la tabla `Usuario`).
   usuarioId         String
   /// Fecha de eliminación (papelera). `null` si el caso está activo.
@@ -85,6 +88,8 @@ model Borrador {
   texto        String
   /// Estado del borrador: BORRADOR | CONFIRMADO.
   estado       String    @default("BORRADOR")
+  /// Plantilla usada al generar (`id@version`), para trazabilidad.
+  plantilla    String?
   generadoEn   DateTime  @default(now())
   confirmadoEn DateTime?
 

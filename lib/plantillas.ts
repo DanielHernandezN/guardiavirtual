@@ -89,6 +89,20 @@ const ANTECEDENTES: SeccionPlantilla = {
     "Antecedentes penales del imputado, órdenes de detención vigentes y registro general de condenas, SOLO si el funcionario informó el resultado de la consulta. Si no hay información, NO devuelvas esta sección.",
 };
 
+/** Resultados de pruebas respiratorias y alcoholemias informados. */
+const PRUEBAS: SeccionPlantilla = {
+  titulo: "PRUEBAS RESPIRATORIAS Y ALCOHOLEMIA",
+  instruccion:
+    "Resultado de las pruebas practicadas: alcoholemia (g/L), respiratoria (mg/L) y otras, con el instrumento o procedimiento si consta. Transcribe solo los resultados informados; si la prueba se practicó pero no hay resultado, no inventes un valor.",
+};
+
+/** Vehículos involucrados en el procedimiento. */
+const VEHICULOS: SeccionPlantilla = {
+  titulo: "VEHÍCULOS",
+  instruccion:
+    "Vehículos involucrados: patente, marca, modelo, color y año, uno por línea. No repitas aquí la documentación, los seguros ni las licencias, que tienen su propia sección.",
+};
+
 const ESPECIES: SeccionPlantilla = {
   titulo: "ESPECIES SUSTRAÍDAS",
   instruccion:
@@ -183,8 +197,10 @@ const CONTROL_ARMAS: SeccionPlantilla = {
 export const SECCIONES_PARTE: readonly SeccionPlantilla[] = [
   RELATO_PARTE,
   LESIONES,
+  PRUEBAS,
   ESPECIES,
   INCAUTACION,
+  VEHICULOS,
   GRABACIONES,
   DAÑOS,
   AVALUO,
@@ -198,10 +214,12 @@ export const SECCIONES_DETENIDO: readonly SeccionPlantilla[] = [
   RELATO_DETENIDO,
   DERECHOS,
   LESIONES,
+  PRUEBAS,
   VERIFICACION,
   ANTECEDENTES,
   ESPECIES,
   INCAUTACION,
+  VEHICULOS,
   DAÑOS,
   AVALUO,
   TESTIGOS,

@@ -6,7 +6,7 @@ import PanelLateral from "./PanelLateral";
 import BorradorPanel from "./BorradorPanel";
 import { ErrorDeApi, pedirJson } from "@/lib/cliente";
 import type { Antecedentes, BorradorParte } from "@/lib/types";
-import type { CasoResumen } from "@/lib/casos";
+import type { CasoResumen, DocumentoGuardado } from "@/lib/casos";
 
 type Props = {
   nombre: string;
@@ -29,6 +29,9 @@ export default function DashboardWorkspace({ nombre }: Props) {
   );
   const [antecedentesVisibles, setAntecedentesVisibles] =
     useState<Antecedentes | null>(null);
+  /** Trazabilidad del documento de origen, si el caso nació de un archivo. */
+  const [documentoVisible, setDocumentoVisible] =
+    useState<DocumentoGuardado | null>(null);
   const [mensajeEstado, setMensajeEstado] = useState("");
   /** Menú lateral deslizable (solo móvil y tablet). */
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -80,7 +83,13 @@ export default function DashboardWorkspace({ nombre }: Props) {
           body: JSON.stringify({
             casoId,
             antecedentes: antecedentesVisibles ?? {},
-            borrador,
+            documento: documentoVisible,
+            borrador: {
+              ...borrador,
+              plantilla: borrador.plantilla
+                ? `${borrador.plantilla.id}@${borrador.plantilla.version}`
+                : undefined,
+            },
             confirmar,
           }),
         }
@@ -110,6 +119,7 @@ export default function DashboardWorkspace({ nombre }: Props) {
     setMenuAbierto(false);
     setCasoId(caso.id);
     setAntecedentesVisibles(caso.antecedentes ?? null);
+    setDocumentoVisible(caso.documento ?? null);
     const ultimo = caso.borradores[0];
 
     if (!ultimo) {
@@ -118,11 +128,22 @@ export default function DashboardWorkspace({ nombre }: Props) {
       return;
     }
 
+    const [idPlantilla, version] = (ultimo.plantilla ?? "").split("@");
+
     setBorradorVisible({
       titulo: ultimo.titulo,
       secciones: ultimo.secciones,
       textoCompleto: ultimo.texto,
       generadoEn: ultimo.generadoEn,
+      ...(idPlantilla
+        ? {
+            plantilla: {
+              id: idPlantilla,
+              nombre: caso.documento?.plantilla?.nombre ?? idPlantilla,
+              version: version ?? "",
+            },
+          }
+        : {}),
     });
     setMensajeEstado("");
   };
@@ -225,6 +246,7 @@ export default function DashboardWorkspace({ nombre }: Props) {
           setCasoId(null);
           setBorradorVisible(null);
           setAntecedentesVisibles(null);
+          setDocumentoVisible(null);
           setMensajeEstado("");
           setClaveChat((clave) => clave + 1);
         }}
@@ -233,9 +255,10 @@ export default function DashboardWorkspace({ nombre }: Props) {
       <Chat
         key={claveChat}
         onAbrirMenu={() => setMenuAbierto(true)}
-        onBorradorGenerado={(borrador, antecedentes) => {
+        onBorradorGenerado={(borrador, antecedentes, documento) => {
           setBorradorVisible(borrador);
           setAntecedentesVisibles(antecedentes);
+          setDocumentoVisible(documento ?? null);
         }}
       />
 
@@ -243,6 +266,7 @@ export default function DashboardWorkspace({ nombre }: Props) {
         <BorradorPanel
           borrador={borradorVisible}
           antecedentes={antecedentesVisibles}
+          documento={documentoVisible}
           onCerrar={() => setBorradorVisible(null)}
           onGuardar={guardarBorrador}
         />

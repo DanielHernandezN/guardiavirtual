@@ -9,6 +9,9 @@ import {
 } from "@/lib/antecedentes";
 import { pedirJson } from "@/lib/cliente";
 import { MENSAJE_MAXIMO } from "@/lib/constantes";
+import { PLANTILLAS } from "@/lib/documentos/plantillas";
+import type { DocumentoProcesado } from "@/lib/documentos/tipos";
+import type { DocumentoGuardado } from "@/lib/casos";
 import type { Antecedentes, BorradorParte, ResultadoAnalisis } from "@/lib/types";
 import EstadoCaso from "./EstadoCaso";
 
@@ -18,8 +21,86 @@ type Props = {
   /** Notifica que se generó un borrador para mostrarlo en el visor. */
   onBorradorGenerado: (
     borrador: BorradorParte,
-    antecedentes: Antecedentes
+    antecedentes: Antecedentes,
+    documento?: DocumentoGuardado | null
   ) => void;
+};
+
+/** Convierte el documento procesado en los metadatos que se guardan con el caso. */
+const documentoGuardable = (
+  documento: DocumentoProcesado
+): DocumentoGuardado => ({
+  origen: {
+    nombre: documento.origen.nombre,
+    tipo: documento.origen.tipo,
+    metodo: documento.origen.metodo,
+    caracteres: documento.origen.caracteres,
+    paginas: documento.origen.paginas,
+    hash: documento.origen.hash,
+    procesadoEn: documento.origen.procesadoEn,
+    advertencias: documento.origen.advertencias,
+  },
+  plantilla: documento.plantilla,
+  observaciones: documento.observaciones,
+  faltantes: documento.faltantes,
+  sinDestino: documento.sinDestino,
+  trazabilidad: documento.trazabilidad.campos,
+});
+
+/** Resumen conversacional del documento procesado. */
+const resumenDocumento = (documento: DocumentoProcesado): string => {
+  const lineas = [
+    `Acta procesada: ${documento.origen.nombre} (${documento.origen.caracteres.toLocaleString(
+      "es-CL"
+    )} caracteres).`,
+    `Plantilla sugerida: ${documento.plantilla.nombre} (v${documento.plantilla.version}).`,
+  ];
+
+  if (documento.observaciones.length > 0) {
+    lineas.push("", "Observaciones de validación:");
+    lineas.push(
+      ...documento.observaciones
+        .slice(0, 8)
+        .map((observacion) => `· [${observacion.nivel}] ${observacion.mensaje}`)
+    );
+
+    if (documento.observaciones.length > 8) {
+      lineas.push(
+        `· y ${documento.observaciones.length - 8} observaciones más.`
+      );
+    }
+  }
+
+  if (documento.faltantes.length > 0) {
+    lineas.push("", `Faltan antecedentes: ${documento.faltantes.join(", ")}.`);
+  }
+
+  if (documento.sinDestino.length > 0) {
+    lineas.push(
+      "",
+      `Sin sección de destino en la plantilla: ${documento.sinDestino.join(", ")}.`
+    );
+  }
+
+  const dudosos = Object.values(documento.trazabilidad.campos).filter(
+    (campo) => campo.estado === "dudoso"
+  ).length;
+
+  if (dudosos > 0) {
+    lineas.push(
+      "",
+      `${dudosos} dato(s) no se localizaron literalmente en el documento: revísalos antes de firmar.`
+    );
+  }
+
+  lineas.push(
+    "",
+    documento.puedeRedactar
+      ? "Puedes generar el borrador y corregirlo antes de descargar el Word."
+      : "No se puede generar el documento definitivo hasta resolver lo anterior."
+  );
+
+  return lineas.join("\n");
 };
 
 export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
@@ -39,6 +120,12 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
     // Tiempo transcurrido mientras el modelo procesa, para que la espera no
     // parezca que la aplicación se colgó.
     const [segundos, setSegundos] = useState(0);
+    // Documento de origen procesado (acta en Word, PDF o texto).
+    const [documento, setDocumento] = useState<DocumentoProcesado | null>(null);
+    const [plantillaId, setPlantillaId] = useState("auto");
+    const [subiendo, setSubiendo] = useState(false);
+    const [errorDocumento, setErrorDocumento] = useState<string | null>(null);
+    const archivoRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (!isLoading) {
@@ -70,6 +157,69 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
             behavior: "smooth"
         });
     }, [mensajes, isLoading]);
+
+    /**
+     * Procesa un acta adjunta (TXT, DOCX o PDF): el servidor extrae el texto,
+     * consulta al modelo y valida los antecedentes. El archivo no se envía a
+     * ningún servicio distinto del backend de la aplicación.
+     */
+    const handleArchivo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const archivo = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!archivo) return;
+
+        setSubiendo(true);
+        setErrorDocumento(null);
+        setMensajes((mensajesActuales) => [
+            ...mensajesActuales,
+            { autor: "funcionario", contenido: `Adjunto acta: ${archivo.name}` },
+        ]);
+
+        try {
+            const formulario = new FormData();
+            formulario.append("archivo", archivo);
+
+            if (plantillaId !== "auto") {
+                formulario.append("plantillaId", plantillaId);
+            }
+
+            const respuesta = await fetch("/api/documentos/procesar", {
+                method: "POST",
+                body: formulario,
+            });
+            const data = await respuesta.json();
+
+            if (!respuesta.ok || !data.ok) {
+                throw new Error(
+                    data.error ?? "No se pudo procesar el documento."
+                );
+            }
+
+            const procesado = data.documento as DocumentoProcesado;
+
+            setDocumento(procesado);
+            setPlantillaId(procesado.plantilla.id);
+            setDatosAntecedentes(procesado.antecedentes);
+            setMensajes((mensajesActuales) => [
+                ...mensajesActuales,
+                { autor: "cabo", contenido: resumenDocumento(procesado) },
+            ]);
+        } catch (error) {
+            const mensaje =
+                error instanceof Error
+                    ? error.message
+                    : "No se pudo procesar el documento.";
+
+            setErrorDocumento(mensaje);
+            setMensajes((mensajesActuales) => [
+                ...mensajesActuales,
+                { autor: "error", contenido: mensaje },
+            ]);
+        } finally {
+            setSubiendo(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -126,6 +276,12 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 detencion: data.detencion,
                 funcionarios: data.funcionarios,
                 fiscal: data.fiscal,
+                pruebas: data.pruebas,
+                vehiculos: data.vehiculos,
+                testigos: data.testigos,
+                camaras: data.camaras,
+                diligencias: data.diligencias,
+                detalleEspecies: data.detalleEspecies,
                 contradicciones: data.contradicciones,
             });
 
@@ -152,11 +308,20 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
     const handleGenerarBorrador = async () => {
         setBorradorCargando(true);
         try {
-            const data = await pedirJson<{ ok: boolean; error?: string; borrador?: BorradorParte }>(
+            const data = await pedirJson<{
+                ok: boolean;
+                error?: string;
+                borrador?: BorradorParte;
+                plantilla?: { id: string; nombre: string; version: string };
+            }>(
                 "/api/borrador",
                 {
                     method: "POST",
-                    body: JSON.stringify({ antecedentes: datosAntecedentes }),
+                    body: JSON.stringify({
+                        antecedentes: datosAntecedentes,
+                        plantillaId:
+                            plantillaId === "auto" ? null : plantillaId,
+                    }),
                 }
             );
 
@@ -164,7 +329,15 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 throw new Error(data.error ?? "No se pudo generar el borrador.");
             }
 
-            onBorradorGenerado(data.borrador, datosAntecedentes);
+            if (data.plantilla) {
+                setPlantillaId(data.plantilla.id);
+            }
+
+            onBorradorGenerado(
+                { ...data.borrador, plantilla: data.plantilla },
+                datosAntecedentes,
+                documento ? documentoGuardable(documento) : null
+            );
         } catch (error) {
             setMensajes((mensajesActuales) => [
                 ...mensajesActuales,
@@ -238,14 +411,20 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                             Nuevo parte
                         </h3>
                         <p className="mt-3 text-sm leading-relaxed text-oliva-600">
-                            Necesito el <strong>tipo de procedimiento</strong>, la{" "}
-                            <strong>especie</strong> involucrada, el{" "}
-                            <strong>lugar</strong> y la <strong>fecha</strong>.
-                            Si es una detención, agrega también los datos del{" "}
-                            <strong>detenido</strong> (nombre, RUT, edad,
-                            domicilio), el <strong>personal aprehensor</strong> y
-                            la <strong>hora</strong>. Cuando estén los datos,
-                            genero el borrador del parte.
+                            Adjunta el <strong>acta de aprehensión</strong>{" "}
+                            (DOCX, PDF o TXT) o pega el texto. Extraigo los
+                            antecedentes, las individualizaciones y la relación
+                            de los hechos.
+                        </p>
+                        <p className="mt-2 text-xs leading-relaxed text-oliva-600">
+                            También puedes escribir el <strong>tipo de
+                            procedimiento</strong>, la <strong>especie</strong>,
+                            el <strong>lugar</strong>, la <strong>fecha</strong>{" "}
+                            y, si hay detención, los datos del{" "}
+                            <strong>detenido</strong> y del{" "}
+                            <strong>personal aprehensor</strong>. Cuando estén
+                            los datos, genero el borrador y podrás revisarlo
+                            antes de descargar el Word.
                         </p>
                     </div>
                 )}
@@ -326,6 +505,16 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 onResolver={resolverContradicciones}
             />
 
+            {documento && (
+              <div className="border-t border-oliva-200 bg-oliva-50 px-4 py-2 text-xs text-oliva-700 sm:px-6">
+                <span className="font-semibold">Acta de origen:</span>{" "}
+                {documento.origen.nombre} · {documento.plantilla.nombre} v
+                {documento.plantilla.version} ·{" "}
+                {documento.observaciones.length} observación(es) ·{" "}
+                {documento.origen.caracteres.toLocaleString("es-CL")} caracteres
+              </div>
+            )}
+
             <div className="border-t border-oliva-200 bg-oliva-100">
               <form onSubmit={handleSubmit} className="
               flex
@@ -340,6 +529,47 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
               "
         
               >
+                <div className="flex flex-wrap items-center gap-2 sm:basis-full">
+                  <input
+                    ref={archivoRef}
+                    type="file"
+                    accept=".txt,.md,.docx,.pdf"
+                    onChange={handleArchivo}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => archivoRef.current?.click()}
+                    disabled={isLoading || subiendo}
+                    className="rounded-lg border border-oliva-300 bg-oliva-50 px-3 py-2 text-xs font-semibold text-oliva-700 transition hover:bg-oliva-200 disabled:opacity-60"
+                  >
+                    {subiendo ? "PROCESANDO ACTA…" : "ADJUNTAR ACTA"}
+                  </button>
+                  <label className="flex items-center gap-2 text-xs text-oliva-600">
+                    Plantilla
+                    <select
+                      value={plantillaId}
+                      onChange={(event) => setPlantillaId(event.target.value)}
+                      disabled={isLoading || subiendo}
+                      className="rounded-lg border border-oliva-300 bg-oliva-50 px-2 py-1.5 text-xs text-oliva-800 outline-none focus:border-oliva-500"
+                    >
+                      <option value="auto">Automática</option>
+                      {PLANTILLAS.map((plantilla) => (
+                        <option key={plantilla.id} value={plantilla.id}>
+                          {plantilla.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span className="text-xs text-oliva-500">
+                    TXT, DOCX o PDF con texto digital · máx. 10 MB
+                  </span>
+                  {errorDocumento && (
+                    <span className="text-xs font-semibold text-red-700">
+                      {errorDocumento}
+                    </span>
+                  )}
+                </div>
                 <textarea
                 className="
                 min-w-0

@@ -3,9 +3,57 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 28/10/2026
-- **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
-- **Último commit analizado:** `3d8df42` — "Corrige el nombre con acentos en produccion y avisa si USUARIOS_JSON llega mal codificado" (incluye las mejoras de UI/UX del panel lateral, la bienvenida del chat y el encabezado).
+- **Estado general:** 🟢 **En producción** — Fases 0 a 12 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, y cuenta con **123 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Último commit analizado:** `e87dd9a` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
 
+> **Sesión 28/10/2026 — motor documental completo (Fase 12):** se cerró el
+> flujo que faltaba entre el acta y el Word. La ingesta acepta **TXT, DOCX y
+> PDF con capa de texto** (`lib/documentos/ingesta.ts`): valida extensión y
+> firma, limita a **10 MB**, normaliza el texto y exige al menos 40 caracteres.
+> Si el archivo no tiene texto (PDF escaneado o DOCX vacío) **no se declara
+> procesado**: se informa que requiere OCR. El tope de trabajo por solicitud es
+> de 40.000 caracteres para no disparar decenas de llamadas al modelo.
+>
+> La extracción (`extraccion.ts`) reutiliza el prompt y el troceado existentes y
+> acumula con `combinarAntecedentes`, igual que el chat. La validación
+> (`validacion.ts`) comprueba RUT, patentes, fechas, coherencia de edad y
+> contradicciones; **no corrige ni completa** valores: la alcoholemia ausente
+> queda en `null` con una advertencia explícita. La trazabilidad
+> (`trazabilidad.ts`) busca cada dato de forma literal en el acta y guarda el
+> extracto; si no lo encuentra, lo marca como **dudoso** (nunca inventa una
+> confianza: `confianza` queda en `null`).
+>
+> Las plantillas quedaron **versionadas en 1.1.0** (`parte-detenido`,
+> `parte-general`, `denuncia-vif`) con id, nombre, versión, secciones, campos
+> requeridos y opcionales, reglas, formato y condiciones de bloqueo. Se
+> agregaron las secciones **PRUEBAS RESPIRATORIAS Y ALCOHOLEMIA** y
+> **VEHÍCULOS**. El mapeo campo→sección (`mapeo.ts`) y el orden de las secciones
+> son determinísticos: el modelo redacta, pero **no decide la estructura**.
+>
+> `/api/borrador` acepta `plantillaId`, envía las reglas y las observaciones al
+> modelo, descarta las secciones que arma el servidor (fiscal y situación) para
+> no duplicarlas y reordena la salida. `/api/documentos/word` convierte el
+> borrador **ya editado** en `.docx` con Arial 11, interlineado 1,5, márgenes,
+> membrete centrado, secciones en negrita, firmas y numeración de página; no
+> vuelve a llamar a la IA. La UI permite adjuntar el acta, elegir plantilla,
+> revisar la trazabilidad y descargar el Word.
+>
+> **Persistencia aditiva:** `Caso.documento` (JSON con origen, hash, plantilla,
+> observaciones, faltantes y extractos) y `Borrador.plantilla` (`id@version`).
+> El build de Vercel ya ejecuta `prisma db push`, así que las columnas se crean
+> solas, sin pérdida de datos.
+>
+> **Verificación:** `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ **123/123** · `npm run build` ✅. Prueba real contra el modelo
+> con un **acta ficticia en DOCX**: extracción 57 s, borrador 16,5 s, Word 1 s;
+> el caso se guardó con su trazabilidad y se eliminó después. Una segunda
+> corrida seguida fue rechazada por el **límite del proveedor gratuito** (429),
+> con mensaje claro y sin perder el trabajo: es el mismo bloqueo de latencia
+> conocido, no un fallo del flujo.
+>
+> **Pendiente:** OCR para PDF escaneado (hoy se informa, no se simula), validar
+> el parte con un caso real y confirmar el membrete de la unidad.
+>
 > **Sesión 28/10/2026 — el producto se llama «Guardia Virtual»:** el usuario
 > cambió el título del login (`app/page.tsx`) de «Cabo Virtual» a «Guardia
 > Virtual». Para que la marca sea coherente se alinearon el encabezado del chat
@@ -281,7 +329,10 @@ guardiavirtual/
 │   │   ├── casos/
 │   │   │   ├── route.ts              # ✅ Listado y guardado de casos
 │   │   │   └── [id]/route.ts         # ✅ Ver, papelera, restaurar y borrar
-│   │   └── chat/route.ts             # ✅ Endpoint de extracción de antecedentes (con IA)
+│   │   ├── chat/route.ts             # ✅ Endpoint de extracción de antecedentes (con IA)
+│   │   └── documentos/
+│   │       ├── procesar/route.ts     # ✅ Ingesta + extracción + validación de actas
+│   │       └── word/route.ts         # ✅ Generación del .docx con formato institucional
 │   ├── components/
 │   │   ├── chat.tsx                  # ✅ UI del chat + acumulación de antecedentes
 │   │   ├── BorradorPanel.tsx         # ✅ Visor editable del borrador
@@ -308,6 +359,16 @@ guardiavirtual/
 │   ├── casos.ts                      # ✅ Serialización de casos y papelera
 │   ├── cliente.ts                    # ✅ Cliente HTTP del frontend
 │   ├── db.ts                         # ✅ Cliente de Prisma
+│   ├── documentos/                   # ✅ Motor documental (ingesta → Word)
+│   │   ├── tipos.ts                  # ✅ Contratos del módulo
+│   │   ├── ingesta.ts                # ✅ Lectura y validación de TXT/DOCX/PDF
+│   │   ├── extraccion.ts             # ✅ Extracción con IA por trozos
+│   │   ├── validacion.ts             # ✅ Reglas, faltantes y observaciones
+│   │   ├── plantillas.ts             # ✅ Plantillas versionadas (1.1.0)
+│   │   ├── mapeo.ts                  # ✅ Campo→sección y orden determinístico
+│   │   ├── trazabilidad.ts           # ✅ Extractos literales del acta
+│   │   ├── docx.ts                   # ✅ Generación del Word
+│   │   └── flujo.ts                  # ✅ Orquestador del procesamiento
 │   ├── errores.ts                    # ✅ Errores controlados (400/429/504/500)
 │   ├── fecha.ts                      # ✅ Normalización de fechas y horas
 │   ├── ia.ts                         # ✅ Cliente de IA (cualquier proveedor)
@@ -325,7 +386,7 @@ guardiavirtual/
 ├── prisma/                           # ✅ Esquema, migraciones y SQLite local
 ├── public/
 ├── scripts/proveedor-db.mjs          # ✅ Cambio SQLite ↔ PostgreSQL
-├── tests/                            # ✅ 89 pruebas unitarias
+├── tests/                            # ✅ 123 pruebas unitarias y de flujo
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── prompt.md                         # ✅ Documentación de los prompts
@@ -708,14 +769,59 @@ aprehensor debe cargarse como archivo.
 
 ---
 
+### Fase 12 — Motor documental de actas a Word — ✅ COMPLETADA (sujeta a validación)
+
+- [x] **Ingesta** de TXT, DOCX y PDF con capa de texto; límite de 10 MB y
+      40.000 caracteres; validación de extensión y firma; rechazo explícito de
+      archivos sin texto (requieren OCR).
+- [x] **Extracción** por trozos con el prompt único y acumulación
+      (`combinarAntecedentes`); sin datos inventados ni correcciones.
+- [x] **Validación** de RUT, patentes, fechas, edad, alcoholemia ausente y
+      contradicciones; observaciones con nivel `error` / `advertencia` / `info`.
+- [x] **Plantillas versionadas 1.1.0**: `parte-detenido`, `parte-general` y
+      `denuncia-vif`, con secciones, orden, campos requeridos y opcionales,
+      reglas, formato y bloqueos. Se agregaron PRUEBAS y VEHÍCULOS.
+- [x] **Mapeo determinístico** campo→sección y **orden impuesto** por la
+      plantilla; los campos sin destino se informan, no se fuerzan.
+- [x] **Trazabilidad por campo** con extracto literal del acta; los datos no
+      localizados quedan como «dudosos». `confianza` siempre `null`.
+- [x] **Redacción guiada por plantilla** (`/api/borrador` acepta
+      `plantillaId`), con reglas y observaciones; el servidor descarta las
+      secciones duplicadas y reordena la salida.
+- [x] **Word institucional** (`/api/documentos/word`): Arial 11, interlineado
+      1,5, márgenes, membrete, secciones en negrita, firmas y «Página X de Y»;
+      se arma con el borrador revisado, sin volver a llamar a la IA.
+- [x] **UI**: adjuntar acta, selector de plantilla, resumen de observaciones,
+      trazabilidad consultable y botón «Descargar Word».
+- [x] **Persistencia** de la trazabilidad (`Caso.documento`) y de la plantilla
+      del borrador (`Borrador.plantilla`), con columnas aditivas.
+- [x] **Seguridad**: endpoints autenticados y con límite de uso; el archivo no
+      sale del backend; el texto completo no se persiste; regla anti-inyección
+      en el prompt (el documento es dato, no instrucción).
+- [x] **Pruebas**: 123/123, incluidas ingesta DOCX/PDF, OCR informado, RUT,
+      patente, alcoholemia no inventada, contradicciones, separación de casos,
+      orden de secciones, Word abrible con formato, correcciones humanas,
+      errores recuperables y flujo completo con extractor controlado.
+- [x] **Prueba real** (modelo configurado, acta ficticia en DOCX): extracción
+      57 s, borrador 16,5 s y Word 1 s; caso guardado con trazabilidad y
+      eliminado después.
+
+**Pendiente de esta fase:** OCR real para PDF escaneado, validación con un acta
+real de la unidad y revisión del punto de equilibrio del proveedor de IA
+(latencia y cuota).
+
+---
+
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0 a 10 completadas.** El sistema, con IA real (OpenRouter, modelo
+- **Fases 0 a 12 completadas.** El sistema, con IA real (OpenRouter, modelo
   gratuito), extrae antecedentes, **identifica al detenido y al personal
-  aprehensor**, redacta el borrador del parte con secciones editables, exige
-  revisión humana, **guarda los casos y borradores en base de datos** (SQLite
-  en desarrollo, PostgreSQL en producción, con tabla `Usuario` y papelera) y
-  ofrece historial con filtros, búsqueda, restauración y borrado definitivo.
+  aprehensor**, **procesa actas DOCX/PDF/TXT**, redacta el borrador del parte
+  con secciones editables, exige revisión humana, **genera el Word con formato
+  institucional y trazabilidad por campo**, **guarda los casos y borradores en
+  base de datos** (SQLite en desarrollo, PostgreSQL en producción, con tabla
+  `Usuario` y papelera) y ofrece historial con filtros, búsqueda, restauración
+  y borrado definitivo.
 - **En producción:** <https://guardiavirtual.vercel.app> (Vercel + Neon
   PostgreSQL, región São Paulo). Variables cifradas, SSO de Vercel desactivado
   y login propio de la aplicación. Pruebas de humo verificadas.

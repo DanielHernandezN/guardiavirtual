@@ -4,7 +4,10 @@ import {
   type DatosDetencion,
   type DatosDetenido,
   type DatosFiscal,
+  type DatosPruebas,
   type FuncionarioParte,
+  type Testigo,
+  type VehiculoInvolucrado,
 } from "./types";
 
 /**
@@ -49,6 +52,13 @@ export const FISCAL_VACIO: DatosFiscal = {
   instrucciones: [],
 };
 
+/** Pruebas sin resultado. */
+export const PRUEBAS_VACIAS: DatosPruebas = {
+  alcoholemia: null,
+  respiratoria: null,
+  otras: [],
+};
+
 /** Crea unos antecedentes sin datos (caso nuevo). */
 export const crearAntecedentesVacios = (): Antecedentes => ({
   tipoProcedimiento: null,
@@ -60,6 +70,12 @@ export const crearAntecedentesVacios = (): Antecedentes => ({
   detencion: { ...DETENCION_VACIA },
   funcionarios: [],
   fiscal: { ...FISCAL_VACIO, instrucciones: [] },
+  pruebas: { ...PRUEBAS_VACIAS, otras: [] },
+  vehiculos: [],
+  testigos: [],
+  camaras: null,
+  diligencias: [],
+  detalleEspecies: null,
   contradicciones: [],
 });
 
@@ -142,8 +158,7 @@ export const combinarFuncionarios = (
   return [...porNombre.values()];
 };
 
-/**
- * Indica si el procedimiento tiene especies que describir.
+/** Indica si el procedimiento tiene especies que describir.
  *
  * En una detención por conducción en estado de ebriedad, una VIF o un
  * accidente no hay «especie», así que no debe exigirse ese dato.
@@ -154,6 +169,148 @@ export const exigeEspecie = (
   /hurt|rob|recept|apropiaci|da[ñn]o|estafa|usurpaci|especie/i.test(
     antecedentes.tipoProcedimiento ?? ""
   );
+
+/**
+ * Combina listas de textos sin duplicados (comparación sin distinguir
+ * mayúsculas ni espacios sobrantes).
+ */
+export const combinarListas = (
+  nuevas: readonly string[],
+  previas: readonly string[]
+): string[] => {
+  const vistas = new Set(
+    previas.map((valor) => valor.trim().toLowerCase()).filter(Boolean)
+  );
+  const resultado = previas.filter((valor) => valor.trim());
+
+  for (const valor of nuevas) {
+    const limpio = valor.trim();
+    if (!limpio) continue;
+
+    const clave = limpio.toLowerCase();
+    if (vistas.has(clave)) continue;
+
+    vistas.add(clave);
+    resultado.push(limpio);
+  }
+
+  return resultado;
+};
+
+/** Clave de identificación de un vehículo (patente o marca/modelo/color). */
+const claveVehiculo = (vehiculo: VehiculoInvolucrado): string =>
+  (
+    vehiculo.patente?.trim() ||
+    [vehiculo.marca, vehiculo.modelo, vehiculo.color]
+      .filter(Boolean)
+      .join(" ")
+  ).toLowerCase();
+
+/**
+ * Combina vehículos entre mensajes, conservando los datos ya conocidos.
+ * Dos vehículos son el mismo cuando coinciden la patente o, a falta de ella,
+ * marca, modelo y color.
+ */
+export const combinarVehiculos = (
+  nuevos: readonly VehiculoInvolucrado[],
+  previos: readonly VehiculoInvolucrado[]
+): VehiculoInvolucrado[] => {
+  const porClave = new Map<string, VehiculoInvolucrado>();
+
+  for (const vehiculo of [...previos, ...nuevos]) {
+    const clave = claveVehiculo(vehiculo);
+    if (!clave) continue;
+
+    const anterior = porClave.get(clave);
+    const combinado: VehiculoInvolucrado = {
+      patente: vehiculo.patente ?? anterior?.patente ?? null,
+      marca: vehiculo.marca ?? anterior?.marca ?? null,
+      modelo: vehiculo.modelo ?? anterior?.modelo ?? null,
+      color: vehiculo.color ?? anterior?.color ?? null,
+      anio: vehiculo.anio ?? anterior?.anio ?? null,
+      documentos: vehiculo.documentos ?? anterior?.documentos ?? null,
+      seguros: vehiculo.seguros ?? anterior?.seguros ?? null,
+      licencias: vehiculo.licencias ?? anterior?.licencias ?? null,
+    };
+
+    porClave.set(clave, combinado);
+  }
+
+  return [...porClave.values()];
+};
+
+/** Combina testigos sin duplicar por nombre o RUT. */
+export const combinarTestigos = (
+  nuevos: readonly Testigo[],
+  previos: readonly Testigo[]
+): Testigo[] => {
+  const porClave = new Map<string, Testigo>();
+
+  for (const testigo of [...previos, ...nuevos]) {
+    const clave =
+      testigo.rut?.trim().toLowerCase() ||
+      testigo.nombre?.trim().toLowerCase() ||
+      "";
+    if (!clave) continue;
+
+    const anterior = porClave.get(clave);
+    porClave.set(clave, {
+      nombre: testigo.nombre ?? anterior?.nombre ?? null,
+      rut: testigo.rut ?? anterior?.rut ?? null,
+      declaracion: testigo.declaracion ?? anterior?.declaracion ?? null,
+    });
+  }
+
+  return [...porClave.values()];
+};
+
+/**
+ * Acumula los antecedentes extraídos sobre el estado previo.
+ *
+ * `reiniciar` se usa cuando el texto describe otro procedimiento: en ese caso
+ * el estado se reemplaza completo para que el caso nuevo no herede datos.
+ * Es la función que comparten el chat y la ingesta de documentos.
+ */
+export const combinarAntecedentes = (
+  previos: Antecedentes,
+  nuevos: Antecedentes,
+  reiniciar = false
+): Antecedentes => {
+  if (reiniciar) {
+    return {
+      ...crearAntecedentesVacios(),
+      ...nuevos,
+      pruebas: { ...nuevos.pruebas, otras: [...nuevos.pruebas.otras] },
+    };
+  }
+
+  return {
+    tipoProcedimiento: nuevos.tipoProcedimiento ?? previos.tipoProcedimiento,
+    especie: nuevos.especie ?? previos.especie,
+    lugar: nuevos.lugar ?? previos.lugar,
+    fecha: nuevos.fecha ?? previos.fecha,
+    descripcionHechos: nuevos.descripcionHechos ?? previos.descripcionHechos,
+    detenido: combinarDatos(nuevos.detenido, previos.detenido),
+    detencion: combinarDatos(nuevos.detencion, previos.detencion),
+    funcionarios: combinarFuncionarios(
+      nuevos.funcionarios,
+      previos.funcionarios
+    ),
+    fiscal: combinarFiscal(nuevos.fiscal, previos.fiscal),
+    pruebas: {
+      alcoholemia: nuevos.pruebas.alcoholemia ?? previos.pruebas.alcoholemia,
+      respiratoria:
+        nuevos.pruebas.respiratoria ?? previos.pruebas.respiratoria,
+      otras: combinarListas(nuevos.pruebas.otras, previos.pruebas.otras),
+    },
+    vehiculos: combinarVehiculos(nuevos.vehiculos, previos.vehiculos),
+    testigos: combinarTestigos(nuevos.testigos, previos.testigos),
+    camaras: nuevos.camaras ?? previos.camaras,
+    diligencias: combinarListas(nuevos.diligencias, previos.diligencias),
+    detalleEspecies: nuevos.detalleEspecies ?? previos.detalleEspecies,
+    contradicciones: nuevos.contradicciones,
+  };
+};
 
 /** Devuelve las etiquetas de los campos obligatorios que aún faltan. */
 export const camposFaltantes = (antecedentes: Antecedentes): string[] =>

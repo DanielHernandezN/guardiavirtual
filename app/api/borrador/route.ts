@@ -18,9 +18,14 @@ import {
   construirInstruccionesFiscal,
   construirMembrete,
   construirPieParte,
-  seccionesPara,
   tituloPorTipo,
 } from "@/lib/plantillas";
+import {
+  ordenarSecciones,
+  seccionesDePlantilla,
+} from "@/lib/documentos/mapeo";
+import { elegirPlantilla, obtenerPlantilla } from "@/lib/documentos/plantillas";
+import { validarAntecedentes } from "@/lib/documentos/validacion";
 import { esquemaAntecedentes, esquemaBorrador } from "@/lib/schemas";
 import type { BorradorParte, SeccionBorrador } from "@/lib/types";
 import { leerJsonLimitado } from "@/lib/validacion";
@@ -108,12 +113,17 @@ export async function POST(request: Request) {
     }
 
     const detencion = esDetencion(antecedentes);
-    const secciones = seccionesPara(
-      detencion,
-      antecedentes.tipoProcedimiento
-    );
+    const plantilla =
+      obtenerPlantilla(
+        typeof datos?.plantillaId === "string" ? datos.plantillaId : null
+      ) ?? elegirPlantilla(antecedentes);
+    const secciones = seccionesDePlantilla(plantilla, detencion);
     const { fecha } = fechaYHoraDeHoy();
     const comuna = process.env.UNIDAD_COMUNA?.trim() || null;
+
+    // Las observaciones se recalculan en el servidor: la validación es
+    // determinística y no depende de lo que envíe el cliente.
+    const observaciones = validarAntecedentes(antecedentes);
 
     const validados = esquemaBorrador.parse(
       await llamarModeloJson(
@@ -126,7 +136,16 @@ export async function POST(request: Request) {
               secciones,
               detencion,
               fecha,
-              comuna
+              comuna,
+              {
+                plantilla: {
+                  id: plantilla.id,
+                  nombre: plantilla.nombre,
+                  version: plantilla.version,
+                },
+                reglas: plantilla.reglasRedaccion,
+                observaciones,
+              }
             ),
           },
         ],
@@ -151,11 +170,12 @@ export async function POST(request: Request) {
 
     // El modelo devuelve solo las secciones con datos; el servidor agrega las
     // que se construyen con datos estructurados (fiscal, situación, firmas).
-    const seccionesModelo = validados.secciones.filter(
-      (seccion) =>
-        seccion.titulo !== TITULO_ENCABEZADO &&
-        seccion.titulo !== TITULO_PIE &&
-        seccion.contenido.trim().length > 0
+    // El servidor impone el orden de la plantilla: el modelo no decide la
+    // estructura del documento. Las secciones desconocidas quedan al final
+    // para no perder información, pero no alteran el orden definido.
+    const seccionesModelo = ordenarSecciones(
+      validados.secciones,
+      plantilla
     );
 
     if (
@@ -204,7 +224,16 @@ export async function POST(request: Request) {
       generadoEn: new Date().toISOString(),
     };
 
-    return Response.json({ ok: true, borrador });
+    return Response.json({
+      ok: true,
+      borrador,
+      plantilla: {
+        id: plantilla.id,
+        nombre: plantilla.nombre,
+        version: plantilla.version,
+      },
+      observaciones,
+    });
   } catch (error) {
     const { status, body } = errorComoJson(error);
     return Response.json({ ok: false, error: body.error }, { status });

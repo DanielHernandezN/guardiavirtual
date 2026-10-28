@@ -19,6 +19,7 @@ const filaBase = {
   createdAt: new Date("2026-06-12T10:00:00.000Z"),
   updatedAt: new Date("2026-06-12T10:00:00.000Z"),
   antecedentes: JSON.stringify({ tipoProcedimiento: "hurto" }),
+  documento: null as string | null,
   eliminadoEn: null as Date | null,
   borradores: [],
 };
@@ -58,6 +59,7 @@ describe("serialización de casos", () => {
           texto: "PARTE DE HURTO",
           secciones: JSON.stringify([{ titulo: "HECHOS", contenido: "…" }]),
           estado: "BORRADOR",
+          plantilla: null as string | null,
           generadoEn: new Date("2026-06-12T10:05:00.000Z"),
           confirmadoEn: null,
         },

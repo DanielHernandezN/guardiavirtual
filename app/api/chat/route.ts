@@ -1,8 +1,6 @@
 import {
   camposFaltantes,
-  combinarDatos,
-  combinarFiscal,
-  combinarFuncionarios,
+  combinarAntecedentes,
   crearRespuestaConversacional,
 } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
@@ -94,39 +92,14 @@ export async function POST(request: Request) {
       previos: Antecedentes,
       validados: RespuestaModelo,
       reiniciar: boolean
-    ): Antecedentes =>
-      reiniciar
-        ? {
-            tipoProcedimiento: validados.tipoProcedimiento,
-            especie: validados.especie,
-            lugar: validados.lugar,
-            fecha: validados.fecha,
-            descripcionHechos: validados.descripcionHechos ?? mensaje,
-            detenido: validados.detenido,
-            detencion: validados.detencion,
-            funcionarios: validados.funcionarios,
-            fiscal: validados.fiscal,
-            contradicciones: validados.contradicciones,
-          }
-        : {
-            tipoProcedimiento:
-              validados.tipoProcedimiento ?? previos.tipoProcedimiento,
-            especie: validados.especie ?? previos.especie,
-            lugar: validados.lugar ?? previos.lugar,
-            fecha: validados.fecha ?? previos.fecha,
-            descripcionHechos:
-              validados.descripcionHechos ??
-              previos.descripcionHechos ??
-              mensaje,
-            detenido: combinarDatos(validados.detenido, previos.detenido),
-            detencion: combinarDatos(validados.detencion, previos.detencion),
-            funcionarios: combinarFuncionarios(
-              validados.funcionarios,
-              previos.funcionarios
-            ),
-            fiscal: combinarFiscal(validados.fiscal, previos.fiscal),
-            contradicciones: validados.contradicciones,
-          };
+    ): Antecedentes => {
+      const resultado = combinarAntecedentes(previos, validados, reiniciar);
+
+      return {
+        ...resultado,
+        descripcionHechos: resultado.descripcionHechos ?? mensaje,
+      };
+    };
 
     // Un acta completa puede superar el tamaño que el modelo procesa bien:
     // se envía por trozos, acumulando el estado como en mensajes sucesivos.

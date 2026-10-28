@@ -28,7 +28,15 @@ A partir de los mensajes del funcionario, extraer y acumular:
 | `fecha` | fecha del hecho, formato `dd/mm/yyyy` |
 | `descripcionHechos` | resumen objetivo del hecho narrado |
 | `detenido` | identificación de la persona detenida (nombre, RUT, edad, nacionalidad, estado civil, estudios, ocupación, nacimiento, domicilio, teléfono, correo) |
-| `detencion` | circunstancias de la detención (hora, fecha, delito, lugar, personal aprehensor, acompañante, vehículo, lesiones) |
+| `detencion` | circunstancias de la detención (hora, fecha, delito, lugar, personal aprehensor, acompañante, vehículo, lesiones, situación) |
+| `funcionarios` | personal a cargo del procedimiento (grado y nombre) |
+| `fiscal` | fiscal de turno: nombre, folio e instrucciones |
+| `pruebas` | alcoholemia, respiratoria y otras pruebas, **solo si constan** |
+| `vehiculos` | vehículos involucrados (patente, marca, modelo, color, seguros, documentos) |
+| `testigos` | testigos (nombre, RUT, declaración) |
+| `camaras` | cámaras o grabaciones (ubicación, propietario, respaldo) |
+| `diligencias` | diligencias practicadas o pendientes |
+| `detalleEspecies` | detalle de especies (cantidad, descripción, avalúo, destino) |
 | `contradicciones` | inconsistencias o datos en conflicto |
 
 La estructura canónica está en **`lib/types.ts`** y se valida con
@@ -49,15 +57,15 @@ La estructura canónica está en **`lib/types.ts`** y se valida con
 
 ## Criterio para confeccionar el borrador
 
-Solo se habilita el borrador (`puedeConfeccionarBorrador: true`) cuando existen:
+El chat habilita el borrador (`puedeConfeccionarBorrador: true`) cuando existen
+`tipoProcedimiento`, `lugar`, `fecha` y `descripcionHechos`, no hay
+contradicciones y, **solo si el procedimiento es un hurto o robo**, consta la
+`especie`.
 
-- `tipoProcedimiento`
-- `especie`
-- `lugar`
-- `fecha`
-
-y la información no es contradictoria ni falta lo esencial. Este cálculo se
-realiza en el servidor (`lib/antecedentes.ts`), no en el modelo.
+El flujo documental usa además la plantilla elegida: sus `camposRequeridos`
+deben estar completos y no puede haber contradicciones. En ambos casos el
+cálculo se realiza en el servidor (`lib/antecedentes.ts`,
+`lib/documentos/validacion.ts`), no en el modelo.
 
 ## Salida esperada (contrato)
 
@@ -89,8 +97,39 @@ realiza en el servidor (`lib/antecedentes.ts`), no en el modelo.
     "personalAprehensor": "texto | null",
     "personalAcompanante": "texto | null",
     "vehiculo": "texto | null",
-    "lesiones": "texto | null"
+    "lesiones": "texto | null",
+    "situacion": "texto | null"
   },
+  "funcionarios": [{ "grado": "texto | null", "nombre": "texto | null" }],
+  "fiscal": {
+    "nombre": "texto | null",
+    "folio": "texto | null",
+    "instrucciones": ["texto"]
+  },
+  "pruebas": {
+    "alcoholemia": "texto | null",
+    "respiratoria": "texto | null",
+    "otras": ["texto"]
+  },
+  "vehiculos": [
+    {
+      "patente": "texto | null",
+      "marca": "texto | null",
+      "modelo": "texto | null",
+      "color": "texto | null",
+      "propietario": "texto | null",
+      "seguros": "texto | null",
+      "documentos": "texto | null"
+    }
+  ],
+  "testigos": [
+    { "nombre": "texto | null", "rut": "texto | null", "declaracion": "texto | null" }
+  ],
+  "camaras": [{ "ubicacion": "texto | null", "propietario": "texto | null", "respaldo": "texto | null" }],
+  "diligencias": ["texto"],
+  "detalleEspecies": [
+    { "especie": "texto | null", "cantidad": "texto | null", "descripcion": "texto | null", "avaluo": "texto | null", "destino": "texto | null" }
+  ],
   "contradicciones": []
 }
 ```
@@ -109,11 +148,15 @@ los antecedentes completos. Reglas que conviene tener presentes al probarlo:
 - Escribe `[PENDIENTE]` donde falte un dato. **Excepción:** si falta la
   **hora**, no se escribe *"a las [PENDIENTE]"*; se redacta *"a una hora no
   informada"* (o *"a una hora no precisada"*).
-- Respeta exactamente las secciones pedidas (`SECCIONES_PARTE` o
-  `SECCIONES_DETENIDO` en `lib/plantillas.ts`).
-- Si hay una persona detenida, el documento se titula **PARTE DE DETENIDO** y
-  usa las secciones IDENTIFICACIÓN DEL DETENIDO, CIRCUNSTANCIAS DE LA
-  DETENCIÓN, HECHOS, ESPECIES INVOLUCRADAS y DERECHOS Y TRASLADO.
+- Las secciones y su orden los define la **plantilla versionada** elegida
+  (`lib/documentos/plantillas.ts`): parte de detenido, parte general o
+  denuncia VIF. El servidor descarta encabezado, pie, instrucciones del fiscal
+  y situación del detenido (los arma con datos estructurados) y **reordena** la
+  salida; el modelo no decide la estructura.
+- Las secciones que no tienen datos se omiten. **No se rellenan** con «no
+  consta», «sin información» ni frases equivalentes.
+- Las declaraciones se atribuyen a quien las prestó; las hipótesis o versiones
+  de terceros se mantienen como tales y no se convierten en hechos.
 - El relato de HECHOS va en tercera persona y en pasado, con párrafos que
   comienzan con «Que, ». No se agregan diligencias que no consten.
 - Español formal, en tercera persona y en español neutro.

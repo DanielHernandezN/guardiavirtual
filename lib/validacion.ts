@@ -57,15 +57,58 @@ export const esquemaMensaje = z.object({
     ),
 });
 
+/**
+ * Metadatos del documento de origen y trazabilidad.
+ * Se acotan las claves y los textos para no almacenar datos arbitrarios.
+ */
+export const esquemaDocumentoOrigen = z.object({
+  origen: z
+    .object({
+      nombre: z.string().max(500),
+      tipo: z.enum(["txt", "docx", "pdf"]),
+      metodo: z.enum(["texto", "docx", "pdf"]),
+      caracteres: z.number().int().nonnegative(),
+      paginas: z.number().int().nonnegative().nullable(),
+      hash: z.string().max(128),
+      procesadoEn: z.string().max(64),
+      advertencias: z.array(z.string().max(2_000)).max(20).default([]),
+    })
+    .optional(),
+  plantilla: z
+    .object({
+      id: z.string().max(64),
+      nombre: z.string().max(200),
+      version: z.string().max(32),
+    })
+    .optional(),
+  observaciones: z
+    .array(
+      z.object({
+        nivel: z.enum(["error", "advertencia", "info"]),
+        campo: z.string().max(200),
+        mensaje: z.string().max(2_000),
+      })
+    )
+    .max(100)
+    .optional(),
+  faltantes: z.array(z.string().max(500)).max(100).optional(),
+  sinDestino: z.array(z.string().max(500)).max(100).optional(),
+  trazabilidad: z.record(z.string(), z.unknown()).optional(),
+});
+
 /** Cuerpo de `POST /api/casos`. */
 export const esquemaGuardarCaso = z.object({
   casoId: z.string().trim().min(1).max(64).optional().nullable(),
   confirmar: z.boolean().optional().default(false),
   antecedentes: z.record(z.string(), z.unknown()).optional().default({}),
+  /** Trazabilidad del documento de origen (opcional). */
+  documento: esquemaDocumentoOrigen.optional().nullable(),
   borrador: z
     .object({
       titulo: z.string().max(TEXTO_MAXIMO).optional(),
       textoCompleto: z.string().max(200_000).optional(),
+      /** `id@version` de la plantilla usada. */
+      plantilla: z.string().max(100).optional(),
       secciones: z
         .array(
           z.object({

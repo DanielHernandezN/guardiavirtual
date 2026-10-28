@@ -62,6 +62,8 @@ En **Vercel → Project → Settings → Environment Variables**, definir:
 | `AI_MODEL` | no | Modelo de extracción (por defecto `poolside/laguna-s-2.1:free`). |
 | `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
 | `UNIDAD_NOMBRE` | no | Nombre de la unidad que aparece en el encabezado del parte. Si falta, se escribe `[PENDIENTE]`. |
+| `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. Si falta, el membrete queda incompleto (no se inventa). |
+| `UNIDAD_COMUNA` | no | Comuna de la unidad; se indica al modelo al redactar. |
 | `SESSION_SECRET` | **sí** | Secreto de firma de la sesión (HMAC-SHA256). Sin él, el sistema queda **inaccesible** en producción (fallo cerrado). |
 | `USUARIOS_JSON` | **sí** | Lista de funcionarios: `[{"id":"...","nombre":"...","grado":"...","password":"..."}]`. `grado` es opcional. Sin ella, nadie puede autenticarse. |
 | `DATABASE_URL` | **sí** | URL de PostgreSQL (**pooled** en Neon/Vercel). |
@@ -135,6 +137,13 @@ npx vercel env add AI_API_KEY production < valor.txt
 - `GET /dashboard` → 200 con sesión; 401/redirect sin sesión.
 - Crear un caso desde el chat y confirmar un borrador: debe aparecer en el
   historial (comprueba que la escritura en PostgreSQL funciona).
+- **Probar el flujo documental** con un acta ficticia: adjuntar un DOCX o PDF
+  con texto, revisar la plantilla y las observaciones, generar el borrador y
+  descargar el `.docx`. El Word debe abrir con Arial 11, interlineado 1,5,
+  membrete, secciones en negrita y numeración de página.
+- Verificar en la base que `Caso.documento` y `Borrador.plantilla` existen y
+  quedaron poblados. `prisma db push` (en el build) crea esas columnas de forma
+  aditiva; no borra datos.
 
 ---
 
@@ -149,3 +158,14 @@ npx vercel env add AI_API_KEY production < valor.txt
 - **Cifrado de contraseñas** con `scrypt`: el hash se regenera en cada
   arranque porque `USUARIOS_JSON` guarda la contraseña en claro. Si se
   migra el usuario a la base de datos, el hash debe persistir.
+- **Duración de las funciones:** `/api/documentos/procesar` declara
+  `maxDuration = 120` segundos porque un acta larga se envía al modelo por
+  trozos. En planes con límites menores, el acta puede requerir reintento o
+  dividirse.
+- **OCR no incluido:** un PDF escaneado (sin capa de texto) se rechaza con un
+  mensaje claro; no se intenta leer la imagen ni se inventan datos. El máximo
+  es de 10 MB por archivo y 40.000 caracteres de texto procesado.
+- **Cuota del proveedor de IA:** el modelo gratuito puede responder lento
+  (0,4–27 s por llamada) o agotar la cuota. La aplicación muestra el mensaje
+  del proveedor y conserva el trabajo previo; no marca el documento como
+  procesado si la extracción falló.

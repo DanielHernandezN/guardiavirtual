@@ -81,6 +81,43 @@ export type DatosDetencion = {
 };
 
 /**
+ * Pruebas o peritajes informados (alcoholemia, respiratoria, otras).
+ * Se transcriben tal como constan: si no hay resultado, el campo queda `null`
+ * y **nunca se deduce** a partir de otros antecedentes.
+ */
+export type DatosPruebas = {
+  /** Resultado de la alcoholemia (por ejemplo, "1,42 g/L"). */
+  alcoholemia: string | null;
+  /** Resultado de la prueba respiratoria (por ejemplo, "0,58 mg/L"). */
+  respiratoria: string | null;
+  /** Otras pruebas o peritajes informados. */
+  otras: string[];
+};
+
+/** Vehículo involucrado en el procedimiento. */
+export type VehiculoInvolucrado = {
+  patente: string | null;
+  marca: string | null;
+  modelo: string | null;
+  color: string | null;
+  anio: string | null;
+  /** Documentación del vehículo (padrón, revisión técnica, permiso de circulación). */
+  documentos: string | null;
+  /** Seguros asociados al vehículo. */
+  seguros: string | null;
+  /** Licencia de conducir del conductor del vehículo. */
+  licencias: string | null;
+};
+
+/** Testigo del procedimiento. */
+export type Testigo = {
+  nombre: string | null;
+  rut: string | null;
+  /** Declaración o relación con los hechos, tal como consta. */
+  declaracion: string | null;
+};
+
+/**
  * Antecedentes acumulados de un procedimiento.
  *
  * Todos los campos de texto son `null` cuando la información no está
@@ -106,6 +143,18 @@ export type Antecedentes = {
   funcionarios: FuncionarioParte[];
   /** Fiscal de turno y sus instrucciones. */
   fiscal: DatosFiscal;
+  /** Pruebas respiratorias, alcoholemias y otras peritajes. */
+  pruebas: DatosPruebas;
+  /** Vehículos involucrados, con su documentación si consta. */
+  vehiculos: VehiculoInvolucrado[];
+  /** Testigos del procedimiento. */
+  testigos: Testigo[];
+  /** Existencia y aporte de cámaras de seguridad. */
+  camaras: string | null;
+  /** Diligencias practicadas o pendientes. */
+  diligencias: string[];
+  /** Detalle de especies (marca, modelo, serie, avalúo), si consta. */
+  detalleEspecies: string | null;
   /** Inconsistencias o datos en conflicto detectados. */
   contradicciones: string[];
 };
@@ -161,6 +210,8 @@ export type BorradorParte = {
   textoCompleto: string;
   /** Fecha de generación en formato ISO. */
   generadoEn: string;
+  /** Plantilla usada al generar (para trazabilidad y exportación a Word). */
+  plantilla?: { id: string; nombre: string; version: string };
 };
 
 /** Respuesta de la API de generación del borrador. */

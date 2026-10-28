@@ -156,6 +156,53 @@ export const esquemaFiscal = z.preprocess(
   })
 );
 
+/** Esquema de las pruebas (alcoholemia, respiratoria y otras). */
+export const esquemaPruebas = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    alcoholemia: textoNullable,
+    respiratoria: textoNullable,
+    otras: listaDeTextos,
+  })
+);
+
+/** Esquema de un vehículo involucrado. */
+export const esquemaVehiculo = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    patente: textoNullable,
+    marca: textoNullable,
+    modelo: textoNullable,
+    color: textoNullable,
+    anio: textoNullable,
+    documentos: textoNullable,
+    seguros: textoNullable,
+    licencias: textoNullable,
+  })
+);
+
+/** Esquema de un testigo. */
+export const esquemaTestigo = z.preprocess(
+  (valor) => (esObjeto(valor) ? valor : {}),
+  z.object({
+    nombre: textoNullable,
+    rut: textoNullable,
+    declaracion: textoNullable,
+  })
+);
+
+/** Lista de vehículos. */
+const listaVehiculos = z.preprocess(
+  (valor) => (Array.isArray(valor) ? valor : []),
+  z.array(esquemaVehiculo)
+);
+
+/** Lista de testigos. */
+const listaTestigos = z.preprocess(
+  (valor) => (Array.isArray(valor) ? valor : []),
+  z.array(esquemaTestigo)
+);
+
 /**
  * Esquema de los antecedentes estructurados que debe devolver el modelo.
  * Coincide con `Antecedentes` en `lib/types.ts`.
@@ -170,6 +217,12 @@ export const esquemaAntecedentes = z.object({
   detencion: esquemaDetencion,
   funcionarios: listaFuncionarios,
   fiscal: esquemaFiscal,
+  pruebas: esquemaPruebas,
+  vehiculos: listaVehiculos,
+  testigos: listaTestigos,
+  camaras: textoNullable,
+  diligencias: listaDeTextos,
+  detalleEspecies: textoNullable,
   contradicciones: listaDeTextos,
 });
 

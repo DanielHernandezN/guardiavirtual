@@ -8,12 +8,45 @@ import type { Antecedentes, SeccionBorrador } from "./types";
  * los tipos del dominio.
  */
 
+/** Marca de trazabilidad de un campo respecto del documento de origen. */
+export type MarcaCampoGuardada = {
+  estado?: string;
+  confianza?: number | null;
+  fuente?: string | null;
+  observaciones?: string[];
+};
+
+/** Metadatos del documento de origen guardados con el caso. */
+export type DocumentoGuardado = {
+  origen?: {
+    nombre?: string;
+    tipo?: string;
+    metodo?: string;
+    caracteres?: number;
+    paginas?: number | null;
+    hash?: string;
+    procesadoEn?: string;
+    advertencias?: string[];
+  };
+  plantilla?: { id?: string; nombre?: string; version?: string };
+  observaciones?: Array<{
+    nivel?: string;
+    campo?: string;
+    mensaje?: string;
+  }>;
+  faltantes?: string[];
+  sinDestino?: string[];
+  trazabilidad?: Record<string, MarcaCampoGuardada>;
+};
+
 export type BorradorGuardado = {
   id: string;
   titulo: string;
   texto: string;
   secciones: SeccionBorrador[];
   estado: string;
+  /** `id@version` de la plantilla usada, si consta. */
+  plantilla: string | null;
   generadoEn: string;
   confirmadoEn: string | null;
 };
@@ -31,6 +64,8 @@ export type CasoResumen = {
   /** `true` si el caso está en la papelera (eliminado lógicamente). */
   enPapelera: boolean;
   antecedentes: Antecedentes;
+  /** Trazabilidad del documento de origen (si el caso nació de un archivo). */
+  documento: DocumentoGuardado | null;
   borradores: BorradorGuardado[];
 };
 
@@ -57,6 +92,20 @@ export const parseAntecedentes = (valor: string): Record<string, unknown> => {
     return datos && typeof datos === "object" ? datos : {};
   } catch {
     return {};
+  }
+};
+
+/** Convierte la trazabilidad almacenada en un objeto tipado. */
+export const parseDocumento = (valor: string | null): DocumentoGuardado | null => {
+  if (!valor) return null;
+
+  try {
+    const datos = JSON.parse(valor);
+    return datos && typeof datos === "object" && !Array.isArray(datos)
+      ? (datos as DocumentoGuardado)
+      : null;
+  } catch {
+    return null;
   }
 };
 
@@ -139,6 +188,7 @@ type FilaCaso = {
   createdAt: Date;
   updatedAt: Date;
   antecedentes: string;
+  documento: string | null;
   eliminadoEn: Date | null;
   borradores: Array<{
     id: string;
@@ -146,6 +196,7 @@ type FilaCaso = {
     texto: string;
     secciones: string;
     estado: string;
+    plantilla: string | null;
     generadoEn: Date;
     confirmadoEn: Date | null;
   }>;
@@ -164,12 +215,14 @@ export const toCasoResumen = (fila: FilaCaso): CasoResumen => ({
   actualizadoEn: fila.updatedAt.toISOString(),
   enPapelera: Boolean(fila.eliminadoEn),
   antecedentes: parseAntecedentes(fila.antecedentes) as Antecedentes,
+  documento: parseDocumento(fila.documento),
   borradores: fila.borradores.map((borrador) => ({
     id: borrador.id,
     titulo: borrador.titulo,
     texto: borrador.texto,
     secciones: parseSecciones(borrador.secciones),
     estado: borrador.estado,
+    plantilla: borrador.plantilla ?? null,
     generadoEn: borrador.generadoEn.toISOString(),
     confirmadoEn: borrador.confirmadoEn?.toISOString() ?? null,
   })),

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { extraerPendientes } from "@/lib/casos";
+import type { DocumentoGuardado } from "@/lib/casos";
 import {
   TITULO_ENCABEZADO,
   TITULO_PIE,
@@ -14,6 +15,8 @@ type Props = {
   borrador: BorradorParte;
   /** Antecedentes del caso, para el resumen de cabecera. */
   antecedentes?: Antecedentes | null;
+  /** Trazabilidad del documento de origen, si el caso nació de un archivo. */
+  documento?: DocumentoGuardado | null;
   onCerrar: () => void;
   /** Guarda el borrador (con los cambios del funcionario) en la base de datos. */
   onGuardar?: (
@@ -32,6 +35,7 @@ const escaparHtml = (texto: string): string =>
 export default function BorradorPanel({
   borrador,
   antecedentes,
+  documento,
   onCerrar,
   onGuardar,
 }: Props) {
@@ -43,8 +47,10 @@ export default function BorradorPanel({
   const [confirmado, setConfirmado] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [descargando, setDescargando] = useState(false);
   const [error, setError] = useState("");
   const [vistaPrevia, setVistaPrevia] = useState(false);
+  const [verTrazabilidad, setVerTrazabilidad] = useState(false);
 
   const textoCompleto = componerTextoParte(titulo, secciones);
 
@@ -119,6 +125,54 @@ export default function BorradorPanel({
     URL.revokeObjectURL(url);
   };
 
+  /**
+   * Genera el .docx en el servidor con el formato de la plantilla.
+   * Se envían las secciones ya editadas: no se vuelve a llamar a la IA.
+   */
+  const descargarWord = async () => {
+    setDescargando(true);
+    setError("");
+
+    try {
+      const respuesta = await fetch("/api/documentos/word", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo,
+          plantillaId: borrador.plantilla?.id ?? null,
+          secciones,
+        }),
+      });
+
+      if (!respuesta.ok) {
+        let mensaje = "No se pudo generar el archivo Word.";
+        try {
+          const data = await respuesta.json();
+          mensaje = data.error ?? mensaje;
+        } catch {
+          // La respuesta de error no era JSON: se usa el mensaje genérico.
+        }
+        throw new Error(mensaje);
+      }
+
+      const blob = await respuesta.blob();
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = `${titulo.replace(/\s+/g, "_").toLowerCase()}.docx`;
+      enlace.click();
+      URL.revokeObjectURL(url);
+    } catch (fallo) {
+      setError(
+        fallo instanceof Error
+          ? fallo.message
+          : "No se pudo generar el archivo Word."
+      );
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   const imprimir = () => {
     const ventana = window.open("", "_blank", "width=820,height=900");
     if (!ventana) return;
@@ -175,6 +229,17 @@ export default function BorradorPanel({
     ventana.focus();
     ventana.print();
   };
+
+  /** Extractos del documento de origen asociados a cada antecedente. */
+  const camposConFuente = Object.entries(documento?.trazabilidad ?? {})
+    .filter(([, marca]) => Boolean(marca?.fuente))
+    .slice(0, 15);
+
+  const dudosos = Object.values(documento?.trazabilidad ?? {}).filter(
+    (marca) => marca?.estado === "dudoso"
+  ).length;
+
+  const observaciones = documento?.observaciones ?? [];
 
   const resumen = [
     { etiqueta: "Procedimiento", valor: antecedentes?.tipoProcedimiento },
@@ -317,6 +382,96 @@ export default function BorradorPanel({
             />
           </div>
 
+          {/* Trazabilidad del documento de origen */}
+          {documento && (
+            <div className="rounded-xl border border-oliva-200 bg-oliva-50 px-4 py-3 text-sm text-oliva-800">
+              <button
+                type="button"
+                onClick={() => setVerTrazabilidad((valor) => !valor)}
+                className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
+              >
+                <span className="font-semibold">Trazabilidad del acta</span>
+                <span className="text-xs text-oliva-600">
+                  {documento.origen?.nombre ?? "documento"} · {dudosos} dato(s)
+                  sin respaldo literal ·{" "}
+                  {verTrazabilidad ? "ocultar" : "ver detalles"}
+                </span>
+              </button>
+
+              {verTrazabilidad && (
+                <div className="mt-3 space-y-3 border-t border-oliva-200 pt-3 text-xs">
+                  {documento.plantilla && (
+                    <p className="text-oliva-600">
+                      Plantilla:{" "}
+                      <span className="font-semibold text-oliva-800">
+                        {documento.plantilla.nombre} v
+                        {documento.plantilla.version}
+                      </span>
+                      {documento.origen?.procesadoEn && (
+                        <>
+                          {" · "}Procesado el{" "}
+                          {new Date(
+                            documento.origen.procesadoEn
+                          ).toLocaleString("es-CL")}
+                        </>
+                      )}
+                    </p>
+                  )}
+
+                  {observaciones.length > 0 && (
+                    <div>
+                      <p className="font-semibold uppercase tracking-wide text-oliva-600">
+                        Observaciones de validación
+                      </p>
+                      <ul className="mt-1 space-y-1">
+                        {observaciones.slice(0, 10).map((observacion, indice) => (
+                          <li key={`${observacion.campo}-${indice}`}>
+                            <span className="font-semibold">
+                              [{observacion.nivel}]
+                            </span>{" "}
+                            {observacion.mensaje}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {camposConFuente.length > 0 ? (
+                    <div>
+                      <p className="font-semibold uppercase tracking-wide text-oliva-600">
+                        Extractos del documento
+                      </p>
+                      <ul className="mt-1 space-y-2">
+                        {camposConFuente.map(([ruta, marca]) => (
+                          <li key={ruta}>
+                            <span className="font-semibold">{ruta}</span>
+                            <span className="block italic text-oliva-700">
+                              «{marca.fuente}»
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-oliva-600">
+                      No se localizaron extractos literales del documento para
+                      los antecedentes: verifica cada dato antes de firmar.
+                    </p>
+                  )}
+
+                  {documento.sinDestino && documento.sinDestino.length > 0 && (
+                    <div>
+                      <p className="font-semibold uppercase tracking-wide text-oliva-600">
+                        Sin sección de destino
+                      </p>
+                      <p className="mt-1">{documento.sinDestino.join(", ")}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Indicador de completitud */}
           {totalPendientes > 0 ? (
             <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -407,6 +562,14 @@ export default function BorradorPanel({
               className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 sm:w-auto"
             >
               {copiado ? "¡Copiado!" : "Copiar"}
+            </button>
+            <button
+              type="button"
+              onClick={descargarWord}
+              disabled={descargando}
+              className="w-full rounded-xl border border-oliva-600 px-4 py-2 text-sm font-semibold text-oliva-700 transition hover:bg-oliva-600 hover:text-oliva-50 disabled:opacity-60 sm:w-auto"
+            >
+              {descargando ? "GENERANDO WORD..." : "Descargar Word"}
             </button>
             <button
               type="button"
