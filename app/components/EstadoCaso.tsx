@@ -1,5 +1,3 @@
-import { formatoLista } from "@/lib/antecedentes";
-
 type Props = {
   /** Etiquetas de los campos obligatorios que faltan. */
   faltantes: string[];
@@ -10,9 +8,10 @@ type Props = {
 };
 
 /**
- * Estado del caso — muestra en el chat los campos faltantes y las
- * contradicciones detectadas, para que el funcionario complete o revise
- * la información antes de generar el borrador.
+ * Estado del caso — muestra en el chat las contradicciones detectadas (con la
+ * opción de continuar con el caso en curso) y avisa cuando los antecedentes ya
+ * alcanzan para generar el borrador. Los campos que faltan no se listan: el
+ * botón «Generar borrador» ya indica de forma implícita que aún no se puede.
  */
 export default function EstadoCaso({
   faltantes,
@@ -22,8 +21,12 @@ export default function EstadoCaso({
   const completo = faltantes.length === 0;
   const bloqueado = contradicciones.length > 0;
 
+  // Nada que avisar: sin contradicciones y con datos pendientes, el espacio
+  // se deja libre para no recargar la vista.
+  if (!bloqueado && !completo) return null;
+
   return (
-    <div className="space-y-2 px-4 py-3 sm:px-6">
+    <div className="space-y-2 border-t border-oliva-200 bg-oliva-50 px-4 py-3 sm:px-6">
       {bloqueado && (
         <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">⚠ Contradicciones detectadas</p>
@@ -45,15 +48,6 @@ export default function EstadoCaso({
               Continuar con este caso
             </button>
           )}
-        </div>
-      )}
-
-      {!completo && (
-        <div className="rounded-xl border border-oliva-300 bg-oliva-100 px-4 py-3 text-sm text-oliva-900">
-          <p className="font-semibold">Faltantes para el borrador</p>
-          <p className="mt-1">
-            Necesito {formatoLista(faltantes)} para poder confeccionar el parte.
-          </p>
         </div>
       )}
 

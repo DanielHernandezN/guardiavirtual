@@ -318,13 +318,11 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
 
             </div>
 
-            <div className="border-t border-oliva-200 bg-oliva-50">
-                <EstadoCaso
-                    faltantes={camposFaltantes(datosAntecedentes)}
-                    contradicciones={datosAntecedentes.contradicciones}
-                    onResolver={resolverContradicciones}
-                />
-            </div>
+            <EstadoCaso
+                faltantes={camposFaltantes(datosAntecedentes)}
+                contradicciones={datosAntecedentes.contradicciones}
+                onResolver={resolverContradicciones}
+            />
 
             <div className="border-t border-oliva-200 bg-oliva-100">
               <form onSubmit={handleSubmit} className="
