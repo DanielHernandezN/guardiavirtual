@@ -3,8 +3,8 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 28/10/2026
-- **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 89 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
-- **Último commit analizado:** `1f76015` — "AVANCE: registro del despliegue automatico desde GitHub".
+- **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
 
 > **Sesión 28/10/2026 — formato oficial de la unidad (Fase 11):** se recibieron
 > cuatro documentos en `formato parte/` (dos partes ya confeccionados en el
@@ -14,11 +14,11 @@
 > identificación dentro del relato, secciones variables (incluidas las propias
 > de VIF), instrucciones del fiscal y firmas de todos los funcionarios a cargo.
 > La carpeta de documentos quedó en `.gitignore`. Verificación:
-> `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 92/92 ·
+> `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores · `npm test` ✅ 102/102 ·
 > `npm run build` ✅. Prueba real contra el modelo con un caso **ficticio** de
 > detención por hurto: 12–18 s y documento con apertura, párrafos «Que, »,
 > secciones, instrucciones del fiscal y firmas; sin secciones inventadas
-> cuando el dato no constaba.
+> cuando el dato no constaba. Commit: `d67e299`.
 >
 > **Ajuste tras la primera prueba del usuario:** el chat rechazaba el acta con
 > «El mensaje supera los 4000 caracteres». Se amplió el mensaje a **30 000
