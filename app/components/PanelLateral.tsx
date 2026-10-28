@@ -6,7 +6,6 @@ import type { CasoResumen } from "@/lib/casos";
 
 type Props = {
   nombre: string;
-  usuarioId: string;
   casos: CasoResumen[];
   casoActivoId: string | null;
   mensajeEstado: string;
@@ -20,22 +19,20 @@ type Props = {
   onVaciarPapelera: () => void;
 };
 
-type Filtro = "TODOS" | "BORRADOR" | "CONFIRMADO" | "PAPELERA";
+type Filtro = "TODOS" | "BORRADOR" | "PAPELERA";
 
 const FILTROS: Array<{ id: Filtro; etiqueta: string }> = [
   { id: "TODOS", etiqueta: "Todos" },
   { id: "BORRADOR", etiqueta: "En borrador" },
-  { id: "CONFIRMADO", etiqueta: "Confirmados" },
   { id: "PAPELERA", etiqueta: "Papelera" },
 ];
 
 /**
- * Panel lateral del dashboard: datos del funcionario en sesión, botón de
- * cierre de sesión e historial de casos guardados.
+ * Panel lateral del dashboard: datos del funcionario en sesión, historial de
+ * casos guardados y, al pie, el cierre de sesión.
  */
 export default function PanelLateral({
   nombre,
-  usuarioId,
   casos,
   casoActivoId,
   mensajeEstado,
@@ -86,10 +83,6 @@ export default function PanelLateral({
     });
   }, [casos, filtro, busqueda]);
 
-  const confirmados = casos.filter(
-    (caso) => caso.estado === "CONFIRMADO" && !caso.enPapelera
-  ).length;
-
   const enPapelera = casos.filter((caso) => caso.enPapelera).length;
 
   return (
@@ -118,143 +111,146 @@ export default function PanelLateral({
           ✕
         </button>
 
-        <div className="flex flex-col gap-3 pr-8 lg:pr-0">
-          <h2 className="text-oliva-50">CABO VIRTUAL</h2>
+        <div className="flex flex-col gap-1 pr-8 lg:pr-0">
           <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
             Funcionario
           </h3>
           <p className="font-semibold text-oliva-100">{nombre}</p>
-          <p className="text-sm text-oliva-300">{usuarioId}</p>
-          <LogoutButton />
         </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
-            Casos
-            <span className="ml-2 font-normal normal-case text-oliva-500">
-              {casos.length - enPapelera} total · {confirmados} confirmados
-              {enPapelera > 0 ? ` · ${enPapelera} en papelera` : ""}
-            </span>
-          </h3>
-          <button
-            type="button"
-            onClick={onNuevoCaso}
-            className="shrink-0 whitespace-nowrap rounded-lg border border-oliva-400 px-3 py-2 text-sm font-semibold text-oliva-200 transition hover:bg-oliva-400 hover:text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
-          >
-            + Nuevo
-          </button>
-        </div>
-
-        {/* Filtros por estado */}
-        <div className="flex flex-wrap gap-1.5">
-          {FILTROS.map((item) => (
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-oliva-400">
+              Casos
+              <span className="ml-2 font-normal normal-case text-oliva-500">
+                {casos.length - enPapelera} total
+                {enPapelera > 0 ? ` · ${enPapelera} en papelera` : ""}
+              </span>
+            </h3>
             <button
-              key={item.id}
               type="button"
-              onClick={() => setFiltro(item.id)}
-              className={
-                filtro === item.id
-                  ? "rounded-lg bg-oliva-500 px-3 py-1.5 text-sm font-semibold text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
-                  : "rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100 sm:px-2.5 sm:py-1 sm:text-xs"
-              }
+              onClick={onNuevoCaso}
+              className="shrink-0 whitespace-nowrap rounded-lg border border-oliva-400 px-3 py-2 text-sm font-semibold text-oliva-200 transition hover:bg-oliva-400 hover:text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
             >
-              {item.etiqueta}
+              + Nuevo
             </button>
-          ))}
-        </div>
+          </div>
 
-        {filtro === "PAPELERA" && enPapelera > 0 && (
-          <button
-            type="button"
-            onClick={onVaciarPapelera}
-            className="rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-amber-500 hover:text-amber-300 sm:px-2.5 sm:py-1 sm:text-xs"
-          >
-            Vaciar papelera ({enPapelera})
-          </button>
-        )}
+          {/* Filtros por estado */}
+          <div className="flex flex-wrap gap-1.5">
+            {FILTROS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFiltro(item.id)}
+                className={
+                  filtro === item.id
+                    ? "rounded-lg bg-oliva-500 px-3 py-1.5 text-sm font-semibold text-oliva-950 sm:px-2.5 sm:py-1 sm:text-xs"
+                    : "rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100 sm:px-2.5 sm:py-1 sm:text-xs"
+                }
+              >
+                {item.etiqueta}
+              </button>
+            ))}
+          </div>
 
-        {/* Búsqueda */}
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por título, lugar o especie"
-          className="w-full rounded-lg border border-oliva-700 bg-oliva-950/50 px-3 py-2 text-base text-oliva-100 placeholder:text-oliva-500 outline-none transition focus:border-oliva-400 sm:py-1.5 sm:text-xs"
-        />
+          {filtro === "PAPELERA" && enPapelera > 0 && (
+            <button
+              type="button"
+              onClick={onVaciarPapelera}
+              className="rounded-lg border border-oliva-700 px-3 py-1.5 text-sm text-oliva-300 transition hover:border-amber-500 hover:text-amber-300 sm:px-2.5 sm:py-1 sm:text-xs"
+            >
+              Vaciar papelera ({enPapelera})
+            </button>
+          )}
 
-        {filtrados.length === 0 ? (
-          <p className="text-sm text-oliva-300">
-            {casos.length === 0
-              ? "Todavía no hay casos guardados. Confirma un borrador para crear el primero."
-              : "Ningún caso coincide con el filtro."}
-          </p>
-        ) : (
-          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
-            {filtrados.map((caso) => {
-              const activo = caso.id === casoActivoId;
+          {/* Búsqueda */}
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por título, lugar o especie"
+            className="w-full rounded-lg border border-oliva-700 bg-oliva-950/50 px-3 py-2 text-base text-oliva-100 placeholder:text-oliva-500 outline-none transition focus:border-oliva-400 sm:py-1.5 sm:text-xs"
+          />
 
-              return (
-                <li key={caso.id}>
-                  <div
-                    className={
-                      activo
-                        ? "rounded-xl border border-oliva-400 bg-oliva-800 px-3 py-2"
-                        : "rounded-xl border border-oliva-700 bg-oliva-950/40 px-3 py-2 transition hover:border-oliva-400 hover:bg-oliva-800"
-                    }
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onAbrirCaso(caso)}
-                      className="w-full text-left"
+          {filtrados.length === 0 ? (
+            <p className="text-sm text-oliva-300">
+              {casos.length === 0
+                ? "Todavía no hay casos guardados. Confirma un borrador para crear el primero."
+                : "Ningún caso coincide con el filtro."}
+            </p>
+          ) : (
+            <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+              {filtrados.map((caso) => {
+                const activo = caso.id === casoActivoId;
+
+                return (
+                  <li key={caso.id}>
+                    <div
+                      className={
+                        activo
+                          ? "rounded-xl border border-oliva-400 bg-oliva-800 px-3 py-2"
+                          : "rounded-xl border border-oliva-700 bg-oliva-950/40 px-3 py-2 transition hover:border-oliva-400 hover:bg-oliva-800"
+                      }
                     >
-                      <p className="text-sm font-semibold text-oliva-50">
-                        {caso.titulo}
-                      </p>
-                      <p className="mt-0.5 text-xs text-oliva-300">
-                        {caso.fecha ?? "sin fecha"} ·{" "}
-                        {caso.enPapelera
-                          ? "En papelera"
-                          : caso.estado === "CONFIRMADO"
-                          ? "Confirmado"
-                          : "En borrador"}
-                        {caso.borradores.length > 0
-                          ? ` · ${caso.borradores.length} borrador${caso.borradores.length > 1 ? "es" : ""}`
-                          : ""}
-                      </p>
-                    </button>
-
-                    {caso.enPapelera ? (
                       <button
                         type="button"
-                        onClick={() => onRestaurarCaso(caso)}
-                        title="Restaurar caso"
-                        className="mt-1 py-1 text-sm text-oliva-400 underline-offset-2 transition hover:text-oliva-100 hover:underline sm:text-xs"
+                        onClick={() => onAbrirCaso(caso)}
+                        className="w-full text-left"
                       >
-                        Restaurar
+                        <p className="text-sm font-semibold text-oliva-50">
+                          {caso.titulo}
+                        </p>
+                        <p className="mt-0.5 text-xs text-oliva-300">
+                          {caso.fecha ?? "sin fecha"} ·{" "}
+                          {caso.enPapelera
+                            ? "En papelera"
+                            : caso.estado === "CONFIRMADO"
+                            ? "Confirmado"
+                            : "En borrador"}
+                          {caso.borradores.length > 0
+                            ? ` · ${caso.borradores.length} borrador${caso.borradores.length > 1 ? "es" : ""}`
+                            : ""}
+                        </p>
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => onEliminarCaso(caso)}
-                        title="Mover a la papelera"
-                        className="mt-1 py-1 text-sm text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline sm:text-xs"
-                      >
-                        Eliminar
-                      </button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
 
-      {mensajeEstado && (
-        <p className="text-xs leading-relaxed text-oliva-300">{mensajeEstado}</p>
-      )}
-    </section>
+                      {caso.enPapelera ? (
+                        <button
+                          type="button"
+                          onClick={() => onRestaurarCaso(caso)}
+                          title="Restaurar caso"
+                          className="mt-1 py-1 text-sm text-oliva-400 underline-offset-2 transition hover:text-oliva-100 hover:underline sm:text-xs"
+                        >
+                          Restaurar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onEliminarCaso(caso)}
+                          title="Mover a la papelera"
+                          className="mt-1 py-1 text-sm text-oliva-500 underline-offset-2 transition hover:text-amber-400 hover:underline sm:text-xs"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {mensajeEstado && (
+            <p className="text-xs leading-relaxed text-oliva-300">
+              {mensajeEstado}
+            </p>
+          )}
+
+          <div className="shrink-0 border-t border-oliva-800 pt-1">
+            <LogoutButton />
+          </div>
+        </div>
+      </section>
     </>
   );
 }

@@ -13,7 +13,7 @@ export default async function Dashboard() {
 
   return (
     <main className="flex h-dvh max-w-full flex-col overflow-hidden bg-oliva-100 lg:flex-row">
-      <DashboardWorkspace nombre={sesion.nombre} usuarioId={sesion.id} />
+      <DashboardWorkspace nombre={sesion.nombre} />
     </main>
   );
 }

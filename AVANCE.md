@@ -6,6 +6,21 @@
 - **Estado general:** 🟢 **En producción** — Fases 0 a 11 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, redacta el borrador con el formato de la unidad, exige revisión humana, guarda los casos con historial y papelera, y cuenta con 102 pruebas, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Último commit analizado:** `d67e299` — "Fase 11: formato oficial del parte, actas largas y reglas de detencion".
 
+> **Sesión 28/10/2026 — limpieza del panel lateral (UI/UX):** a pedido del
+> usuario se quitó el título «CABO VIRTUAL», el identificador del funcionario
+> (`daniel`, que se mostraba bajo su nombre) y el filtro «Confirmados» del
+> historial. Con ese filtro fuera, el contador pasó de «N total · N
+> confirmados» a «N total» (y el papelera cuando corresponde), lo que además
+> evita que la línea se corte en dos renglones en el panel angosto. El botón
+> «CERRAR SESIÓN» dejó de estar bajo el nombre y ahora aparece al final del
+> bloque de casos: justo debajo del mensaje «Todavía no hay casos guardados…»
+> cuando el historial está vacío, y al pie del panel cuando hay casos (la lista
+> se desplaza). Se eliminaron las props `usuarioId` de `PanelLateral` →
+> `DashboardWorkspace` → `app/dashboard/page.tsx` para no dejar parámetros sin
+> uso. Verificado con el dev server y capturas en 1280×900 y 390×844 (panel
+> vacío y con un caso): `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ 102/102 · `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — formato oficial de la unidad (Fase 11):** se recibieron
 > cuatro documentos en `formato parte/` (dos partes ya confeccionados en el
 > servicio de guardia y dos actas de aprehensor). Se extrajo su estructura a
