@@ -3,7 +3,7 @@
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
 - **Última actualización:** 31/10/2026
-- **Estado general:** 🟢 **En producción** — Fases 0 a 13 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, **administra los funcionarios desde la base de datos con roles** (administrador y funcionario), y cuenta con **131 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Estado general:** 🟢 **En producción** — Fases 0 a 13 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, **administra los funcionarios desde la base de datos con roles** (administrador y funcionario), y cuenta con **141 pruebas**, límite de uso, validación de entrada e interfaz responsive. IA: Groq gratuita (`openai/gpt-oss-20b`, 1.000 req/día). Sin membrete por decisión del usuario (31/10/2026). Pendiente: validar el parte con un caso real.
 - **Commit del motor documental:** `050ea4d` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
 
 > **Sesión 31/10/2026 — el chat pasa a modo libre (estilo ChatGPT):**
@@ -602,15 +602,14 @@ guardiavirtual/
    11 se basa en dos partes y dos actas de la unidad; falta probarla con un
    caso completo y ajustar el orden de las secciones o la redacción en
    `lib/plantillas.ts` y `lib/prompts.ts`.
-2. **Presupuesto de IA para uso diario** — el plan gratuito de OpenRouter
-   permite 50 solicitudes/día; una guardia con varios casos lo agota. Una
-   recarga única de USD 10 sube el límite a 1000/día.
+2. **Presupuesto de IA para uso diario** — con Groq gratuita (1.000 req/día)
+   hay margen para la guardia; si se necesita más, evaluar plan de pago.
 3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
    instancias.
 4. ~~**Importar los funcionarios en producción**~~ ✅ hecho 31/10/2026
    (`daniel` ya es `ADMIN`; `USUARIOS_JSON` borrada de Vercel y de `.env.local`).
-5. **Datos exactos del membrete y del número de parte** — prefectura,
-   comisaría, comuna y folio visible, según lo que exija la unidad.
+5. ~~**Datos exactos del membrete y del número de parte**~~ ❌ descartado
+   31/10/2026 por decisión del usuario: no se hará membrete.
 6. **Cambio de contraseña por el propio funcionario** («Mi cuenta»): hoy la
    restablece el administrador desde el panel.
 
@@ -793,11 +792,11 @@ guardiavirtual/
       automáticos ante respuestas vacías, 5xx, 429 y fallos de red.
 - [x] Tests y verificación completa (`typecheck`, `lint`, `test`, `build`).
 
-**Pendiente de esta fase:** confirmar con la unidad el **formato exacto** del
-encabezado (por ejemplo, si lleva repartición, folio o timbre) y el grado que
-debe figurar en la firma. El encabezado y el cierre son editables y se adaptan
-cambiando sus funciones en `lib/plantillas.ts`; el grado se configura en
-`USUARIOS_JSON`.
+**Pendiente de esta fase:** ~~confirmar con la unidad el **formato exacto** del
+encabezado (por ejemplo, si lleva repartición, folio o timbre)~~ ❌ descartado
+31/10/2026 (no se hará membrete); el grado se configura en el panel de
+funcionarios. El encabezado y el cierre son editables y se adaptan
+cambiando sus funciones en `lib/plantillas.ts`.
 
 ### Fase 9 — Diseño responsive (celular, tablet y escritorio) — ✅ COMPLETADA
 
@@ -890,9 +889,9 @@ personal de servicio entrega al funcionario de guardia).
       secciones con dos puntos, sin título).
 - [x] Tests y verificación completa (92 pruebas).
 
-**Pendiente de esta fase:** validar el resultado con un caso real y confirmar
-con la unidad los datos del membrete, el número de parte y si el acta de
-aprehensor debe cargarse como archivo.
+**Pendiente de esta fase:** validar el resultado con un caso real. ~~Confirmar
+con la unidad los datos del membrete~~ ❌ descartado 31/10/2026 (no se hará
+membrete).
 
 ---
 
@@ -1033,12 +1032,9 @@ administración.
    sobrescrito el nombre correcto de la base. Se borró `USUARIOS_JSON` de
    Vercel (producción) y de `.env.local`; verificado con `vercel env ls`.
 2. **Cuota de IA**: con Groq gratuita (1.000 req/día) hay margen para la guardia; si se agota el TPM (8.000), el sistema reintenta hasta 65 s. Para uso diario intenso evaluar recarga o plan de pago.
-3. **Completar el membrete en producción**: definir `UNIDAD_PREFECTURA`,
-   `UNIDAD_NOMBRE` y `UNIDAD_COMUNA` en Vercel (hoy el documento sale sin
-   membrete). Las firmas ya incluyen el grado de cada funcionario.
-4. Probar el parte con un caso real completo (detenido y VIF) y ajustar la
+3. Probar el parte con un caso real completo (detenido y VIF) y ajustar la
    redacción (orden de secciones, denominación del delito, formato de horas).
-5. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
+4. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
    memoria; en un despliegue con varias instancias hay que moverlo a Redis
    (Upstash) para que el límite sea global.
 
@@ -1059,9 +1055,9 @@ administración.
 | `AI_MODEL` | ✅ definido | `openai/gpt-oss-20b` (extracción) |
 | `AI_MODEL_REDACCION` | ✅ definido | `openai/gpt-oss-20b` (redacción; si falta, usa `AI_MODEL`) |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
-| `UNIDAD_PREFECTURA` | ⬜ opcional | Prefectura del membrete (por ejemplo, `Prefectura Villarrica Nro. 3`) |
-| `UNIDAD_NOMBRE` | ⬜ opcional | Unidad del membrete (por ejemplo, `9na. Comisaría Pucón`) |
-| `UNIDAD_COMUNA` | ⬜ opcional | Comuna de la fórmula «Doy cuenta a esa Fiscalía Local de…» |
+| `UNIDAD_PREFECTURA` | ❌ descartado | No se hará membrete (31/10/2026) |
+| `UNIDAD_NOMBRE` | ❌ descartado | No se hará membrete (31/10/2026) |
+| `UNIDAD_COMUNA` | ❌ descartado | No se hará membrete (31/10/2026) |
 | `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
 
 > Los funcionarios **no** se configuran en `.env.local`: viven en la tabla
@@ -1080,7 +1076,7 @@ administración.
 | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Groq `openai/gpt-oss-20b` en Vercel (redeploy 31/10/2026) |
 | `SESSION_SECRET` | ✅ | Nueva, generada para producción (distinta de la local) |
 | `USUARIOS_JSON` | ✅ borrada 31/10/2026 | Ya no existe en Vercel ni en `.env.local`; las credenciales viven en Neon |
-| `UNIDAD_PREFECTURA` / `UNIDAD_NOMBRE` / `UNIDAD_COMUNA` | ⬜ | Pendientes; sin ellas el parte sale sin membrete |
+| `UNIDAD_PREFECTURA` / `UNIDAD_NOMBRE` / `UNIDAD_COMUNA` | ❌ descartadas 31/10/2026 | No se hará membrete |
 
 **Proyecto:** `guardiavirtual` · **URL:** <https://guardiavirtual.vercel.app> ·
 **Región:** `gru1` (São Paulo) · **Base:** Neon Free (`neondb`, São Paulo).

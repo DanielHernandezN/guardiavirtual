@@ -63,9 +63,9 @@ En **Vercel → Project → Settings → Environment Variables**, definir:
 | `AI_MODEL` | no | Modelo de extracción. Por defecto `muse-spark-1.3` con OpenCode y `openai/gpt-4o-mini` en el resto. |
 | `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
 | `OPENCODE_MODEL` | no | Modelo de OpenCode si no se define `AI_MODEL` (por defecto `muse-spark-1.3`). |
-| `UNIDAD_NOMBRE` | no | Nombre de la unidad que aparece en el encabezado del parte. Si falta, se escribe `[PENDIENTE]`. |
-| `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. Si falta, el membrete queda incompleto (no se inventa). |
-| `UNIDAD_COMUNA` | no | Comuna de la unidad; se indica al modelo al redactar. |
+| `UNIDAD_NOMBRE` | no | ❌ No se usa (sin membrete por decisión del usuario). |
+| `UNIDAD_PREFECTURA` | no | ❌ No se usa (sin membrete por decisión del usuario). |
+| `UNIDAD_COMUNA` | no | ❌ No se usa (sin membrete por decisión del usuario). |
 | `SESSION_SECRET` | **sí** | Secreto de firma de la sesión (HMAC-SHA256). Sin él, el sistema queda **inaccesible** en producción (fallo cerrado). |
 | `DATABASE_URL` | **sí** | URL de PostgreSQL (**pooled** en Neon/Vercel). |
 | `DATABASE_URL_UNPOOLED` | recomendada | URL directa para `prisma db push` durante la compilación. Si falta, se usa `DATABASE_URL`. |
