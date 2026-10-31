@@ -3,48 +3,48 @@
 /*
  * Paleta de marca — Guardia Virtual
  * ────────────────────────────────────────────────────
- * Escala de OLIVA, de oscuro a claro.
+ * Basada en la paleta de "Comisaría Virtual": fondo blanco, texto gris
+ * oscuro y verde institucional de Carabineros (#007028) como acento.
  *
- *   oliva-950  #14170f  casi negro (textos principales sobre claro)
- *   oliva-900  #1e2218  texto principal / superficies oscuras
- *   oliva-800  #2a2f21  burbuja del asistente
- *   oliva-700  #3a412c  bordes oscuros / subtítulos
- *   oliva-600  #4e5839  texto secundario / hover
- *   oliva-500  #6b7a45  color primario (botones)
- *   oliva-400  #8a9a5b  primario claro / acentos
- *   oliva-300  #aebb85  acentos sobre fondo oscuro
- *   oliva-200  #cfd8b0  bordes claros
- *   oliva-100  #e4e9d4  superficies (panel lateral claro, bubbles)
- *   oliva-50   #f2f5e8  fondo de página
+ *   oliva-950  #212529  texto principal / superficies muy oscuras
+ *   oliva-900  #212529  panel lateral (oscuro)
+ *   oliva-800  #32353a  burbuja del asistente / encabezados
+ *   oliva-700  #495057  bordes oscuros / subtítulos
+ *   oliva-600  #005a24  verde oscuro (hover de botones)
+ *   oliva-500  #007028  color primario (botones) — verde Carabineros
+ *   oliva-400  #008a32  primario claro / acentos
+ *   oliva-300  #6c757d  acentos grises sobre fondo oscuro
+ *   oliva-200  #ced4da  bordes claros
+ *   oliva-100  #e9ecef  superficies suaves
+ *   oliva-50   #ffffff  fondo de página (blanco)
  *
- * Los alias semánticos (brand, ink, surface...) mantienen el resto del
- * código igual, pero apuntan a la escala de oliva.
+ * Los alias semánticos (brand, ink, surface...) apuntan a esta escala.
  */
 @theme {
-  --color-oliva-950: #14170f;
-  --color-oliva-900: #1e2218;
-  --color-oliva-800: #2a2f21;
-  --color-oliva-700: #3a412c;
-  --color-oliva-600: #4e5839;
-  --color-oliva-500: #6b7a45;
-  --color-oliva-400: #8a9a5b;
-  --color-oliva-300: #aebb85;
-  --color-oliva-200: #cfd8b0;
-  --color-oliva-100: #e4e9d4;
-  --color-oliva-50: #f2f5e8;
+  --color-oliva-950: #212529;
+  --color-oliva-900: #212529;
+  --color-oliva-800: #32353a;
+  --color-oliva-700: #495057;
+  --color-oliva-600: #005a24;
+  --color-oliva-500: #007028;
+  --color-oliva-400: #008a32;
+  --color-oliva-300: #6c757d;
+  --color-oliva-200: #ced4da;
+  --color-oliva-100: #e9ecef;
+  --color-oliva-50: #ffffff;
 
-  --color-brand: #6b7a45;
-  --color-brand-dark: #4e5839;
-  --color-accent: #8a9a5b;
-  --color-ink: #1e2218;
-  --color-ink-soft: #3a412c;
-  --color-surface: #f2f5e8;
-  --color-surface-alt: #e4e9d4;
+  --color-brand: #007028;
+  --color-brand-dark: #005a24;
+  --color-accent: #008a32;
+  --color-ink: #212529;
+  --color-ink-soft: #32353a;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8f9fa;
 }
 
 :root {
-  --background: #f2f5e8;
-  --foreground: #1e2218;
+  --background: #ffffff;
+  --foreground: #212529;
 }
 
 @theme inline {
@@ -56,8 +56,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #14170f;
-    --foreground: #e4e9d4;
+    --background: #212529;
+    --foreground: #e9ecef;
   }
 }
 
