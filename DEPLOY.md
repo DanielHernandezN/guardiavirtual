@@ -57,10 +57,12 @@ En **Vercel → Project → Settings → Environment Variables**, definir:
 
 | Variable | Obligatoria | Descripción |
 |----------|-------------|-------------|
-| `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
-| `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
-| `AI_MODEL` | no | Modelo de extracción (por defecto `poolside/laguna-s-2.1:free`). |
+| `OPENCODE_API_KEY` | **sí con OpenCode** | Clave del reseller OpenCode (prefijo `oc_sk_`). También se acepta el alias `OPENCODE_APIKEY`. |
+| `AI_API_KEY` | **sí con otros proveedores** | Clave genérica de cualquier API compatible con OpenAI. |
+| `AI_BASE_URL` | no | Endpoint del proveedor. Si falta y hay `OPENCODE_API_KEY`, usa `https://opencode.ai/inference/openai/v1/chat/completions`; si no, OpenRouter. |
+| `AI_MODEL` | no | Modelo de extracción. Por defecto `muse-spark-1.3` con OpenCode y `openai/gpt-4o-mini` en el resto. |
 | `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
+| `OPENCODE_MODEL` | no | Modelo de OpenCode si no se define `AI_MODEL` (por defecto `muse-spark-1.3`). |
 | `UNIDAD_NOMBRE` | no | Nombre de la unidad que aparece en el encabezado del parte. Si falta, se escribe `[PENDIENTE]`. |
 | `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. Si falta, el membrete queda incompleto (no se inventa). |
 | `UNIDAD_COMUNA` | no | Comuna de la unidad; se indica al modelo al redactar. |
@@ -143,7 +145,7 @@ Las variables se pueden cargar de una vez desde `.env.local` sin exponerlas en
 la terminal:
 
 ```powershell
-npx vercel env add AI_API_KEY production < valor.txt
+npx vercel env add OPENCODE_API_KEY production < valor.txt
 ```
 
 > No subas `.env.local` al repositorio ni pegues secretos en la conversación.

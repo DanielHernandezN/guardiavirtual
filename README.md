@@ -19,7 +19,7 @@ redacta el **borrador del parte policial** con la plantilla de la unidad, exige
 | Framework | Next.js 16.3.3 (App Router) |
 | UI | React 19 + Tailwind CSS v4 (paleta de verde olivo) |
 | Lenguaje | TypeScript 5 (strict) |
-| IA | API compatible con OpenAI (OpenRouter, OpenAI, Gemini, Groq, Mistral) |
+| IA | API compatible con OpenAI (OpenCode, OpenRouter, OpenAI, Gemini, Groq, Mistral) |
 | Datos | Prisma 6 + SQLite (desarrollo) / PostgreSQL (producción) |
 | Documentos | `mammoth` (DOCX), `unpdf` (PDF), `docx` (Word de salida) |
 | Sesión | Cookie firmada con HMAC-SHA256, contraseñas con `scrypt` |
@@ -41,15 +41,24 @@ La aplicación queda en <http://localhost:3000>.
 
 | Variable | Obligatoria | Descripción |
 |----------|-------------|-------------|
-| `AI_API_KEY` | **sí** | Clave del proveedor de IA. |
-| `AI_BASE_URL` | no | Endpoint del proveedor (por defecto OpenRouter). |
-| `AI_MODEL` | no | Modelo de extracción (por defecto `poolside/laguna-s-2.1:free`). |
+| `OPENCODE_API_KEY` | **sí con OpenCode** | Clave del reseller OpenCode (prefijo `oc_sk_`). También se acepta el alias `OPENCODE_APIKEY`. |
+| `AI_API_KEY` | **sí con otros proveedores** | Clave genérica de cualquier API compatible con OpenAI. |
+| `AI_BASE_URL` | no | Endpoint del proveedor. Si falta y hay `OPENCODE_API_KEY`, usa OpenCode; si no, OpenRouter. |
+| `AI_MODEL` | no | Modelo de extracción. Por defecto `muse-spark-1.3` con OpenCode y `openai/gpt-4o-mini` en el resto. |
 | `AI_MODEL_REDACCION` | no | Modelo para redactar el borrador. Si falta, usa `AI_MODEL`. |
+| `OPENCODE_MODEL` | no | Modelo de OpenCode si no se define `AI_MODEL` (por defecto `muse-spark-1.3`). |
 | `UNIDAD_NOMBRE` | no | Unidad que aparece en el encabezado del parte (si falta, `[PENDIENTE]`). |
 | `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. |
 | `UNIDAD_COMUNA` | no | Comuna de la unidad (se indica al modelo al redactar). |
 | `SESSION_SECRET` | **sí en producción** | Firma de la cookie de sesión. Sin él, el sistema queda inaccesible. |
 | `DATABASE_URL` | **sí** | Va en `.env` (no `.env.local`): la CLI de Prisma solo lee `.env`. |
+
+> **OpenCode / Muse Spark 1.3:** crea la clave en
+> <https://opencode.ai/console>, define `OPENCODE_API_KEY` y usa
+> `AI_MODEL=muse-spark-1.3` (ya es el valor por defecto con OpenCode). Si vienes
+> de OpenRouter, elimina o cambia `AI_BASE_URL`: un endpoint explícito tiene
+> prioridad sobre `OPENCODE_API_KEY`. Los modelos `*-free` de OpenCode solo
+> funcionan desde el cliente OpenCode, no desde esta aplicación.
 
 > Los funcionarios **no** se configuran en variables de entorno: viven en la
 > tabla `Usuario` y se administran desde `/dashboard/usuarios` (solo un

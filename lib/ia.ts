@@ -8,17 +8,24 @@ import { ErrorLimiteProveedor, ErrorTiempoAgotado } from "./errores";
  * con OpenAI se configuran **solo por variables de entorno**, sin tocar
  * código:
  *
+ *   OpenCode    https://opencode.ai/inference/openai/v1/chat/completions
  *   OpenRouter  https://openrouter.ai/api/v1/chat/completions
  *   OpenAI      https://api.openai.com/v1/chat/completions
  *   Gemini      https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
- *   Groq        https://api.groq.com/openai/chat/completions
+ *   Groq        https://api.groq.com/openai/v1/chat/completions
  *   Mistral     https://api.mistral.ai/v1/chat/completions
  *
+ * OpenCode (Console) es el reseller recomendado para Muse Spark 1.3. Basta
+ * con definir `OPENCODE_API_KEY`; el endpoint y el modelo se eligen solos.
+ *
  * Variables:
- *   AI_BASE_URL        → endpoint completo (por defecto OpenRouter)
- *   AI_API_KEY         → clave del proveedor
+ *   AI_BASE_URL        → endpoint completo (por defecto OpenCode u OpenRouter)
+ *   AI_API_KEY         → clave del proveedor (alternativa genérica)
+ *   OPENCODE_API_KEY   → clave del reseller OpenCode (prefijo oc_sk_)
+ *                        también se acepta el alias OPENCODE_APIKEY
  *   AI_MODEL           → modelo de extracción (chat)
  *   AI_MODEL_REDACCION → modelo de redacción del borrador (opcional)
+ *   OPENCODE_MODEL     → modelo de OpenCode si no se define AI_MODEL
  *
  * Ante respuestas vacías, errores 5xx, 429 o fallos de red, la llamada se
  * reintenta hasta 3 veces con una espera creciente.
@@ -42,6 +49,16 @@ export type OpcionesModelo = {
 
 const BASE_URL_POR_DEFECTO = "https://openrouter.ai/api/v1/chat/completions";
 
+/** Endpoint del reseller OpenCode (Console), compatible con OpenAI. */
+const BASE_URL_OPENCODE =
+  "https://opencode.ai/inference/openai/v1/chat/completions";
+
+/** Modelo de Muse Spark servido por OpenCode. */
+const MODELO_OPENCODE_POR_DEFECTO = "muse-spark-1.3";
+
+/** Modelo genérico de respaldo para cualquier proveedor compatible. */
+const MODELO_POR_DEFECTO = "openai/gpt-4o-mini";
+
 /** Tiempo máximo por defecto para esperar al modelo (2 minutos). */
 export const TIMEOUT_POR_DEFECTO_MS = 120_000;
 
@@ -52,23 +69,79 @@ const INTENTOS_POR_DEFECTO = 3;
 const ESPERA_REINTENTO_MS = 800;
 
 export const ERROR_SIN_CLAVE =
-  "Falta la clave de la API de IA (AI_API_KEY u OPENROUTER_API_KEY).";
+  "Falta la clave de la API de IA (AI_API_KEY, OPENCODE_API_KEY/OPENCODE_APIKEY u OPENROUTER_API_KEY).";
+
+/** `true` si la clave tiene el formato de OpenCode Console (`oc_sk_...`). */
+const esClaveOpenCode = (clave?: string): boolean =>
+  Boolean(clave?.trim()?.startsWith("oc_sk_"));
+
+/**
+ * Clave de OpenCode.
+ *
+ * El nombre canónico es `OPENCODE_API_KEY`; se acepta además
+ * `OPENCODE_APIKEY` (sin guion bajo) para tolerar variables ya creadas en
+ * Vercel con ese nombre.
+ */
+const obtenerClaveOpenCode = (): string | undefined =>
+  process.env.OPENCODE_API_KEY?.trim() ||
+  process.env.OPENCODE_APIKEY?.trim() ||
+  undefined;
+
+/**
+ * `true` si la configuración apunta al reseller OpenCode.
+ *
+ * Prioridad: endpoint explícito → `OPENCODE_API_KEY` → clave genérica con
+ * formato `oc_sk_`. Así definir `OPENCODE_API_KEY` basta para cambiar de
+ * proveedor, pero `AI_BASE_URL` sigue mandando si se configura a mano.
+ */
+const esOpenCode = (): boolean => {
+  const baseUrl = process.env.AI_BASE_URL?.trim();
+  if (baseUrl) return baseUrl.includes("opencode.ai");
+
+  if (obtenerClaveOpenCode()) return true;
+
+  return esClaveOpenCode(process.env.AI_API_KEY);
+};
 
 const obtenerBaseUrl = (): string =>
-  process.env.AI_BASE_URL?.trim() || BASE_URL_POR_DEFECTO;
+  process.env.AI_BASE_URL?.trim() ||
+  (esOpenCode() ? BASE_URL_OPENCODE : BASE_URL_POR_DEFECTO);
 
-const obtenerApiKey = (): string | null =>
-  process.env.AI_API_KEY?.trim() ||
-  process.env.OPENROUTER_API_KEY?.trim() ||
-  process.env.OPENAI_API_KEY?.trim() ||
-  null;
+const obtenerApiKey = (): string | null => {
+  const baseUrl = process.env.AI_BASE_URL?.trim();
+  const claveGenerica = process.env.AI_API_KEY?.trim();
+  const claveOpenCode = obtenerClaveOpenCode();
+  const respaldo =
+    process.env.OPENROUTER_API_KEY?.trim() ||
+    process.env.OPENAI_API_KEY?.trim() ||
+    null;
 
-const obtenerModelo = (modelo?: string): string =>
-  modelo?.trim() ||
-  process.env.AI_MODEL?.trim() ||
-  process.env.OPENROUTER_MODEL?.trim() ||
-  process.env.OPENAI_MODEL?.trim() ||
-  "openai/gpt-4o-mini";
+  // Endpoint explícito: manda la clave del proveedor al que apunta.
+  if (baseUrl) {
+    return baseUrl.includes("opencode.ai")
+      ? claveOpenCode || claveGenerica || respaldo
+      : claveGenerica || claveOpenCode || respaldo;
+  }
+
+  // Sin endpoint, la clave específica de OpenCode cambia el proveedor.
+  return claveOpenCode || claveGenerica || respaldo;
+};
+
+const obtenerModelo = (modelo?: string): string => {
+  const explicito = modelo?.trim() || process.env.AI_MODEL?.trim();
+
+  if (explicito) return explicito;
+
+  if (esOpenCode()) {
+    return process.env.OPENCODE_MODEL?.trim() || MODELO_OPENCODE_POR_DEFECTO;
+  }
+
+  return (
+    process.env.OPENROUTER_MODEL?.trim() ||
+    process.env.OPENAI_MODEL?.trim() ||
+    MODELO_POR_DEFECTO
+  );
+};
 
 /** `true` si hay clave configurada para el proveedor. */
 export const hayClaveDeIA = (): boolean => Boolean(obtenerApiKey());

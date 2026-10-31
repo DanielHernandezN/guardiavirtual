@@ -340,7 +340,7 @@ Construir una **IA que ayude a confeccionar partes policiales** (partes, actuaci
 | Framework | **Next.js 16.3.3** (App Router) | Proyecto bootstrapped con `create-next-app`. Ver reglas de `AGENTS.md`: leer docs en `node_modules/next/dist/docs/` antes de escribir código. |
 | UI | **React 19.2.8** + **Tailwind CSS v4** (`@tailwindcss/postcss`) | Estilos con clases utilitarias y colores arbitrarios. |
 | Lenguaje | **TypeScript 5** (strict) | |
-| IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY` + `AI_MODEL` (+ `AI_MODEL_REDACCION` opcional). Por defecto OpenRouter con el modelo **gratuito** `poolside/laguna-s-2.1:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
+| IA / LLM | **Proveedor configurable** (cualquier API compatible con OpenAI) | `lib/ia.ts`: `AI_BASE_URL` + `AI_API_KEY`/`OPENCODE_API_KEY` + `AI_MODEL` (+ `AI_MODEL_REDACCION` opcional). Con `OPENCODE_API_KEY` usa el reseller **OpenCode** y **Muse Spark 1.3** (`muse-spark-1.3`); sin ella, OpenRouter con el modelo gratuito `poolside/laguna-s-2.1:free`. Compatible con OpenAI, Gemini, Groq y Mistral cambiando solo variables de entorno. |
 | Estilo de API | **Rutas API de Next.js** (`app/api/...`) | |
 | Despliegue objetivo | **Vercel** | Configuración lista (`vercel.json`, `DEPLOY.md`); falta la publicación real con PostgreSQL. |
 
@@ -373,15 +373,18 @@ no requiere tocar código, solo variables de entorno:
 
 | Variable | Descripción | Por defecto |
 |----------|-------------|-------------|
-| `AI_BASE_URL` | Endpoint del proveedor | `https://openrouter.ai/api/v1/chat/completions` |
-| `AI_API_KEY` | Clave del proveedor | — (obligatoria) |
-| `AI_MODEL` | Modelo de extracción (chat) | `poolside/laguna-s-2.1:free` (`.env.local`) |
-| `AI_MODEL_REDACCION` | Modelo de redacción del borrador | `poolside/laguna-s-2.1:free` (si falta, usa `AI_MODEL`) |
+| `AI_BASE_URL` | Endpoint del proveedor | OpenCode si hay `OPENCODE_API_KEY`; si no, `https://openrouter.ai/api/v1/chat/completions` |
+| `AI_API_KEY` | Clave genérica del proveedor | — (alternativa a `OPENCODE_API_KEY`) |
+| `OPENCODE_API_KEY` | Clave del reseller OpenCode (`oc_sk_...`); alias `OPENCODE_APIKEY` | — |
+| `AI_MODEL` | Modelo de extracción (chat) | `muse-spark-1.3` con OpenCode; `openai/gpt-4o-mini` en el resto |
+| `AI_MODEL_REDACCION` | Modelo de redacción del borrador | El mismo que `AI_MODEL` |
+| `OPENCODE_MODEL` | Modelo de OpenCode si no se define `AI_MODEL` | `muse-spark-1.3` |
 
 Proveedores compatibles (formato OpenAI `chat/completions`):
 
 | Proveedor | `AI_BASE_URL` | Costo |
 |-----------|---------------|-------|
+| OpenCode (Console) | `https://opencode.ai/inference/openai/v1/chat/completions` | Pago por uso; **Muse Spark 1.3** |
 | OpenRouter | `https://openrouter.ai/api/v1/chat/completions` | Modelos `:free` sin tarjeta |
 | OpenAI | `https://api.openai.com/v1/chat/completions` | De pago |
 | Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` | Capa gratuita |
