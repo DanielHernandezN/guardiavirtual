@@ -5,8 +5,12 @@ import {
   verificarPassword,
 } from "@/lib/sesion";
 import { registrarUso } from "@/lib/limites";
-import { buscarUsuario, hayUsuariosConfigurados } from "@/lib/usuarios";
-import { sincronizarUsuarios, usuarioActivo } from "@/lib/usuarios-db";
+import {
+  asegurarAdministradorInicial,
+  buscarUsuario,
+  contarUsuarios,
+  registrarAcceso,
+} from "@/lib/usuarios-db";
 import { leerJsonLimitado } from "@/lib/validacion";
 
 /**
@@ -31,7 +35,10 @@ const claveDeIntentos = (request: Request): string => {
 
 /**
  * Inicio de sesión.
- * Valida las credenciales y emite una cookie de sesión `HttpOnly` firmada.
+ *
+ * Las credenciales se verifican contra la tabla `Usuario` (hash `scrypt`
+ * persistente). No hay usuarios ni contraseñas en el código ni en variables
+ * de entorno: si la base no responde, el acceso falla cerrado.
  */
 export async function POST(request: Request) {
   // Se limita por IP (y no por ID) para frenar intentos de fuerza bruta
@@ -74,18 +81,35 @@ export async function POST(request: Request) {
     );
   }
 
-  // Sin funcionarios configurados el sistema no admite accesos.
-  if (!hayUsuariosConfigurados()) {
+  let usuario;
+  let hayFuncionarios;
+
+  try {
+    usuario = await buscarUsuario(id);
+    hayFuncionarios = usuario !== null || (await contarUsuarios()) > 0;
+  } catch {
+    // Sin base de datos no se pueden verificar las credenciales: se falla
+    // cerrado en vez de permitir el acceso.
+    console.error("[auth] No se pudo consultar la tabla Usuario.");
     return Response.json(
       {
         error:
-          "No hay funcionarios configurados en el sistema (revisa USUARIOS_JSON).",
+          "No se pudo verificar el acceso en este momento. Intente de nuevo en unos minutos.",
       },
       { status: 503 }
     );
   }
 
-  const usuario = buscarUsuario(id);
+  // Sin funcionarios dados de alta el sistema no admite accesos.
+  if (!hayFuncionarios) {
+    return Response.json(
+      {
+        error:
+          "El sistema todavía no tiene funcionarios. Ejecute el alta del administrador (npm run usuarios -- crear).",
+      },
+      { status: 503 }
+    );
+  }
 
   // Mismo mensaje para ID inexistente y contraseña incorrecta:
   // no revela qué parte de las credenciales es válida.
@@ -96,26 +120,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // Sincroniza el funcionario con la tabla `Usuario` y comprueba que su
-  // acceso siga activo. Un fallo de base de datos no debe impedir el
-  // acceso si las credenciales son correctas.
-  try {
-    await sincronizarUsuarios();
-
-    if (!(await usuarioActivo(usuario.id))) {
-      return Response.json(
-        { error: "El acceso de este funcionario está desactivado." },
-        { status: 403 }
-      );
-    }
-  } catch {
-    // La base de datos no es un requisito para autenticarse.
+  if (!usuario.activo) {
+    return Response.json(
+      { error: "El acceso de este funcionario está desactivado." },
+      { status: 403 }
+    );
   }
+
+  // El registro del último acceso es informativo: si falla, no impide entrar.
+  await registrarAcceso(usuario.id).catch(() => undefined);
+
+  // Si el sistema quedó sin administradores (migración desde `USUARIOS_JSON`),
+  // se recupera el acceso de administrador para no quedar bloqueado.
+  const promovido = await asegurarAdministradorInicial().catch(() => null);
+  const rol = promovido === usuario.id ? "ADMIN" : usuario.rol;
 
   const token = crearTokenSesion({
     id: usuario.id,
     nombre: usuario.nombre,
     grado: usuario.grado,
+    rol,
     exp: Date.now() + SESION_TTL_MS,
   });
 
@@ -125,6 +149,7 @@ export async function POST(request: Request) {
       id: usuario.id,
       nombre: usuario.nombre,
       grado: usuario.grado,
+      rol,
     },
   });
 

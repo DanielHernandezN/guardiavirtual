@@ -65,9 +65,13 @@ En **Vercel → Project → Settings → Environment Variables**, definir:
 | `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. Si falta, el membrete queda incompleto (no se inventa). |
 | `UNIDAD_COMUNA` | no | Comuna de la unidad; se indica al modelo al redactar. |
 | `SESSION_SECRET` | **sí** | Secreto de firma de la sesión (HMAC-SHA256). Sin él, el sistema queda **inaccesible** en producción (fallo cerrado). |
-| `USUARIOS_JSON` | **sí** | Lista de funcionarios: `[{"id":"...","nombre":"...","grado":"...","password":"..."}]`. `grado` es opcional. Sin ella, nadie puede autenticarse. |
 | `DATABASE_URL` | **sí** | URL de PostgreSQL (**pooled** en Neon/Vercel). |
 | `DATABASE_URL_UNPOOLED` | recomendada | URL directa para `prisma db push` durante la compilación. Si falta, se usa `DATABASE_URL`. |
+
+Los funcionarios **no** van en variables de entorno: viven en la tabla `Usuario`
+de PostgreSQL y se administran desde `/dashboard/usuarios` (solo un
+administrador). El alta del primer administrador se hace una vez con el script
+de la sección 2 bis.
 
 Generar un `SESSION_SECRET` seguro:
 
@@ -75,18 +79,52 @@ Generar un `SESSION_SECRET` seguro:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
-> `SESSION_SECRET` y `USUARIOS_JSON` **no** pueden tener valores por defecto:
-> son los dos controles de acceso del sistema.
+> `SESSION_SECRET` **no** puede tener un valor por defecto: es el control de
+> acceso del sistema. Sin él no se emiten ni se verifican sesiones.
 
-> **Acentos y eñes en las variables:** el valor debe llegar como UTF-8. Una
-> variable guardada con la página de códigos de Windows puede dejar el nombre
-> como `Hern??ndez` (la tilde se pierde y no se puede recuperar). Para
-> cargarla sin riesgo, escribe el valor en un archivo UTF-8 **sin BOM** y usa
-> `npx vercel env add USUARIOS_JSON production < valor.txt`, o pégalo en el
-> dashboard de Vercel. Las variables de tipo *Sensitive* no se pueden volver a
-> leer desde la CLI: si se corrompen, hay que reescribirlas. Al iniciar sesión,
-> la aplicación avisa por consola (`[auth] El nombre del funcionario …`) si
-> detecta nombres con `?` o el carácter U+FFFD.
+> **Acentos y eñes:** los nombres ahora se escriben desde el panel de
+> administración y se guardan en PostgreSQL como UTF-8; ya no pasan por una
+> variable de entorno. Si alguna vez se importa el formato antiguo
+> (`USUARIOS_JSON`), el valor debe llegar como UTF-8: una variable guardada con
+> la página de códigos de Windows puede dejar el nombre como `Hern??ndez` y la
+> tilde no se puede recuperar.
+
+---
+
+## 2 bis. Alta del primer administrador
+
+La tabla `Usuario` es la única fuente de credenciales. En una base nueva no hay
+nadie con acceso, así que el primer administrador se crea con el script:
+
+```powershell
+# Local (usa .env / .env.local)
+npm run usuarios -- crear --id daniel --nombre "Daniel Hernández Norambuena" --grado "Sgto. 1ro." --rol ADMIN
+
+# Producción (apunta DATABASE_URL a la base de Neon; usa la conexión directa)
+$env:DATABASE_URL="postgresql://..."; npm run usuarios -- crear --id daniel --nombre "Daniel Hernández Norambuena" --rol ADMIN
+```
+
+La contraseña se pide por teclado (no queda en el historial de la terminal).
+
+Si la base ya tenía funcionarios del sistema anterior, se importan una sola vez
+y el primero queda como administrador:
+
+```powershell
+$env:DATABASE_URL="postgresql://..."; npm run usuarios -- importar
+```
+
+Después de eso, `USUARIOS_JSON` **se puede borrar** de Vercel y de `.env.local`:
+la aplicación ya no la lee. El resto de los funcionarios se crean desde
+`/dashboard/usuarios`.
+
+Otros comandos de emergencia:
+
+```powershell
+npm run usuarios -- listar
+npm run usuarios -- clave --id daniel        # restablecer contraseña
+npm run usuarios -- rol --id daniel --rol ADMIN
+npm run usuarios -- estado --id daniel --estado inactivo
+```
 
 ---
 
@@ -155,9 +193,11 @@ npx vercel env add AI_API_KEY production < valor.txt
   el usuarioPegue a la misma instancia, lo cual no está garantizado.
 - **Sesión sin estado** (cookie firmada): no requiere servidor de sesiones,
   por lo que escala bien en varias instancias.
-- **Cifrado de contraseñas** con `scrypt`: el hash se regenera en cada
-  arranque porque `USUARIOS_JSON` guarda la contraseña en claro. Si se
-  migra el usuario a la base de datos, el hash debe persistir.
+- **Contraseñas** con `scrypt`: el hash vive en la tabla `Usuario` y solo
+  cambia cuando se cambia la contraseña. Ya no se regenera en cada arranque.
+- **Roles:** solo un administrador activo puede gestionar funcionarios
+  (`/dashboard/usuarios`). El rol se comprueba en el proxy, en la página y en
+  cada endpoint, contra la base de datos.
 - **Duración de las funciones:** `/api/documentos/procesar` declara
   `maxDuration = 120` segundos porque un acta larga se envía al modelo por
   trozos. En planes con límites menores, el acta puede requerir reintento o

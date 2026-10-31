@@ -18,6 +18,16 @@ import { dividirEnTrozos } from "@/lib/trozos";
 import type { Antecedentes, ResultadoAnalisis } from "@/lib/types";
 import { esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
 
+/**
+ * Tiempo máximo de la función.
+ *
+ * La extracción de un relato largo puede tardar más de un minuto con el
+ * modelo gratuito (medido: 79 s). Sin esta declaración, Vercel corta la
+ * petición con el límite por defecto y el funcionario ve «no se pudo
+ * procesar» aunque el modelo sí hubiera respondido.
+ */
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   try {
     const sesion = await obtenerSesion();

@@ -122,7 +122,7 @@ export const PLANTILLA_DETENIDO: DefinicionPlantilla = {
     "fiscal.instrucciones",
   ],
   reglasRedaccion: [
-    "El primer párrafo abre con «Doy cuenta a esa Fiscalía Local que, el día de hoy …».",
+    "El primer párrafo abre con «Doy cuenta a esa Fiscalía Local que, el [fecha] …»; usa «el día de hoy» solo si el hecho ocurrió hoy.",
     "Identifica al detenido dentro del relato, en línea corrida, con los datos que consten.",
     "Los derechos, el traslado y las diligencias se mencionan solo si constan en los antecedentes.",
     ...REGLAS_COMUNES,
@@ -157,7 +157,7 @@ export const PLANTILLA_PARTE: DefinicionPlantilla = {
     "fiscal.instrucciones",
   ],
   reglasRedaccion: [
-    "El primer párrafo abre con «Doy cuenta a esa Fiscalía Local que, el día de hoy …».",
+    "El primer párrafo abre con «Doy cuenta a esa Fiscalía Local que, el [fecha] …»; usa «el día de hoy» solo si el hecho ocurrió hoy.",
     "Identifica a las personas involucradas dentro del relato, en línea corrida.",
     ...REGLAS_COMUNES,
   ],
@@ -186,7 +186,7 @@ export const PLANTILLA_VIF: DefinicionPlantilla = {
     "fiscal.instrucciones",
   ],
   reglasRedaccion: [
-    "El primer párrafo abre con «Se da cuenta a esa Fiscalía Local que, hoy siendo las HH:MM horas se presentó en el servicio de guardia …».",
+    "El primer párrafo abre con «Se da cuenta a esa Fiscalía Local que, el [fecha], siendo las HH:MM horas, se presentó en el servicio de guardia …»; usa «el día de hoy» solo si la denuncia es de hoy.",
     "Individualiza a la denunciante dentro del relato y distingue claramente sus manifestaciones de los hechos constatados.",
     "No califiques jurídicamente los hechos ni atribuyas delitos que no consten.",
     ...REGLAS_COMUNES,

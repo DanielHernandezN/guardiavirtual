@@ -48,21 +48,21 @@ export type SeccionPlantilla = {
 const RELATO_DETENIDO: SeccionPlantilla = {
   titulo: TITULO_RELATO,
   instruccion:
-    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el día de hoy [día] [fecha], siendo las HH:MM horas, personal de servicio …». Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, » (o con el conector de momento «Una vez en el lugar…»). Identifica a las personas dentro del relato, en línea corrida (nombre, edad, nacionalidad, estado civil, estudios, ocupación, fecha de nacimiento, cédula de identidad, domicilio, teléfono y correo), sin listas «Etiqueta: valor».",
+    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el [fecha], siendo las HH:MM horas, personal de servicio …» (usa «el día de hoy» solo si el hecho ocurrió hoy). Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, » (o con el conector de momento «Una vez en el lugar…»). Identifica a las personas dentro del relato, en línea corrida (nombre, edad, nacionalidad, estado civil, estudios, ocupación, fecha de nacimiento, cédula de identidad, domicilio, teléfono y correo), sin listas «Etiqueta: valor».",
 };
 
 /** Apertura y relato de una denuncia (por ejemplo, violencia intrafamiliar). */
 const RELATO_DENUNCIA: SeccionPlantilla = {
   titulo: TITULO_RELATO,
   instruccion:
-    "Relato completo de la denuncia, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Se da cuenta a esa Fiscalía Local que, hoy siendo las HH:MM horas se presentó en el servicio de guardia de esta unidad [nombre], individualizada en el rubro denunciante/víctima, quien da cuenta del siguiente hecho:». Cada párrafo siguiente va separado por un salto de línea y comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida, sin listas «Etiqueta: valor».",
+    "Relato completo de la denuncia, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Se da cuenta a esa Fiscalía Local que, el [fecha], siendo las HH:MM horas, se presentó en el servicio de guardia de esta unidad [nombre], individualizada en el rubro denunciante/víctima, quien da cuenta del siguiente hecho:» (usa «el día de hoy» solo si la denuncia es de hoy). Cada párrafo siguiente va separado por un salto de línea y comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida, sin listas «Etiqueta: valor».",
 };
 
 /** Relato de un procedimiento general (hurto, robo, accidente, etc.). */
 const RELATO_PARTE: SeccionPlantilla = {
   titulo: TITULO_RELATO,
   instruccion:
-    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el día de hoy [día] [fecha], siendo las HH:MM horas, personal de servicio …». Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida, sin listas «Etiqueta: valor».",
+    "Relato completo del procedimiento, en tercera persona y pasado. El primer párrafo empieza con la fórmula de apertura: «Doy cuenta a esa Fiscalía Local que, el [fecha], siendo las HH:MM horas, personal de servicio …» (usa «el día de hoy» solo si el hecho ocurrió hoy). Cada hecho o actuación va en un párrafo aparte, separado por un salto de línea, que comienza con «Que, ». Identifica a las personas dentro del relato, en línea corrida (nombre, edad, nacionalidad, estado civil, estudios, ocupación, fecha de nacimiento, cédula de identidad, domicilio, teléfono y correo), sin listas «Etiqueta: valor».",
 };
 
 const LESIONES: SeccionPlantilla = {

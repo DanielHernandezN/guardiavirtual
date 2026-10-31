@@ -2,10 +2,102 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 28/10/2026
-- **Estado general:** 🟢 **En producción** — Fases 0 a 12 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, y cuenta con **123 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
+- **Última actualización:** 30/10/2026
+- **Estado general:** 🟢 **En producción** — Fases 0 a 13 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, **administra los funcionarios desde la base de datos con roles** (administrador y funcionario), y cuenta con **131 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Commit del motor documental:** `050ea4d` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
 
+> **Sesión 30/10/2026 — el borrador se bloqueaba y la especie no se registraba:**
+> al dictar un robo en lugar habitado sin detenidos, el chat preguntaba por la
+> especie y, al responder «tres anillos de oro», volvía a preguntar en un bucle:
+> el modelo dejaba `especie` en `null` porque el texto no coincidía con los
+> ejemplos del formato. Se agregaron reglas al prompt de extracción para que
+> cualquier respuesta del funcionario sobre el objeto sustraído se registre en
+> `especie` tal como se dictó (cantidad, material o plural incluidos) y para que
+> una respuesta suelta complete el campo que se estaba preguntando.
+>
+> También se corrigieron tres defectos que impedían o degradaban el parte:
+> (1) `/api/chat` y `/api/borrador` no declaraban `maxDuration` y Vercel cortaba
+> la petición con el límite por defecto (la extracción medida tardó 79 s y hubo
+> un intento de 181 s); ahora declaran 120 s. (2) La individualización de la
+> **denunciante o víctima** se perdía: solo se conservaba el nombre. Ahora sus
+> datos (RUT, edad, nacionalidad, estado civil, ocupación, nacimiento,
+> domicilio, teléfono y correo) se conservan en `descripcionHechos` y aparecen
+> en el relato; se aclara además que la víctima no es el detenido. (3) La
+> apertura del relato inventaba el día de la semana y escribía «el día de hoy»
+> aunque el hecho fuera de otra fecha: se corrigieron las fórmulas de
+> `lib/plantillas.ts` y `lib/documentos/plantillas.ts` y la regla de redacción
+> (solo «el día de hoy» si la fecha coincide, nunca un día de la semana que no
+> conste).
+>
+> **Pendiente detectado:** con el modelo gratuito (`poolside/laguna-s-2.1:free`)
+> el proveedor devuelve 429 con frecuencia y la redacción todavía agrega frases
+> no informadas («no se logró la detención», «concurrió al lugar»). Las reglas
+> del prompt lo prohíben, pero el modelo no siempre las respeta: para uso diario
+> hay que pasar a un modelo de pago (solo cambia `AI_MODEL`).
+
+
+> **Sesión 30/10/2026 — funcionarios en la base de datos con roles (Fase 13):**
+> se eliminó `USUARIOS_JSON` como fuente de credenciales. La tabla `Usuario`
+> ahora guarda el hash `scrypt` **de forma persistente** (antes se regeneraba
+> en cada arranque), junto con `grado`, `rol` (`ADMIN` / `FUNCIONARIO`),
+> `activo` y `ultimoAcceso`. El login verifica la contraseña contra la base y
+> falla cerrado (503) si no puede consultarla.
+>
+> **Administración:** nueva pantalla `/dashboard/usuarios`, visible solo para
+> administradores, donde se crea un funcionario con su contraseña inicial, se
+> editan nombre/grado/rol, se restablecen contraseñas, se activa o desactiva el
+> acceso y se elimina una cuenta **solo si no tiene casos** (la clave foránea
+> de `Caso` es `onDelete: Cascade`: borrar al funcionario borraría sus partes;
+> por eso lo normal es desactivar). El rol se comprueba en el proxy, en la
+> página y en cada endpoint **contra la base de datos**, así que desactivar o
+> rebajar a un administrador tiene efecto inmediato aunque su cookie siga viva.
+>
+> **Reglas de seguridad:** el sistema no puede quedar sin administradores
+> activos (`dejariaSinAdministradores`), un administrador no puede desactivar
+> ni eliminar su propia cuenta, y guardar un caso vuelve a verificar que el
+> autor siga activo (una cookie de un funcionario eliminado ya no sirve para
+> crear casos). Si al migrar desde el formato antiguo nadie queda como
+> administrador, el **funcionario más antiguo** recupera el rol al iniciar
+> sesión (recuperación determinística, sin depender de quién entre).
+>
+> **Alta inicial:** `npm run usuarios -- crear --id daniel --rol ADMIN` (la
+> contraseña se pide por teclado) e `npm run usuarios -- importar` para traer
+> los funcionarios de `USUARIOS_JSON` una sola vez. También hay `listar`,
+> `clave`, `rol` y `estado` para emergencias. Ver `DEPLOY.md` §2 bis.
+>
+> **Migración:** `20261030120000_usuarios_roles` agrega `grado`, `rol` y
+> `ultimoAcceso` (y regulariza en el historial `Caso.documento` y
+> `Borrador.plantilla`, que se habían aplicado con `db push`). En producción el
+> `db push` del build crea las columnas solo; después hay que ejecutar
+> `npm run usuarios -- importar` con `DATABASE_URL` de Neon para dejar a
+> `daniel` como administrador.
+>
+> **Pruebas manuales contra el servidor de desarrollo:** login 200 · listado
+> 200 · alta 201 · ID duplicado 409 · funcionario en `/api/usuarios` 403 ·
+> `/dashboard/usuarios` redirige al dashboard para funcionario y responde 200
+> para administrador · desactivar 200 y el login pasa a 403 · eliminar 200 ·
+> eliminar la propia cuenta 409 · rebajar al último administrador 409 · sin
+> sesión 401. `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ **131/131** · `npm run build` ✅.
+>
+> **Sesión 30/10/2026 — el chat queda solo de texto (UI/UX):** a pedido del
+> usuario se eliminó la barra que estaba sobre el campo de escritura
+> («ADJUNTAR ACTA», el selector «Plantilla» y la ayuda «TXT, DOCX o PDF con
+> texto digital · máx. 10 MB»), porque adjuntar el acta no es necesario. Con
+> ella se retiró del cliente todo el camino de archivo: `handleArchivo`, los
+> estados `documento`, `plantillaId`, `subiendo` y `errorDocumento`, el
+> `archivoRef`, el resumen conversacional del acta y la franja «Acta de origen».
+> `/api/borrador` recibe siempre `plantillaId: null`, así que la plantilla se
+> elige de forma automática según el caso (igual que antes con «Automática»).
+> La bienvenida del chat («NUEVO PARTE») quedó con un solo párrafo que pide
+> **tipo de procedimiento, lugar, fecha, individualización del detenido y del
+> personal aprehensor, testigos y víctimas**; ya no menciona el acta ni la
+> especie. Los endpoints `/api/documentos/procesar` y `/api/documentos/word`
+> se conservan (el Word institucional se sigue descargando desde el visor) y la
+> trazabilidad de los casos ya guardados se sigue mostrando al abrirlos.
+> Verificación: `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ 123/123 · `npm run build` ✅.
+>
 > **Sesión 28/10/2026 — motor documental completo (Fase 12):** se cerró el
 > flujo que faltaba entre el acta y el Word. La ingesta acepta **TXT, DOCX y
 > PDF con capa de texto** (`lib/documentos/ingesta.ts`): valida extensión y
@@ -330,6 +422,9 @@ guardiavirtual/
 │   │   │   ├── route.ts              # ✅ Listado y guardado de casos
 │   │   │   └── [id]/route.ts         # ✅ Ver, papelera, restaurar y borrar
 │   │   ├── chat/route.ts             # ✅ Endpoint de extracción de antecedentes (con IA)
+│   │   ├── usuarios/
+│   │   │   ├── route.ts              # ✅ Listado y alta de funcionarios (solo admin)
+│   │   │   └── [id]/route.ts         # ✅ Editar, contraseña, activar y eliminar
 │   │   └── documentos/
 │   │       ├── procesar/route.ts     # ✅ Ingesta + extracción + validación de actas
 │   │       └── word/route.ts         # ✅ Generación del .docx con formato institucional
@@ -340,10 +435,12 @@ guardiavirtual/
 │   │   ├── EstadoCaso.tsx            # ✅ Faltantes y contradicciones
 │   │   ├── LoginForm.tsx             # ✅ Login
 │   │   ├── LogoutButton.tsx          # ✅ Cierre de sesión
-│   │   └── PanelLateral.tsx          # ✅ Funcionario, filtros, búsqueda y papelera
+│   │   ├── PanelLateral.tsx          # ✅ Funcionario, historial, papelera y acceso admin
+│   │   └── UsuariosPanel.tsx         # ✅ Administración de funcionarios (solo admin)
 │   ├── dashboard/
 │   │   ├── error.tsx                 # ✅ Error boundary del dashboard
 │   │   ├── layout.tsx                # ✅ Revalida la sesión en el servidor
+│   │   ├── usuarios/page.tsx         # ✅ Alta, edición y accesos de funcionarios
 │   │   └── page.tsx                 # ✅ Espacio de trabajo
 │   ├── error.tsx                     # ✅ Error boundary raíz
 │   ├── global-error.tsx              # ✅ Error global
@@ -380,13 +477,15 @@ guardiavirtual/
 │   ├── sesion.ts                     # ✅ Cookies firmadas y hashes
 │   ├── trozos.ts                     # ✅ Troceado de actas largas para la IA
 │   ├── types.ts                      # ✅ Contrato de datos
-│   ├── usuarios.ts                   # ✅ Funcionarios (USUARIOS_JSON)
-│   ├── usuarios-db.ts                # ✅ Sincronización con la tabla Usuario
+│   ├── usuarios.ts                   # ✅ Roles y validación de funcionarios
+│   ├── usuarios-db.ts                # ✅ Funcionarios en la base de datos
 │   └── validacion.ts                 # ✅ Validación de entradas
 ├── prisma/                           # ✅ Esquema, migraciones y SQLite local
 ├── public/
-├── scripts/proveedor-db.mjs          # ✅ Cambio SQLite ↔ PostgreSQL
-├── tests/                            # ✅ 123 pruebas unitarias y de flujo
+├── scripts/
+│   ├── proveedor-db.mjs              # ✅ Cambio SQLite ↔ PostgreSQL
+│   └── usuarios.mts                  # ✅ Alta del administrador y emergencias
+├── tests/                            # ✅ 131 pruebas unitarias y de flujo
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── prompt.md                         # ✅ Documentación de los prompts
@@ -464,8 +563,8 @@ guardiavirtual/
 | Pieza | Problema | Impacto |
 |-------|----------|---------|
 | `lib/limites.ts` | El contador vive **en memoria** (por proceso). | En un despliegue con varias instancias el límite no es global. Requiere Redis (Upstash) para ser efectivo. |
-| `lib/usuarios.ts` | El hash de la contraseña se **regenera en cada arranque** (`scrypt` con sal aleatoria). | La columna `passwordHash` de la tabla `Usuario` no es estable. Al migrar los usuarios a la base de datos hay que persistir el hash. |
-| `lib/usuarios-db.ts` | La sincronización con `USUARIOS_JSON` ocurre al iniciar sesión. | Un funcionario que nunca ha iniciado sesión no existe en la tabla `Usuario` (por eso `asegurarUsuario` la crea al guardar un caso). |
+| `lib/sesion.ts` | El nombre y el grado viajan dentro de la cookie firmada (8 h). | Si un administrador corrige el nombre o el grado, el funcionario debe cerrar y volver a abrir sesión para verlo en el parte. El rol sí se revalida contra la base en cada operación sensible. |
+| `app/api/usuarios/[id]` | El ID de acceso no se puede cambiar (es la credencial). | Si se escribió mal, hay que crear el funcionario de nuevo y desactivar el anterior (sus casos se conservan). |
 | `prisma/migrations` | El historial de migraciones está escrito en **SQL de SQLite**. | En PostgreSQL se usa `prisma db push` (ver `DEPLOY.md`). Si se adoptan migraciones en producción, hay que generar las de PostgreSQL aparte. |
 | `prompt.md` | Sigue siendo **documentación**: el prompt real vive en `lib/prompts.ts`. | Sin impacto funcional; conviene mantenerlo sincronizado. |
 | `app/api/chat/route.ts` | El estado de los antecedentes viaja en el cuerpo de la petición. | Cada mensaje reenvía el estado completo. Las actas largas se trocean (3 500 caracteres) y consumen una llamada al modelo por trozo, lo que gasta cuota más rápido. |
@@ -482,10 +581,14 @@ guardiavirtual/
    recarga única de USD 10 sube el límite a 1000/día.
 3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
    instancias.
-4. **Migración de usuarios a la base de datos** con hash de contraseña
-   persistente (eliminaría `USUARIOS_JSON`).
+4. **Importar los funcionarios en producción** una sola vez
+   (`npm run usuarios -- importar` con `DATABASE_URL` de Neon) y después
+   borrar `USUARIOS_JSON` de Vercel. Sin ese paso, `daniel` queda como
+   funcionario y nadie puede administrar usuarios hasta que lo haga.
 5. **Datos exactos del membrete y del número de parte** — prefectura,
    comisaría, comuna y folio visible, según lo que exija la unidad.
+6. **Cambio de contraseña por el propio funcionario** («Mi cuenta»): hoy la
+   restablece el administrador desde el panel.
 
 ---
 
@@ -812,9 +915,53 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
 
 ---
 
+### Fase 13 — Funcionarios en la base de datos con roles — ✅ COMPLETADA
+
+La tabla `Usuario` pasa a ser la única fuente de credenciales y el sistema gana
+un administrador que da de alta y quita accesos.
+
+- [x] **Esquema:** `Usuario` gana `grado`, `rol` (`ADMIN` / `FUNCIONARIO`),
+      `ultimoAcceso`; el `passwordHash` se guarda de forma **persistente**
+      (antes se regeneraba en cada arranque desde `USUARIOS_JSON`).
+- [x] **Login contra la base:** verifica el hash de la fila, rechaza a los
+      desactivados (403) y falla cerrado (503) si la base no responde. El
+      token de sesión incorpora el rol.
+- [x] **Recuperación de administrador:** si no hay ningún `ADMIN` activo, el
+      funcionario más antiguo recupera el rol al iniciar sesión.
+- [x] **Panel `/dashboard/usuarios`** (solo administradores): alta con
+      contraseña inicial, edición de nombre/grado/rol, restablecimiento de
+      contraseña, activar/desactivar acceso y eliminación.
+- [x] **Reglas de integridad:** no se puede quedar sin administradores activos;
+      un administrador no puede desactivarse ni eliminarse a sí mismo; una
+      cuenta con casos guardados no se elimina (se desactiva) para no perder el
+      historial por la cascada de `Caso`.
+- [x] **Autorización en tres capas:** proxy (rol del token), página (rol contra
+      la base) y endpoints (`exigirAdministrador`, que además comprueba
+      `activo`), de modo que desactivar a alguien surte efecto de inmediato.
+- [x] **Guardado de casos:** antes de crear un caso se verifica que el autor
+      siga existiendo y activo (una cookie vieja ya no basta).
+- [x] **Script `npm run usuarios`** (`scripts/usuarios.mts`): `crear`
+      (el primero queda como administrador), `importar` desde
+      `USUARIOS_JSON`, `listar`, `clave`, `rol` y `estado`. La contraseña se
+      pide por teclado.
+- [x] **Migración** `20261030120000_usuarios_roles` (incluye regularizar en el
+      historial `Caso.documento` y `Borrador.plantilla`).
+- [x] **Documentación:** `DEPLOY.md` §2 bis (alta del primer administrador),
+      `README.md`, `.env.example` (ya no pide `USUARIOS_JSON`).
+- [x] **Pruebas:** 131/131 (normalización de IDs, validación de alta y edición,
+      regla del último administrador y rol dentro del token de sesión), más
+      pruebas manuales de todos los endpoints.
+
+**Pendiente de esta fase:** ejecutar `importar` una vez contra la base de
+producción y borrar `USUARIOS_JSON` de Vercel; cambio de contraseña por el
+propio funcionario; y considerar un registro de auditoría de las acciones de
+administración.
+
+---
+
 ## 7. Dónde quedamos (resumen para retomar)
 
-- **Fases 0 a 12 completadas.** El sistema, con IA real (OpenRouter, modelo
+- **Fases 0 a 13 completadas.** El sistema, con IA real (OpenRouter, modelo
   gratuito), extrae antecedentes, **identifica al detenido y al personal
   aprehensor**, **procesa actas DOCX/PDF/TXT**, redacta el borrador del parte
   con secciones editables, exige revisión humana, **genera el Word con formato
@@ -822,6 +969,11 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
   base de datos** (SQLite en desarrollo, PostgreSQL en producción, con tabla
   `Usuario` y papelera) y ofrece historial con filtros, búsqueda, restauración
   y borrado definitivo.
+- **Funcionarios y roles:** las credenciales viven en la tabla `Usuario` (hash
+  `scrypt` persistente). Un **administrador** crea y quita accesos desde
+  `/dashboard/usuarios`; los funcionarios solo usan el parte. El sistema no
+  puede quedar sin administradores y desactivar a alguien corta su acceso de
+  inmediato, incluso con la sesión abierta.
 - **En producción:** <https://guardiavirtual.vercel.app> (Vercel + Neon
   PostgreSQL, región São Paulo). Variables cifradas, SSO de Vercel desactivado
   y login propio de la aplicación. Pruebas de humo verificadas.
@@ -833,7 +985,7 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
 - **Documento completo:** encabezado fijo (Unidad, N.° de parte, fecha/hora,
   funcionario y materia), cuerpo editable y cierre con firma. El visor permite
   alternar entre edición y **vista previa**.
-- **Calidad y seguridad:** 89 pruebas unitarias, rate limiting por funcionario
+- **Calidad y seguridad:** 131 pruebas, rate limiting por funcionario
   y por IP, validación de entradas y del tamaño de las peticiones, timeout del
   modelo, errores traducidos a HTTP (400/429/504/500), cabeceras de seguridad
   y páginas de error propias.
@@ -845,27 +997,31 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
   con este caso") o abrir un caso nuevo. El caso nuevo **no hereda** datos del
   anterior.
 - **Autenticación real** con sesión firmada, `proxy.ts` + validación por
-  endpoint, y credenciales solo en `.env.local`.
+  endpoint y por rol, y credenciales (hash `scrypt`) en la tabla `Usuario`.
 - **UI en paleta de verde olivo** con burbujas diferenciadas (funcionario /
   asistente / error) y **diseño responsive** para celular, tablet y escritorio.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Ampliar el límite de IA** (OpenRouter): una recarga única de USD 10 sube
+1. **Importar los funcionarios en producción** (una sola vez):
+   `$env:DATABASE_URL="postgresql://..."; npm run usuarios -- importar`, y
+   después borrar `USUARIOS_JSON` de Vercel. Verificar que `daniel` figure como
+   `ADMIN` en `/dashboard/usuarios`.
+2. **Ampliar el límite de IA** (OpenRouter): una recarga única de USD 10 sube
    de 50 a 1000 solicitudes/día, suficiente para una guardia.
-2. **Completar el membrete en producción**: definir `UNIDAD_PREFECTURA`,
+3. **Completar el membrete en producción**: definir `UNIDAD_PREFECTURA`,
    `UNIDAD_NOMBRE` y `UNIDAD_COMUNA` en Vercel (hoy el documento sale sin
    membrete). Las firmas ya incluyen el grado de cada funcionario.
-3. Probar el parte con un caso real completo (detenido y VIF) y ajustar la
+4. Probar el parte con un caso real completo (detenido y VIF) y ajustar la
    redacción (orden de secciones, denominación del delito, formato de horas).
-4. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
+5. **Límite de uso distribuido:** el contador de `lib/limites.ts` vive en
    memoria; en un despliegue con varias instancias hay que moverlo a Redis
    (Upstash) para que el límite sea global.
 
 ### Pendientes menores anotados
 - ~~**Hora en los partes:**~~ ✅ resuelto en la Fase 7 (el modelo usa
   *"a una hora no informada"*).
-- ~~**Usuario en base de datos:**~~ ✅ resuelto en la Fase 7 (tabla `Usuario`
-  sincronizada con `USUARIOS_JSON`).
+- ~~**Usuario en base de datos:**~~ ✅ resuelto en la Fase 13 (tabla `Usuario`
+  como fuente de credenciales, con roles y panel de administración).
 - ~~**Eliminar casos:**~~ ✅ resuelto en la Fase 7 (papelera con restauración
   y borrado definitivo).
 
@@ -878,14 +1034,18 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
 | `AI_MODEL` | ✅ definido | `poolside/laguna-s-2.1:free` (extracción) |
 | `AI_MODEL_REDACCION` | ✅ definido | `poolside/laguna-s-2.1:free` (redacción; si falta, usa `AI_MODEL`) |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
-| `USUARIOS_JSON` | ✅ definido | ID `daniel`; el campo opcional `grado` se usa en el encabezado y la firma |
 | `UNIDAD_PREFECTURA` | ⬜ opcional | Prefectura del membrete (por ejemplo, `Prefectura Villarrica Nro. 3`) |
 | `UNIDAD_NOMBRE` | ⬜ opcional | Unidad del membrete (por ejemplo, `9na. Comisaría Pucón`) |
 | `UNIDAD_COMUNA` | ⬜ opcional | Comuna de la fórmula «Doy cuenta a esa Fiscalía Local de…» |
 | `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
 
-> En producción, `SESSION_SECRET` y `USUARIOS_JSON` son **obligatorias** y
-> `DATABASE_URL` debe apuntar a PostgreSQL. Ver `DEPLOY.md`.
+> Los funcionarios **no** se configuran en `.env.local`: viven en la tabla
+> `Usuario` y se administran desde `/dashboard/usuarios`. `USUARIOS_JSON` solo
+> se conserva para ejecutar `npm run usuarios -- importar` una vez; después se
+> puede borrar.
+
+> En producción, `SESSION_SECRET` es **obligatorio** y `DATABASE_URL` debe
+> apuntar a PostgreSQL. Ver `DEPLOY.md`.
 
 ### Configuración de producción (Vercel)
 
@@ -895,7 +1055,7 @@ real de la unidad y revisión del punto de equilibrio del proveedor de IA
 | `DATABASE_URL_UNPOOLED` | ✅ | Neon directa, usada por `prisma db push` en la compilación |
 | `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Cifradas en Vercel |
 | `SESSION_SECRET` | ✅ | Nueva, generada para producción (distinta de la local) |
-| `USUARIOS_JSON` | ✅ | Cifrada; mismo funcionario `daniel` |
+| `USUARIOS_JSON` | ⬜ | Ya no se usa: importar una vez con `npm run usuarios -- importar` y borrarla |
 | `UNIDAD_PREFECTURA` / `UNIDAD_NOMBRE` / `UNIDAD_COMUNA` | ⬜ | Pendientes; sin ellas el parte sale sin membrete |
 
 **Proyecto:** `guardiavirtual` · **URL:** <https://guardiavirtual.vercel.app> ·
@@ -945,6 +1105,7 @@ Next 16 recarga `.env.local` en caliente: no hace falta reiniciar el servidor.
 - **Antes de dar por terminada una fase:** `npm run typecheck`, `npm run lint`,
   `npm test` y `npm run build` en verde, y pruebas manuales contra el servidor
   de desarrollo.
-- **Los secretos no se versionan:** claves de IA, `SESSION_SECRET` y
-  `USUARIOS_JSON` viven solo en `.env` / `.env.local`. En `AVANCE.md` y
-  documentos se anota solo la huella o el nombre de la variable.
+- **Los secretos no se versionan:** claves de IA y `SESSION_SECRET` viven solo
+  en `.env` / `.env.local`; las contraseñas de los funcionarios, solo como hash
+  `scrypt` en la base de datos. En `AVANCE.md` y documentos se anota solo la
+  huella o el nombre de la variable.

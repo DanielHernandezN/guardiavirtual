@@ -3,7 +3,7 @@ import { tituloDeCaso, toCasoResumen } from "@/lib/casos";
 import { prisma } from "@/lib/db";
 import { errorComoJson } from "@/lib/errores";
 import { esquemaAntecedentes } from "@/lib/schemas";
-import { asegurarUsuario } from "@/lib/usuarios-db";
+import { buscarUsuario } from "@/lib/usuarios-db";
 import { esquemaGuardarCaso, leerJsonLimitado } from "@/lib/validacion";
 
 /**
@@ -20,6 +20,17 @@ export async function GET(request: Request) {
 
   if (!sesion) {
     return Response.json({ error: "No autenticado." }, { status: 401 });
+  }
+
+  // Un funcionario desactivado pierde el acceso de inmediato, aunque su
+  // cookie todavía no haya caducado.
+  const autor = await buscarUsuario(sesion.id);
+
+  if (!autor || !autor.activo) {
+    return Response.json(
+      { error: "El acceso de este funcionario está desactivado." },
+      { status: 403 }
+    );
   }
 
   const url = new URL(request.url);
@@ -95,9 +106,16 @@ export async function POST(request: Request) {
       ...(documento ? { documento: JSON.stringify(documento) } : {}),
     };
 
-    // Los casos tienen clave foránea hacia `Usuario`: se asegura la
-    // existencia del autor antes de guardar.
-    await asegurarUsuario(sesion.id, sesion.nombre);
+    // Un funcionario eliminado o desactivado no debe seguir guardando casos,
+    // aunque su cookie todavía no haya caducado.
+    const autor = await buscarUsuario(sesion.id);
+
+    if (!autor || !autor.activo) {
+      return Response.json(
+        { error: "El acceso de este funcionario está desactivado." },
+        { status: 403 }
+      );
+    }
 
     // Solo se actualiza un caso que pertenezca al funcionario autenticado.
     const existente = casoId

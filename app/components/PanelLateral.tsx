@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import type { CasoResumen } from "@/lib/casos";
 
 type Props = {
   nombre: string;
+  /** Muestra el acceso a la administración de funcionarios. */
+  esAdmin?: boolean;
   casos: CasoResumen[];
   casoActivoId: string | null;
   mensajeEstado: string;
@@ -33,6 +36,7 @@ const FILTROS: Array<{ id: Filtro; etiqueta: string }> = [
  */
 export default function PanelLateral({
   nombre,
+  esAdmin = false,
   casos,
   casoActivoId,
   mensajeEstado,
@@ -116,6 +120,14 @@ export default function PanelLateral({
             Funcionario
           </h3>
           <p className="font-semibold text-oliva-100">{nombre}</p>
+          {esAdmin && (
+            <Link
+              href="/dashboard/usuarios"
+              className="mt-1 self-start rounded-lg border border-oliva-700 px-2.5 py-1 text-xs font-semibold text-oliva-300 transition hover:border-oliva-400 hover:text-oliva-100"
+            >
+              Administrar funcionarios →
+            </Link>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">

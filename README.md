@@ -49,11 +49,15 @@ La aplicación queda en <http://localhost:3000>.
 | `UNIDAD_PREFECTURA` | no | Prefectura del membrete institucional. |
 | `UNIDAD_COMUNA` | no | Comuna de la unidad (se indica al modelo al redactar). |
 | `SESSION_SECRET` | **sí en producción** | Firma de la cookie de sesión. Sin él, el sistema queda inaccesible. |
-| `USUARIOS_JSON` | **sí** | Funcionarios con acceso: `[{"id":"...","nombre":"...","grado":"...","password":"..."}]`. `grado` es opcional y se usa en el parte. |
 | `DATABASE_URL` | **sí** | Va en `.env` (no `.env.local`): la CLI de Prisma solo lee `.env`. |
 
-> Si agregas o cambias `grado`, cierra la sesión y vuelve a entrar: el grado
-> viaja dentro de la cookie firmada.
+> Los funcionarios **no** se configuran en variables de entorno: viven en la
+> tabla `Usuario` y se administran desde `/dashboard/usuarios` (solo un
+> administrador). El primero se crea una vez con
+> `npm run usuarios -- crear --id daniel --rol ADMIN`; ver `DEPLOY.md`.
+
+> Si cambias el nombre o el grado desde el panel, el funcionario debe cerrar y
+> volver a abrir sesión: esos datos viajan dentro de la cookie firmada.
 
 > **Nunca subas claves ni contraseñas al repositorio.** `.env` y `.env.local`
 > están en `.gitignore`; solo se versiona `.env.example`.

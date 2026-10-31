@@ -38,6 +38,18 @@ export class ErrorEntradaInvalida extends Error {
 }
 
 /**
+ * Error de conflicto con el estado actual (409): por ejemplo, un ID de
+ * funcionario que ya existe o un cambio que dejaría el sistema sin
+ * administradores.
+ */
+export class ErrorConflicto extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = "ErrorConflicto";
+  }
+}
+
+/**
  * Convierte un error desconocido en un mensaje apto para mostrar en la UI.
  * Los errores técnicos se ocultan: el funcionario ve qué pasó, no el
  * volcado de la excepción.
@@ -46,6 +58,7 @@ export const mensajeAmigable = (error: unknown): string => {
   if (error instanceof ErrorTiempoAgotado) return error.message;
   if (error instanceof ErrorLimiteProveedor) return error.message;
   if (error instanceof ErrorEntradaInvalida) return error.message;
+  if (error instanceof ErrorConflicto) return error.message;
 
   if (error instanceof Error) {
     // Errores de Zod: se resume la causa sin volcar el esquema.
@@ -96,6 +109,10 @@ export const errorComoJson = (
     return { status: 400, body: { error: error.message } };
   }
 
+  if (error instanceof ErrorConflicto) {
+    return { status: 409, body: { error: error.message } };
+  }
+
   if (error instanceof ErrorLimiteProveedor) {
     return { status: 429, body: { error: error.message } };
   }
@@ -114,6 +131,7 @@ export const errorComoJson = (
  * Convierte una excepción en una respuesta HTTP con el código correcto.
  *
  * - 400: entrada inválida.
+ * - 409: conflicto con el estado actual (por ejemplo, último administrador).
  * - 429: el proveedor de IA agotó su cuota.
  * - 504: el modelo no respondió a tiempo.
  * - 500: cualquier otro fallo.

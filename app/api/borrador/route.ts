@@ -30,6 +30,12 @@ import { esquemaAntecedentes, esquemaBorrador } from "@/lib/schemas";
 import type { BorradorParte, SeccionBorrador } from "@/lib/types";
 import { leerJsonLimitado } from "@/lib/validacion";
 
+/**
+ * Tiempo máximo de la función: la redacción también llama al modelo y puede
+ * superar el límite por defecto de Vercel en horas de congestión.
+ */
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   try {
     const sesion = await obtenerSesion();

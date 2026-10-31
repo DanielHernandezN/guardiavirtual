@@ -9,8 +9,9 @@ import { SESION_COOKIE, verificarTokenSesion } from "@/lib/sesion";
  *
  * `/api/auth/*` queda público (login y logout deben poder usarse sin sesión).
  *
- * La verificación real se repite en cada endpoint y en el layout del
- * dashboard: nunca se depende solo del proxy.
+ * La administración de funcionarios (`/dashboard/usuarios` y `/api/usuarios`)
+ * exige además rol `ADMIN`. Es una primera barrera: el layout de la página y
+ * los endpoints vuelven a comprobar el rol contra la base de datos.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,16 +25,33 @@ export function proxy(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESION_COOKIE)?.value;
+  const sesion = verificarTokenSesion(token);
 
-  if (verificarTokenSesion(token)) {
-    return NextResponse.next();
+  if (!sesion) {
+    if (esApiProtegida) {
+      return Response.json({ error: "No autenticado." }, { status: 401 });
+    }
+
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  if (esApiProtegida) {
-    return Response.json({ error: "No autenticado." }, { status: 401 });
+  // Administración de funcionarios: solo administradores.
+  const esAdminSolo =
+    pathname.startsWith("/dashboard/usuarios") ||
+    pathname.startsWith("/api/usuarios");
+
+  if (esAdminSolo && sesion.rol !== "ADMIN") {
+    if (esApiProtegida) {
+      return Response.json(
+        { error: "Solo un administrador puede gestionar funcionarios." },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.next();
 }
 
 export const config = {

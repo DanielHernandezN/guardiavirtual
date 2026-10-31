@@ -8,7 +8,13 @@ import {
   verificarPassword,
   verificarTokenSesion,
 } from "@/lib/sesion";
-import { buscarUsuario, hayUsuariosConfigurados, listarUsuarios } from "@/lib/usuarios";
+import {
+  dejariaSinAdministradores,
+  esquemaActualizarUsuario,
+  esquemaCrearUsuario,
+  idUsuarioValido,
+  normalizarIdUsuario,
+} from "@/lib/usuarios";
 import { limpiarUso, registrarUso } from "@/lib/limites";
 import { MENSAJE_MAXIMO, esquemaMensaje, leerJsonLimitado } from "@/lib/validacion";
 import { ErrorEntradaInvalida, errorComoJson, mensajeAmigable } from "@/lib/errores";
@@ -43,6 +49,7 @@ describe("token de sesión", () => {
       id: "funcionario",
       nombre: "Funcionario de Prueba",
       grado: "Sgto. 1ro.",
+      rol: "ADMIN",
       exp: Date.now() + SESION_TTL_MS,
     });
 
@@ -51,12 +58,24 @@ describe("token de sesión", () => {
     assert.equal(payload?.id, "funcionario");
     assert.equal(payload?.nombre, "Funcionario de Prueba");
     assert.equal(payload?.grado, "Sgto. 1ro.");
+    assert.equal(payload?.rol, "ADMIN");
+  });
+
+  it("trata como funcionario un token sin rol (sesión anterior a los roles)", () => {
+    const token = crearTokenSesion({
+      id: "funcionario",
+      nombre: "Funcionario de Prueba",
+      exp: Date.now() + SESION_TTL_MS,
+    } as never);
+
+    assert.equal(verificarTokenSesion(token)?.rol, "FUNCIONARIO");
   });
 
   it("rechaza un token con la firma alterada", () => {
     const token = crearTokenSesion({
       id: "funcionario",
       nombre: "Funcionario de Prueba",
+      rol: "FUNCIONARIO",
       exp: Date.now() + SESION_TTL_MS,
     });
 
@@ -72,6 +91,7 @@ describe("token de sesión", () => {
     const token = crearTokenSesion({
       id: "funcionario",
       nombre: "Funcionario de Prueba",
+      rol: "FUNCIONARIO",
       exp: Date.now() - 1000,
     });
 
@@ -85,62 +105,165 @@ describe("token de sesión", () => {
   });
 });
 
-describe("usuarios del entorno", () => {
-  it("no hay usuarios si USUARIOS_JSON no está definida", () => {
-    const original = process.env.USUARIOS_JSON;
-    delete process.env.USUARIOS_JSON;
-
-    try {
-      assert.equal(hayUsuariosConfigurados(), false);
-      assert.deepEqual(listarUsuarios(), []);
-      assert.equal(buscarUsuario("cualquiera"), null);
-    } finally {
-      if (original !== undefined) process.env.USUARIOS_JSON = original;
-    }
+describe("identificadores de funcionario", () => {
+  it("normaliza tildes, mayúsculas y espacios", () => {
+    assert.equal(normalizarIdUsuario("Daniel Hernández"), "daniel.hernandez");
+    assert.equal(normalizarIdUsuario("  DANIEL  "), "daniel");
+    assert.equal(normalizarIdUsuario("José Pérez-Soto"), "jose.perez-soto");
   });
 
-  it("ignora un JSON inválido", () => {
-    const original = process.env.USUARIOS_JSON;
-    process.env.USUARIOS_JSON = "esto no es json";
+  it("acepta solo identificadores utilizables como credencial", () => {
+    assert.equal(idUsuarioValido("daniel"), true);
+    assert.equal(idUsuarioValido("daniel.hernandez"), true);
+    assert.equal(idUsuarioValido("ab"), false);
+    assert.equal(idUsuarioValido("-daniel"), false);
+    assert.equal(idUsuarioValido("daniel hernandez"), false);
+    assert.equal(idUsuarioValido("a".repeat(33)), false);
+  });
+});
 
-    try {
-      assert.equal(hayUsuariosConfigurados(), false);
-    } finally {
-      if (original !== undefined) process.env.USUARIOS_JSON = original;
-    }
+describe("validación de funcionarios", () => {
+  it("acepta un alta completa y normaliza el ID", () => {
+    const resultado = esquemaCrearUsuario.safeParse({
+      id: "Daniel Hernández",
+      nombre: "Daniel Hernández Norambuena",
+      grado: "Sgto. 1ro.",
+      rol: "ADMIN",
+      password: "clave-segura",
+    });
+
+    assert.equal(resultado.success, true);
+    assert.equal(resultado.success && resultado.data.id, "daniel.hernandez");
+    assert.equal(resultado.success && resultado.data.rol, "ADMIN");
   });
 
-  it("encuentra un usuario configurado", () => {
-    const original = process.env.USUARIOS_JSON;
-    process.env.USUARIOS_JSON = JSON.stringify([
-      { id: "prueba", nombre: "Funcionario de Prueba", password: "clave" },
-    ]);
+  it("usa FUNCIONARIO por defecto y convierte el grado vacío en null", () => {
+    const resultado = esquemaCrearUsuario.safeParse({
+      id: "daniel",
+      nombre: "Daniel Hernández",
+      grado: "",
+      password: "clave-segura",
+    });
 
-    try {
-      assert.equal(hayUsuariosConfigurados(), true);
-      assert.equal(buscarUsuario("prueba")?.nombre, "Funcionario de Prueba");
-      assert.equal(buscarUsuario("prueba")?.grado, null);
-    } finally {
-      if (original !== undefined) process.env.USUARIOS_JSON = original;
-    }
+    assert.equal(resultado.success, true);
+    assert.equal(resultado.success && resultado.data.rol, "FUNCIONARIO");
+    assert.equal(resultado.success && resultado.data.grado, null);
   });
 
-  it("conserva el grado cuando está configurado", () => {
-    const original = process.env.USUARIOS_JSON;
-    process.env.USUARIOS_JSON = JSON.stringify([
-      {
-        id: "prueba",
-        nombre: "Funcionario de Prueba",
-        grado: "Sgto. 1ro.",
-        password: "clave",
-      },
-    ]);
+  it("rechaza contraseñas cortas", () => {
+    const resultado = esquemaCrearUsuario.safeParse({
+      id: "daniel",
+      nombre: "Daniel Hernández",
+      password: "corta",
+    });
 
-    try {
-      assert.equal(buscarUsuario("prueba")?.grado, "Sgto. 1ro.");
-    } finally {
-      if (original !== undefined) process.env.USUARIOS_JSON = original;
-    }
+    assert.equal(resultado.success, false);
+  });
+
+  it("rechaza IDs y roles inválidos", () => {
+    const porId = esquemaCrearUsuario.safeParse({
+      id: "a",
+      nombre: "Daniel Hernández",
+      password: "clave-segura",
+    });
+    const porRol = esquemaCrearUsuario.safeParse({
+      id: "daniel",
+      nombre: "Daniel Hernández",
+      rol: "SUPERADMIN",
+      password: "clave-segura",
+    });
+
+    assert.equal(porId.success, false);
+    assert.equal(porRol.success, false);
+  });
+
+  it("valida la edición de un funcionario", () => {
+    assert.equal(
+      esquemaActualizarUsuario.safeParse({
+        nombre: "Daniel Hernández",
+        grado: null,
+        rol: "FUNCIONARIO",
+      }).success,
+      true
+    );
+
+    assert.equal(
+      esquemaActualizarUsuario.safeParse({
+        nombre: "D",
+        rol: "ADMIN",
+      }).success,
+      false
+    );
+  });
+});
+
+describe("regla del último administrador", () => {
+  it("bloquea desactivar o eliminar al único administrador", () => {
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "ADMIN",
+        quedaActivo: false,
+        rolNuevo: "ADMIN",
+        administradoresActivos: 1,
+      }),
+      true
+    );
+
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "ADMIN",
+        quedaActivo: false,
+        rolNuevo: null,
+        administradoresActivos: 1,
+      }),
+      true
+    );
+  });
+
+  it("bloquea rebajar al único administrador", () => {
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "ADMIN",
+        quedaActivo: true,
+        rolNuevo: "FUNCIONARIO",
+        administradoresActivos: 1,
+      }),
+      true
+    );
+  });
+
+  it("permite los cambios cuando hay otro administrador", () => {
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "ADMIN",
+        quedaActivo: false,
+        rolNuevo: "ADMIN",
+        administradoresActivos: 2,
+      }),
+      false
+    );
+  });
+
+  it("no se aplica a funcionarios comunes ni a quien sigue siendo administrador", () => {
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "FUNCIONARIO",
+        quedaActivo: false,
+        rolNuevo: null,
+        administradoresActivos: 1,
+      }),
+      false
+    );
+
+    assert.equal(
+      dejariaSinAdministradores({
+        rolActual: "ADMIN",
+        quedaActivo: true,
+        rolNuevo: "ADMIN",
+        administradoresActivos: 1,
+      }),
+      false
+    );
   });
 });
 

@@ -5,6 +5,8 @@ import {
   timingSafeEqual,
 } from "crypto";
 
+import { esRol, type Rol } from "./usuarios";
+
 /**
  * Sesión y credenciales — Guardia Virtual
  * ───────────────────────────────────────
@@ -24,6 +26,8 @@ export type SesionPayload = {
   nombre: string;
   /** Grado o jerarquía del funcionario; opcional. */
   grado?: string | null;
+  /** Rol del funcionario (`ADMIN` o `FUNCIONARIO`). */
+  rol: Rol;
   /** Timestamp de expiración (ms). */
   exp: number;
 };
@@ -106,7 +110,12 @@ export const verificarTokenSesion = (
       return null;
     }
 
-    return payload;
+    // Las sesiones emitidas antes de existir los roles no traen el campo:
+    // se tratan como funcionario (nunca como administrador).
+    return {
+      ...payload,
+      rol: esRol(payload.rol) ? payload.rol : "FUNCIONARIO",
+    };
   } catch {
     return null;
   }

@@ -10,6 +10,8 @@ import type { CasoResumen, DocumentoGuardado } from "@/lib/casos";
 
 type Props = {
   nombre: string;
+  /** `true` si el funcionario en sesión es administrador. */
+  esAdmin: boolean;
 };
 
 /**
@@ -19,7 +21,7 @@ type Props = {
  * (historial de casos) y el visor de borradores. Es el componente que
  * concentra el estado compartido: el caso en curso y su borrador.
  */
-export default function DashboardWorkspace({ nombre }: Props) {
+export default function DashboardWorkspace({ nombre, esAdmin }: Props) {
   const [casos, setCasos] = useState<CasoResumen[]>([]);
   const [casoId, setCasoId] = useState<string | null>(null);
   /** AlIncrementar, el chat se remonte y queda con los antecedentes en cero. */
@@ -232,6 +234,7 @@ export default function DashboardWorkspace({ nombre }: Props) {
     <>
       <PanelLateral
         nombre={nombre}
+        esAdmin={esAdmin}
         casos={casos}
         casoActivoId={casoId}
         mensajeEstado={mensajeEstado}

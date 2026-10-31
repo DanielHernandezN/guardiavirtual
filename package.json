@@ -15,6 +15,7 @@
     "db:studio": "prisma studio",
     "db:use:sqlite": "node scripts/proveedor-db.mjs sqlite",
     "db:use:postgres": "node scripts/proveedor-db.mjs postgresql",
+    "usuarios": "node --import tsx scripts/usuarios.mts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

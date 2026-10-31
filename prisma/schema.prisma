@@ -22,22 +22,29 @@ datasource db {
 }
 
 /// Funcionario con acceso al sistema.
-/// La fuente de verdad de las credenciales es `USUARIOS_JSON`; esta tabla
-/// se sincroniza al iniciar sesión y da integridad referencial a los casos.
+/// Esta tabla es la **fuente de verdad** de las credenciales: el hash
+/// `scrypt` se guarda aquí y solo cambia cuando se cambia la contraseña.
 model Usuario {
   id           String   @id
   /// Nombre completo del funcionario.
   nombre       String
+  /// Grado o jerarquía (por ejemplo, "Sgto. 1ro."); opcional.
+  grado        String?
+  /// Rol: `ADMIN` (gestiona funcionarios) o `FUNCIONARIO`.
+  rol          String   @default("FUNCIONARIO")
   /// Hash `scrypt` de la contraseña (formato `salt:hash`).
   passwordHash String
   /// `false` para desactivar el acceso sin borrar su historial.
   activo       Boolean  @default(true)
+  /// Último inicio de sesión correcto (para el panel de administración).
+  ultimoAcceso DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   casos Caso[]
 
   @@index([activo])
+  @@index([rol])
 }
 
 /// Un procedimiento trabajado por un funcionario.
