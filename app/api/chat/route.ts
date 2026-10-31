@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     const faltantes = camposFaltantes(antecedentes);
 
     const resultado: ResultadoAnalisis = {
-      respuesta: crearRespuestaConversacional(faltantes),
+      respuesta: crearRespuestaConversacional(faltantes, antecedentes),
       ...antecedentes,
       puedeConfeccionarBorrador: faltantes.length === 0,
       faltantes,

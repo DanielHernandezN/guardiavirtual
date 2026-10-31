@@ -1,4 +1,4 @@
-import { camposFaltantes, esDetencion } from "@/lib/antecedentes";
+import { esDetencion } from "@/lib/antecedentes";
 import { obtenerSesion } from "@/lib/auth-server";
 import { errorComoJson } from "@/lib/errores";
 import { fechaYHoraDeHoy } from "@/lib/fecha";
@@ -83,22 +83,10 @@ export async function POST(request: Request) {
 
     const antecedentes = esquemaAntecedentes.parse(antecedentesEntrada);
 
-    // Solo se confecciona el borrador si están todos los campos obligatorios.
-    const faltantes = camposFaltantes(antecedentes);
-    if (faltantes.length > 0) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Faltan antecedentes obligatorios para confeccionar el borrador.",
-          faltantes,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Las contradicciones bloquean el borrador: no se puede redactar un
-    // parte que mezcle dos procedimientos distintos.
+    // El borrador se puede pedir con la idea aunque falte algún dato:
+    // la redacción escribe [PENDIENTE] donde no conste (regla del prompt).
+    // Solo las contradicciones lo bloquean: no se redacta un parte que
+    // mezcle dos procedimientos distintos.
     if (antecedentes.contradicciones.length > 0) {
       return Response.json(
         {

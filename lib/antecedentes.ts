@@ -339,11 +339,42 @@ export const formatoLista = (items: string[]): string => {
   return `${items.slice(0, -1).join(", ")} y ${items[items.length - 1]}`;
 };
 
-/** Genera el mensaje conversacional según los campos que falten. */
-export const crearRespuestaConversacional = (faltantes: string[]): string => {
+/**
+ * Genera el mensaje conversacional: resume lo entendido de la idea narrada,
+ * indica lo que falta y recuerda que el borrador se puede pedir igual
+ * (lo pendiente queda como [PENDIENTE] en el documento).
+ */
+export const crearRespuestaConversacional = (
+  faltantes: string[],
+  antecedentes?: Pick<
+    Antecedentes,
+    "tipoProcedimiento" | "lugar" | "fecha" | "detenido" | "detencion"
+  >
+): string => {
+  const entendido: string[] = [];
+
+  if (antecedentes?.tipoProcedimiento)
+    entendido.push(`procedimiento: ${antecedentes.tipoProcedimiento}`);
+  if (antecedentes?.lugar) entendido.push(`lugar: ${antecedentes.lugar}`);
+  if (antecedentes?.fecha) entendido.push(`fecha: ${antecedentes.fecha}`);
+
+  const detenido = antecedentes?.detenido?.nombre;
+  if (detenido) entendido.push(`detenido: ${detenido}`);
+  else if (antecedentes?.detencion?.delito)
+    entendido.push(`delito: ${antecedentes.detencion.delito}`);
+
+  const resumen =
+    entendido.length > 0
+      ? `Entendí ${formatoLista(entendido)}. `
+      : "Tomé nota de tu relato. ";
+
   if (faltantes.length === 0) {
-    return "Con los antecedentes disponibles puedo continuar con la confección del borrador.";
+    return `${resumen}Puedes pedirme el borrador con GENERAR BORRADOR.`;
   }
 
-  return `Para continuar necesito que indiques ${formatoLista(faltantes)}.`;
+  return (
+    `${resumen}Para completar la idea me sirve ${formatoLista(faltantes)}. ` +
+    `Si prefieres, genera el borrador ahora con GENERAR BORRADOR y lo que ` +
+    `falte quedará marcado como [PENDIENTE] para que lo revises.`
+  );
 };

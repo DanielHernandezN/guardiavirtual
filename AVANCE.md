@@ -2,9 +2,32 @@
 
 > **Propósito de este archivo:** servir de bitácora viva del proyecto. Cada vez que se retome el trabajo, leer este documento primero para saber **dónde quedó** y **qué sigue**. Actualizarlo al terminar cada sesión o cada hito importante.
 
-- **Última actualización:** 30/10/2026
+- **Última actualización:** 31/10/2026
 - **Estado general:** 🟢 **En producción** — Fases 0 a 13 completadas. La aplicación está desplegada en **https://guardiavirtual.vercel.app** con PostgreSQL gestionado (Neon, región São Paulo). Extrae antecedentes, identifica al detenido y al personal aprehensor, **procesa actas DOCX/PDF/TXT**, redacta el borrador con el formato de la unidad, exige revisión humana, **genera el Word con formato institucional**, guarda los casos con historial, papelera y trazabilidad, **administra los funcionarios desde la base de datos con roles** (administrador y funcionario), y cuenta con **131 pruebas**, límite de uso, validación de entrada e interfaz responsive. Pendiente: resolver la latencia del modelo (la beta se detuvo porque el modelo gratuito responde entre 0,4 y 27 s), validar el parte con un caso real, confirmar el membrete con la unidad y ampliar el presupuesto de IA para uso diario.
 - **Commit del motor documental:** `050ea4d` — "Agrega motor documental de actas a Word con trazabilidad" (ingesta DOCX/PDF/TXT, plantillas 1.1.0, trazabilidad, Word institucional, persistencia y pruebas).
+
+> **Sesión 31/10/2026 — el chat pasa a modo libre (estilo ChatGPT):**
+> a pedido del usuario, el chat ya no interroga campo por campo ni bloquea el
+> borrador hasta completar todo: se narra la idea con palabras libres y
+> **GENERAR BORRADOR** está siempre visible (salvo contradicciones); lo que
+> falte queda como `[PENDIENTE]` en el documento (la regla ya existía en el
+> prompt de redacción). `/api/borrador` ya no devuelve 400 por faltantes
+> (mantiene el 409 por contradicciones) y la respuesta del chat resume lo
+> entendido (`Entendí procedimiento: … lugar: …`), pide lo que sirve e invita
+> a generar igual. `npm run typecheck` ✅ · `npm run lint` ✅ 0 errores ·
+> `npm test` ✅ 141/141 · `npm run build` ✅.
+
+> **Sesión 31/10/2026 — se cambia a Groq gratuita y prueba real OK:**
+> OpenRouter `:free` (50 req/día) se agotaba con 429. Se pasó a Groq capa
+> gratuita (`AI_BASE_URL=https://api.groq.com/openai/v1/chat/completions`,
+> `AI_MODEL=openai/gpt-oss-20b`, 30 req/min, 1.000 req/día, 8.000 TPM) en
+> `.env.local` y en Vercel (producción redeplegada, `/` 200).
+> `lib/ia.ts` ahora envía `max_tokens: 2000` (Groq cortaba el JSON con el tope
+> por defecto), `reasoning_effort: "low"` solo en Groq (los modelos gpt-oss
+> razonan y ese cómputo gasta el TPM) y respeta `Retry-After` hasta 65 s.
+> Prueba real con caso ficticio (hurto, detenido + aprehensor): extracción
+> 1,5 s y redacción 17 s, secciones RELATO + LESIONES, fiscal en `null` sin
+> inventar. `npm run typecheck` ✅ · `npm run lint` ✅ · `npm test` ✅ 141/141.
 
 > **Sesión 30/10/2026 — el borrador se bloqueaba y la especie no se registraba:**
 > al dictar un robo en lugar habitado sin detenidos, el chat preguntaba por la
@@ -584,10 +607,8 @@ guardiavirtual/
    recarga única de USD 10 sube el límite a 1000/día.
 3. **Límite de uso compartido** (Redis) si el despliegue escala a varias
    instancias.
-4. **Importar los funcionarios en producción** una sola vez
-   (`npm run usuarios -- importar` con `DATABASE_URL` de Neon) y después
-   borrar `USUARIOS_JSON` de Vercel. Sin ese paso, `daniel` queda como
-   funcionario y nadie puede administrar usuarios hasta que lo haga.
+4. ~~**Importar los funcionarios en producción**~~ ✅ hecho 31/10/2026
+   (`daniel` ya es `ADMIN`; `USUARIOS_JSON` borrada de Vercel y de `.env.local`).
 5. **Datos exactos del membrete y del número de parte** — prefectura,
    comisaría, comuna y folio visible, según lo que exija la unidad.
 6. **Cambio de contraseña por el propio funcionario** («Mi cuenta»): hoy la
@@ -1005,12 +1026,13 @@ administración.
   asistente / error) y **diseño responsive** para celular, tablet y escritorio.
 
 ### Próximos pasos inmediatos (sugeridos)
-1. **Importar los funcionarios en producción** (una sola vez):
-   `$env:DATABASE_URL="postgresql://..."; npm run usuarios -- importar`, y
-   después borrar `USUARIOS_JSON` de Vercel. Verificar que `daniel` figure como
-   `ADMIN` en `/dashboard/usuarios`.
-2. **Ampliar el límite de IA** (OpenRouter): una recarga única de USD 10 sube
-   de 50 a 1000 solicitudes/día, suficiente para una guardia.
+1. ~~**Importar los funcionarios en producción**~~ ✅ **hecho 31/10/2026:**
+   producción ya tenía a `daniel` como `ADMIN` activo (1 caso) más `tatito` y
+   `josepe` como `FUNCIONARIO`. No se ejecutó `importar` porque el
+   `USUARIOS_JSON` local traía el nombre corrupto (`Hernǭndez`) y habría
+   sobrescrito el nombre correcto de la base. Se borró `USUARIOS_JSON` de
+   Vercel (producción) y de `.env.local`; verificado con `vercel env ls`.
+2. **Cuota de IA**: con Groq gratuita (1.000 req/día) hay margen para la guardia; si se agota el TPM (8.000), el sistema reintenta hasta 65 s. Para uso diario intenso evaluar recarga o plan de pago.
 3. **Completar el membrete en producción**: definir `UNIDAD_PREFECTURA`,
    `UNIDAD_NOMBRE` y `UNIDAD_COMUNA` en Vercel (hoy el documento sale sin
    membrete). Las firmas ya incluyen el grado de cada funcionario.
@@ -1032,10 +1054,10 @@ administración.
 
 | Variable | Estado | Notas |
 |----------|--------|-------|
-| `AI_BASE_URL` | ✅ definido | OpenRouter |
-| `AI_API_KEY` | ✅ definido | Clave de OpenRouter: `sk-or-v1-20...b7753` (huella; la clave completa vive solo en `.env.local`) |
-| `AI_MODEL` | ✅ definido | `poolside/laguna-s-2.1:free` (extracción) |
-| `AI_MODEL_REDACCION` | ✅ definido | `poolside/laguna-s-2.1:free` (redacción; si falta, usa `AI_MODEL`) |
+| `AI_BASE_URL` | ✅ definido | Groq (`https://api.groq.com/openai/v1/chat/completions`) |
+| `AI_API_KEY` | ✅ definido | Clave de Groq (solo en `.env.local`, huella `gsk_...nN2q`) |
+| `AI_MODEL` | ✅ definido | `openai/gpt-oss-20b` (extracción) |
+| `AI_MODEL_REDACCION` | ✅ definido | `openai/gpt-oss-20b` (redacción; si falta, usa `AI_MODEL`) |
 | `SESSION_SECRET` | ✅ definido | Generado aleatoriamente |
 | `UNIDAD_PREFECTURA` | ⬜ opcional | Prefectura del membrete (por ejemplo, `Prefectura Villarrica Nro. 3`) |
 | `UNIDAD_NOMBRE` | ⬜ opcional | Unidad del membrete (por ejemplo, `9na. Comisaría Pucón`) |
@@ -1043,9 +1065,8 @@ administración.
 | `DATABASE_URL` | ✅ definido | En `.env` (SQLite local: `file:./dev.db`) |
 
 > Los funcionarios **no** se configuran en `.env.local`: viven en la tabla
-> `Usuario` y se administran desde `/dashboard/usuarios`. `USUARIOS_JSON` solo
-> se conserva para ejecutar `npm run usuarios -- importar` una vez; después se
-> puede borrar.
+> `Usuario` y se administran desde `/dashboard/usuarios`. `USUARIOS_JSON` ya se
+> borró de Vercel y de `.env.local` (31/10/2026).
 
 > En producción, `SESSION_SECRET` es **obligatorio** y `DATABASE_URL` debe
 > apuntar a PostgreSQL. Ver `DEPLOY.md`.
@@ -1056,9 +1077,9 @@ administración.
 |----------|--------|-------|
 | `DATABASE_URL` | ✅ | Neon **pooled**, agregada por la integración |
 | `DATABASE_URL_UNPOOLED` | ✅ | Neon directa, usada por `prisma db push` en la compilación |
-| `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Cifradas en Vercel |
+| `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL` / `AI_MODEL_REDACCION` | ✅ | Groq `openai/gpt-oss-20b` en Vercel (redeploy 31/10/2026) |
 | `SESSION_SECRET` | ✅ | Nueva, generada para producción (distinta de la local) |
-| `USUARIOS_JSON` | ⬜ | Ya no se usa: importar una vez con `npm run usuarios -- importar` y borrarla |
+| `USUARIOS_JSON` | ✅ borrada 31/10/2026 | Ya no existe en Vercel ni en `.env.local`; las credenciales viven en Neon |
 | `UNIDAD_PREFECTURA` / `UNIDAD_NOMBRE` / `UNIDAD_COMUNA` | ⬜ | Pendientes; sin ellas el parte sale sin membrete |
 
 **Proyecto:** `guardiavirtual` · **URL:** <https://guardiavirtual.vercel.app> ·

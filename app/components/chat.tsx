@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   camposFaltantes,
   crearAntecedentesVacios,
-  puedeRedactarBorrador,
 } from "@/lib/antecedentes";
 import { pedirJson } from "@/lib/cliente";
 import { MENSAJE_MAXIMO } from "@/lib/constantes";
@@ -57,9 +56,10 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
         return () => clearInterval(temporizador);
     }, [isLoading]);
 
-    // El borrador solo está disponible si no faltan campos y no hay
-    // contradicciones entre procedimientos.
-    const puedeConfeccionar = puedeRedactarBorrador(datosAntecedentes);
+    // El borrador se puede pedir en cualquier momento con la idea narrada:
+    // lo que falte queda como [PENDIENTE] en el documento. Solo las
+    // contradicciones (dos procedimientos mezclados) lo bloquean.
+    const sinContradicciones = datosAntecedentes.contradicciones.length === 0;
 
     /** Descarta la contradicción detectada y sigue con el caso en curso. */
     const resolverContradicciones = () => {
@@ -221,7 +221,7 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                 </div>
               </div>
               <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end sm:gap-4">
-                {puedeConfeccionar && (
+                {sinContradicciones && mensajes.length > 0 && (
                   <button
                     type="button"
                     onClick={handleGenerarBorrador}
@@ -259,13 +259,11 @@ export default function Chat({ onAbrirMenu, onBorradorGenerado }: Props) {
                             Nuevo parte
                         </h3>
                         <p className="mt-3 text-sm leading-relaxed text-oliva-600">
-                            Escribe el <strong>tipo de procedimiento</strong>, el{" "}
-                            <strong>lugar</strong> y la <strong>fecha</strong> y,
-                            si hay detención, la{" "}
-                            <strong>individualización del detenido</strong> y del{" "}
-                            <strong>personal aprehensor</strong>. Agrega también{" "}
-                            <strong>testigos</strong> y <strong>víctimas</strong>{" "}
-                            si los hay.
+                            Cuéntame la idea con tus palabras —qué pasó,
+                            dónde, cuándo y quiénes— y yo la transformo al
+                            formato del parte. Cuando quieras, pulsa{" "}
+                            <strong>GENERAR BORRADOR</strong>: lo que falte
+                            quedará como [PENDIENTE] para que lo revises.
                         </p>
                     </div>
                 )}

@@ -45,6 +45,8 @@ export type OpcionesModelo = {
   intentos?: number;
   /** Modelo alternativo para esta llamada (por ejemplo, el de redacción). */
   modelo?: string;
+  /** Tope de tokens de salida (por defecto 2000; Groq corta con el valor bajo del proveedor y limita a 8000 TPM). */
+  maxTokens?: number;
 };
 
 const BASE_URL_POR_DEFECTO = "https://openrouter.ai/api/v1/chat/completions";
@@ -168,6 +170,7 @@ export const llamarModelo = async (
     timeoutMs = TIMEOUT_POR_DEFECTO_MS,
     intentos = INTENTOS_POR_DEFECTO,
     modelo,
+    maxTokens = 2000,
   }: OpcionesModelo = {}
 ): Promise<string> => {
   const apiKey = obtenerApiKey();
@@ -188,9 +191,15 @@ export const llamarModelo = async (
     cabeceras["X-Title"] = "Guardiavirtual";
   }
 
+  // Groq: los modelos gpt-oss razonan antes de responder y esos tokens
+  // cuentan en el TPM gratuito (8000). Con esfuerzo bajo basta para el JSON.
   const cuerpo = JSON.stringify({
     model: obtenerModelo(modelo),
     temperature: temperatura,
+    max_tokens: maxTokens,
+    ...(obtenerBaseUrl().includes("groq.com")
+      ? { reasoning_effort: "low" }
+      : {}),
     response_format: { type: "json_object" },
     messages: mensajes,
   });
@@ -239,7 +248,7 @@ export const llamarModelo = async (
         if (intento < totalIntentos) {
           const segundos = Number(response.headers.get("retry-after") ?? 0);
           const espera = Math.min(
-            5_000,
+            65_000,
             segundos > 0 ? segundos * 1000 : ESPERA_REINTENTO_MS * intento
           );
 
